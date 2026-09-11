@@ -1,0 +1,11 @@
+import { useState } from 'react';
+import { Dumbbell, Menu, X } from 'lucide-react';
+import { Link, NavLink } from 'react-router-dom';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import Button from '@/components/ui/Button';
+
+export default function PublicNavbar() {
+  const [open, setOpen] = useState(false);
+  const links = [['Home', '/'], ['About', '/about'], ['Membership', '/membership'], ['Store', '/store'], ['Contact', '/contact']];
+  return <header className="absolute inset-x-0 top-0 z-50 border-b border-white/10 bg-ink-950/80 text-white backdrop-blur-xl"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8"><Link to="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-ink-950"><Dumbbell size={21} strokeWidth={2.5} /></span><span className="font-display text-lg font-bold tracking-tight">IRON<span className="text-brand-400">FORGE</span></span></Link><nav className="hidden items-center gap-7 md:flex">{links.map(([label, path]) => <NavLink key={path} to={path} className={({ isActive }) => `text-sm font-medium transition hover:text-brand-300 ${isActive ? 'text-brand-400' : 'text-surface-300'}`}>{label}</NavLink>)}<ThemeToggle /><Link to="/login"><Button variant="outline" size="sm" className="border-white/20 text-white hover:border-brand-400 hover:text-brand-300">Sign in</Button></Link><Link to="/register"><Button size="sm">Join now</Button></Link></nav><div className="flex items-center gap-2 md:hidden"><ThemeToggle /><button onClick={() => setOpen(!open)} className="rounded-xl p-2 text-surface-200">{open ? <X /> : <Menu />}</button></div></div>{open && <nav className="border-t border-white/10 bg-ink-950 px-5 pb-5 pt-3 md:hidden">{links.map(([label, path]) => <NavLink key={path} to={path} onClick={() => setOpen(false)} className="block border-b border-white/10 py-3 text-sm text-surface-200">{label}</NavLink>)}<div className="flex gap-3 pt-4"><Link to="/login" className="flex-1"><Button variant="outline" className="w-full border-white/20 text-white">Sign in</Button></Link><Link to="/register" className="flex-1"><Button className="w-full">Join now</Button></Link></div></nav>}</header>;
+}
