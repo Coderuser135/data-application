@@ -14,3 +14,37 @@ button, input, select, textarea { font: inherit; }
 .animate-float { animation: float 5s ease-in-out infinite; }
 .animate-fade-up { animation: fade-up .6s ease both; }
 .dark body { background: #0c0c0e; }
+
+/* User sidebar: keep the scrollbar slim and unobtrusive instead of the browser-default thick bar. */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c4c4c8 transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c4c4c8;
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(255,255,255,.22) transparent;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.22);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,.34);
+}
+
+/* Improve muted text contrast only in dark mode. Light mode remains unchanged. */
+.dark .text-surface-500 { color: #aeb6c5 !important; }
+.dark .text-surface-400 { color: #98a2b3 !important; }
+.dark .text-surface-300 { color: #b9c1ce !important; }
