@@ -102,6 +102,44 @@ export async function verifyRazorpayPayment(userId, payload) {
   } finally { await session.endSession(); }
 }
 
+export async function refundPayment(paymentId, { note = '' } = {}) {
+  const payment = await Payment.findById(paymentId);
+  if (!payment) throw new ApiError(404, 'Payment not found');
+  if (payment.status !== 'success') throw new ApiError(409, 'Only successful payments can be refunded');
+  if (payment.status === 'refunded' || payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
+  if (payment.payment_method !== 'online' || !payment.razorpay_payment_id) throw new ApiError(400, 'Only Razorpay payments can be refunded automatically');
+
+  const refund = await gateway().payments.refund(payment.razorpay_payment_id, { amount: Math.round(payment.amount * 100) });
+  const session = await mongoose.startSession();
+  try {
+    let updated;
+    await session.withTransaction(async () => {
+      updated = await Payment.findOneAndUpdate(
+        { _id: payment._id, status: 'success', refund_id: '' },
+        { $set: { status: 'refunded', refund_id: refund.id, refunded_amount: payment.amount, refund_date: new Date(), reference_note: note || payment.reference_note } },
+        { new: true, session }
+      );
+      if (!updated) throw new ApiError(409, 'Payment refund state changed. Please refresh and try again.');
+
+      if (payment.order_id) {
+        const order = await Order.findOne({ _id: payment.order_id, payment_id: payment._id }).session(session);
+        if (order && order.status !== 'delivered') {
+          for (const item of order.order_items) {
+            await Product.updateOne({ _id: item.product_id }, { $inc: { stock_quantity: item.quantity } }, { session });
+          }
+          order.payment_status = 'refunded';
+          order.status = 'cancelled';
+          await order.save({ session });
+        }
+      }
+      if (payment.membership_id) {
+        await Membership.updateOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'active' }, { $set: { status: 'cancelled' } }, { session });
+      }
+    });
+    return updated;
+  } finally { await session.endSession(); }
+}
+
 export async function handleRazorpayWebhook(rawBody, signature, eventPayload) {
   if (!verifyWebhookSignature(rawBody, signature)) throw new ApiError(400, 'Invalid webhook signature');
   const event = eventPayload?.event;
