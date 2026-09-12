@@ -3,25 +3,22 @@ import Membership from '../models/membership.model.js';
 import Notification from '../models/notification.model.js';
 
 export async function expireMemberships() {
-  await Membership.updateMany(
+  const result = await Membership.updateMany(
     { status: 'active', end_date: { $lt: new Date() } },
     { $set: { status: 'expired' } }
   );
+  return { expired: result.modifiedCount || 0 };
 }
 
 export async function sendExpiryReminders() {
-  const twoDaysFromNow = new Date();
-  twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setHours(23, 59, 59, 999);
-
+  const now = new Date();
+  const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
   const expiringSoon = await Membership.find({
     status: 'active',
-    end_date: { $gte: start, $lte: twoDaysFromNow },
+    end_date: { $gte: now, $lte: twoDaysFromNow },
   }).populate({ path: 'user_id', select: 'full_name' });
 
+  let notified = 0;
   for (const membership of expiringSoon) {
     if (!membership.user_id) continue;
     const existing = await Notification.findOne({
@@ -33,20 +30,26 @@ export async function sendExpiryReminders() {
     await Notification.create({
       user_id: membership.user_id._id,
       title: 'Membership expiring soon',
-      message: `Your ${membership.plan_name_snapshot} membership expires on ${new Date(membership.end_date).toLocaleDateString()}. Renew now to keep training.`,
+      message: `Your ${membership.plan_name_snapshot} membership expires on ${new Date(membership.end_date).toLocaleDateString('en-IN')}. Renew now to keep training.`,
       type: 'membership_expiry',
       related_id: membership._id,
       related_type: 'membership_expiry',
     });
+    notified += 1;
   }
+  return { notified };
+}
+
+export async function runMembershipExpiry() {
+  const expired = await expireMemberships();
+  const reminders = await sendExpiryReminders();
+  return { ...expired, ...reminders };
 }
 
 export function startMembershipExpiryJob() {
+  if (process.env.DISABLE_IN_PROCESS_JOBS === 'true') return null;
   const interval = setInterval(() => {
-    if (mongoose.connection.readyState === 1) {
-      expireMemberships().catch((err) => console.error('Membership expiry job failed', err));
-      sendExpiryReminders().catch((err) => console.error('Expiry reminder job failed', err));
-    }
+    if (mongoose.connection.readyState === 1) runMembershipExpiry().catch(() => {});
   }, 60 * 60 * 1000);
   return interval;
 }
