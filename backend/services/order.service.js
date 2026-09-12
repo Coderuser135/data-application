@@ -4,6 +4,13 @@ import { generateOrderNumber } from '../utils/generators.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
 
 const orderStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+const allowedTransitions = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['shipped', 'cancelled'],
+  shipped: ['delivered'],
+  delivered: [],
+  cancelled: [],
+};
 
 export async function getOrdersByUserId(userId) {
   return Order.find({ user_id: userId }).sort({ createdAt: -1 });
@@ -16,13 +23,19 @@ export async function getAllOrders() {
 export async function createOrder(userId, items, shippingAddress) {
   if (!Array.isArray(items) || items.length === 0) throw new ApiError(400, 'Cart cannot be empty');
   if (!String(shippingAddress || '').trim()) throw new ApiError(400, 'Shipping address is required');
-  const orderItems = [];
-  let totalAmount = 0;
 
+  const quantities = new Map();
   for (const item of items) {
     const productId = item.product?.id || item.product?._id || item.productId;
     const quantity = Number(item.quantity);
     if (!productId || !Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new ApiError(400, 'Invalid cart item');
+    const key = String(productId);
+    quantities.set(key, (quantities.get(key) || 0) + quantity);
+  }
+
+  const orderItems = [];
+  let totalAmount = 0;
+  for (const [productId, quantity] of quantities) {
     const product = await Product.findOne({ _id: productId, is_active: true });
     if (!product) throw new ApiError(404, 'Product is unavailable');
     if (product.stock_quantity < quantity) throw new ApiError(400, `Insufficient stock for: ${product.name}`);
@@ -47,6 +60,16 @@ export async function updateOrderStatus(orderId, status) {
   if (!orderStatuses.includes(status)) throw new ApiError(400, 'Invalid order status');
   const order = await Order.findById(orderId);
   if (!order) throw new ApiError(404, 'Order not found');
+  if (order.status === status) return order;
+  if (!allowedTransitions[order.status].includes(status)) {
+    throw new ApiError(409, `Cannot move order from ${order.status} to ${status}`);
+  }
+  if (status === 'confirmed' && order.payment_status !== 'success') {
+    throw new ApiError(409, 'Order cannot be confirmed before successful payment');
+  }
+  if (status === 'cancelled' && order.payment_status === 'success') {
+    throw new ApiError(409, 'Paid orders require a refund flow before cancellation');
+  }
   order.status = status;
   await order.save();
   return order;
