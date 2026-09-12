@@ -1,4 +1,5 @@
 import Notification from '../models/notification.model.js';
+import User from '../models/user.model.js';
 
 export async function getNotificationsByUserId(userId) {
   return Notification.find({ user_id: userId }).sort({ createdAt: -1 });
@@ -26,8 +27,7 @@ export async function createNotification(data) {
 }
 
 export async function broadcastToAllUsers({ title, message }) {
-  const User = (await import('../models/User.js')).default;
-  const users = await User.find({}, '_id');
+  const users = await User.find({}, '_id').lean();
   if (users.length === 0) return { sent: 0 };
   const docs = users.map((u) => ({
     user_id: u._id,
@@ -36,6 +36,6 @@ export async function broadcastToAllUsers({ title, message }) {
     type: 'broadcast',
     is_read: false,
   }));
-  await Notification.insertMany(docs);
+  await Notification.insertMany(docs, { ordered: false });
   return { sent: users.length };
 }
