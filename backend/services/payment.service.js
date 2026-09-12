@@ -12,6 +12,22 @@ function gateway() {
   return new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
 }
 
+function verifySignature(orderId, paymentId, signature) {
+  if (!orderId || !paymentId || !signature || !process.env.RAZORPAY_KEY_SECRET) return false;
+  const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(`${orderId}|${paymentId}`).digest('hex');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  const signatureBuffer = Buffer.from(String(signature), 'utf8');
+  return expectedBuffer.length === signatureBuffer.length && crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
+}
+
+function verifyWebhookSignature(rawBody, signature) {
+  if (!process.env.RAZORPAY_WEBHOOK_SECRET || !signature) return false;
+  const expected = crypto.createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET).update(rawBody).digest('hex');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  const signatureBuffer = Buffer.from(String(signature), 'utf8');
+  return expectedBuffer.length === signatureBuffer.length && crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
+}
+
 export async function getPaymentsByUserId(userId) {
   return Payment.find({ user_id: userId }).sort({ createdAt: -1 });
 }
@@ -24,8 +40,9 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
   if ((orderId && membershipId) || (!orderId && !membershipId)) throw new ApiError(400, 'A single payment target is required');
   let amount;
   let paymentType;
+
   if (orderId) {
-    const order = await Order.findOne({ _id: orderId, user_id: userId, payment_status: 'pending' });
+    const order = await Order.findOne({ _id: orderId, user_id: userId, payment_status: 'pending', status: 'pending' });
     if (!order) throw new ApiError(404, 'Pending order not found');
     amount = order.total_amount;
     paymentType = 'order';
@@ -35,21 +52,75 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
     amount = membership.plan_price_snapshot;
     paymentType = 'membership_full';
   }
-  const existing = await Payment.findOne({ user_id: userId, ...(orderId ? { order_id: orderId } : { membership_id: membershipId }), status: 'pending', razorpay_order_id: { $ne: '' } });
-  if (existing) return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID };
+
+  if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Invalid payment amount');
+  const targetFilter = orderId ? { order_id: orderId } : { membership_id: membershipId };
+  const existing = await Payment.findOne({ user_id: userId, ...targetFilter, status: 'pending', razorpay_order_id: { $ne: '' } });
+  if (existing) {
+    const existingOrder = await gateway().orders.fetch(existing.razorpay_order_id).catch(() => null);
+    if (existingOrder && existingOrder.status !== 'paid') return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder: existingOrder };
+    if (!existingOrder) return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID };
+  }
 
   const razorpayOrder = await gateway().orders.create({ amount: Math.round(amount * 100), currency: 'INR', receipt: `${paymentType}-${Date.now()}` });
   const payment = await Payment.create({ user_id: userId, order_id: orderId || null, membership_id: membershipId || null, amount, payment_type: paymentType, payment_method: 'online', status: 'pending', razorpay_order_id: razorpayOrder.id });
   return { payment, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder };
 }
 
+async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, signature, session) {
+  const query = { _id: paymentId };
+  if (userId) query.user_id = userId;
+  const payment = await Payment.findOne(query).session(session);
+  if (!payment) throw new ApiError(404, 'Payment not found');
+  if (payment.status === 'success') return payment;
+  if (payment.status === 'refunded') throw new ApiError(409, 'Payment has already been refunded');
+
+  payment.status = 'success';
+  if (razorpayPaymentId) {
+    payment.razorpay_payment_id = razorpayPaymentId;
+    payment.transaction_id = razorpayPaymentId;
+  }
+  if (signature) payment.razorpay_signature = signature;
+  payment.payment_date = new Date();
+  await payment.save({ session });
+
+  if (payment.membership_id) {
+    const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending' }).session(session);
+    if (!membership) throw new ApiError(409, 'Pending membership not found');
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + membership.duration_days);
+    membership.start_date = startDate;
+    membership.end_date = endDate;
+    membership.status = 'active';
+    await membership.save({ session });
+  }
+
+  if (payment.order_id) {
+    const order = await Order.findOne({ _id: payment.order_id, user_id: payment.user_id, payment_status: 'pending', status: 'pending' }).session(session);
+    if (!order) throw new ApiError(409, 'Pending order not found');
+    for (const item of order.order_items) {
+      const result = await Product.updateOne(
+        { _id: item.product_id, is_active: true, stock_quantity: { $gte: item.quantity } },
+        { $inc: { stock_quantity: -item.quantity } },
+        { session },
+      );
+      if (result.modifiedCount !== 1) throw new ApiError(409, 'Stock changed while payment was processing. Payment will be reconciled by webhook/admin.');
+    }
+    order.payment_status = 'success';
+    order.payment_id = payment._id;
+    order.status = 'confirmed';
+    await order.save({ session });
+  }
+  return payment;
+}
+
 export async function verifyRazorpayPayment(userId, payload) {
   const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = payload;
-  if (!orderId || !paymentId || !signature) throw new ApiError(400, 'Incomplete payment verification data');
-  const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(`${orderId}|${paymentId}`).digest('hex');
-  const expectedBuffer = Buffer.from(expected);
-  const signatureBuffer = Buffer.from(signature);
-  if (expectedBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(expectedBuffer, signatureBuffer)) throw new ApiError(400, 'Payment verification failed');
+  if (!verifySignature(orderId, paymentId, signature)) throw new ApiError(400, 'Payment verification failed');
+
+  const razorpayPayment = await gateway().payments.fetch(paymentId);
+  if (!razorpayPayment || razorpayPayment.order_id !== orderId || razorpayPayment.currency !== 'INR') throw new ApiError(400, 'Payment details do not match the order');
 
   const session = await mongoose.startSession();
   try {
@@ -57,33 +128,44 @@ export async function verifyRazorpayPayment(userId, payload) {
     await session.withTransaction(async () => {
       const payment = await Payment.findOne({ razorpay_order_id: orderId, user_id: userId }).session(session);
       if (!payment) throw new ApiError(404, 'Payment not found');
-      if (payment.status === 'success') { verifiedPayment = payment; return; }
-      payment.status = 'success';
-      payment.razorpay_payment_id = paymentId;
-      payment.razorpay_signature = signature;
-      payment.transaction_id = paymentId;
-      payment.payment_date = new Date();
-      await payment.save({ session });
-      verifiedPayment = payment;
-
-      if (payment.membership_id) {
-        await Membership.updateOne({ _id: payment.membership_id, user_id: userId, status: 'pending' }, { $set: { status: 'active' } }, { session });
-      }
-      if (payment.order_id) {
-        const order = await Order.findOne({ _id: payment.order_id, user_id: userId, payment_status: 'pending' }).session(session);
-        if (!order) throw new ApiError(404, 'Pending order not found');
-        for (const item of order.order_items) {
-          const result = await Product.updateOne({ _id: item.product_id, is_active: true, stock_quantity: { $gte: item.quantity } }, { $inc: { stock_quantity: -item.quantity } }, { session });
-          if (result.modifiedCount !== 1) throw new ApiError(409, 'Stock changed while payment was processing');
-        }
-        order.payment_status = 'success';
-        order.payment_id = payment._id;
-        order.status = 'confirmed';
-        await order.save({ session });
-      }
+      if (Math.round(Number(payment.amount) * 100) !== Number(razorpayPayment.amount)) throw new ApiError(400, 'Payment amount mismatch');
+      if (!['captured', 'authorized'].includes(razorpayPayment.status)) throw new ApiError(400, 'Payment has not been captured');
+      verifiedPayment = await finalizeSuccessfulPayment(payment._id, userId, paymentId, signature, session);
     });
     return verifiedPayment;
   } finally {
     await session.endSession();
   }
+}
+
+export async function handleRazorpayWebhook(rawBody, signature, eventPayload) {
+  if (!verifyWebhookSignature(rawBody, signature)) throw new ApiError(400, 'Invalid webhook signature');
+  const event = eventPayload?.event;
+  if (!['payment.captured', 'payment.failed'].includes(event)) return { received: true, processed: false };
+
+  const entity = eventPayload?.payload?.payment?.entity;
+  if (!entity?.id) return { received: true, processed: false };
+  const payment = await Payment.findOne({ razorpay_order_id: entity.order_id });
+  if (!payment) return { received: true, processed: false };
+
+  if (event === 'payment.failed') {
+    if (payment.status === 'pending') {
+      payment.status = 'failed';
+      payment.razorpay_payment_id = entity.id || '';
+      payment.reference_note = entity.error_description || payment.reference_note;
+      await payment.save();
+    }
+    return { received: true, processed: true };
+  }
+
+  if (entity.currency !== 'INR' || Number(entity.amount) !== Math.round(payment.amount * 100)) throw new ApiError(400, 'Webhook payment amount mismatch');
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await finalizeSuccessfulPayment(payment._id, null, entity.id, null, session);
+    });
+  } finally {
+    await session.endSession();
+  }
+  return { received: true, processed: true };
 }
