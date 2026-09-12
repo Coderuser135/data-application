@@ -5,4 +5,5 @@ export const paymentService = {
   getAll: () => api.get('/payments').then((r) => r.data),
   createRazorpayOrder: (data) => api.post('/payments/razorpay/order', data).then((r) => r.data),
   verifyRazorpayPayment: (data) => api.post('/payments/razorpay/verify', data).then((r) => r.data),
+  refund: (id, data = {}) => api.post(`/payments/${id}/refund`, data).then((r) => r.data),
 };
