@@ -12,10 +12,15 @@ const paymentSchema = new mongoose.Schema({
   razorpay_order_id: { type: String, default: '', index: true },
   razorpay_payment_id: { type: String, default: '' },
   razorpay_signature: { type: String, default: '' },
+  refund_id: { type: String, default: '' },
+  refunded_amount: { type: Number, default: 0, min: 0 },
+  refund_date: { type: Date, default: null },
   reference_note: { type: String, default: '' },
   payment_date: { type: Date, default: Date.now },
 }, { timestamps: true });
 
 paymentSchema.index({ user_id: 1, membership_id: 1 });
+paymentSchema.index({ user_id: 1, status: 1, createdAt: -1 });
+paymentSchema.index({ order_id: 1, status: 1 });
 
 export default mongoose.model('Payment', paymentSchema);
