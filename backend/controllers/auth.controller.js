@@ -1,12 +1,16 @@
 import * as authService from '../services/auth.service.js';
 
-const cookieOptions = (maxAge) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge,
-  path: '/',
-});
+function cookieOptions(maxAge) {
+  const production = process.env.NODE_ENV === 'production';
+  const sameSite = process.env.COOKIE_SAME_SITE || (production ? 'none' : 'lax');
+  return {
+    httpOnly: true,
+    secure: production,
+    sameSite,
+    maxAge,
+    path: '/',
+  };
+}
 
 function setAuthCookies(res, accessToken, refreshToken) {
   res.cookie('accessToken', accessToken, cookieOptions(15 * 60 * 1000));
@@ -14,32 +18,21 @@ function setAuthCookies(res, accessToken, refreshToken) {
 }
 
 export async function register(req, res, next) {
-  try {
-    const result = await authService.registerUser(req.body);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.status(201).json({ user: result.user });
-  } catch (err) { next(err); }
+  try { const result = await authService.registerUser(req.body); setAuthCookies(res, result.accessToken, result.refreshToken); res.status(201).json({ user: result.user }); } catch (err) { next(err); }
 }
 
 export async function login(req, res, next) {
-  try {
-    const result = await authService.loginUser(req.body);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.json({ user: result.user });
-  } catch (err) { next(err); }
+  try { const result = await authService.loginUser(req.body); setAuthCookies(res, result.accessToken, result.refreshToken); res.json({ user: result.user }); } catch (err) { next(err); }
 }
 
 export async function refresh(req, res, next) {
-  try {
-    const result = await authService.refreshAccessToken(req.cookies?.refreshToken);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.json({ user: result.user });
-  } catch (err) { next(err); }
+  try { const result = await authService.refreshAccessToken(req.cookies?.refreshToken); setAuthCookies(res, result.accessToken, result.refreshToken); res.json({ user: result.user }); } catch (err) { next(err); }
 }
 
 export function logout(req, res) {
-  res.clearCookie('accessToken', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/' });
-  res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/' });
+  const options = cookieOptions(0);
+  res.clearCookie('accessToken', options);
+  res.clearCookie('refreshToken', options);
   res.json({ message: 'Logged out successfully' });
 }
 
