@@ -9,7 +9,10 @@ function dateOnly(date) { return new Date(date).toISOString().split('T')[0]; }
 function nextStartDate(membership) {
   const today = new Date();
   const end = membership?.end_date ? new Date(membership.end_date) : null;
-  if (membership?.status === 'active' && end && end >= today) { end.setDate(end.getDate() + 1); return end; }
+  if ((membership?.status === 'active' || membership?.status === 'scheduled') && end && end >= today) {
+    end.setDate(end.getDate() + 1);
+    return end;
+  }
   return today;
 }
 
@@ -33,19 +36,13 @@ export async function purchaseMembership(userId, planId) {
   const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' });
   if (!admission) throw new ApiError(400, 'No active gym admission found. Ask gym staff to admit you first.');
   await ensureNoPendingMembership(userId);
-  const active = await Membership.findOne({ user_id: userId, status: 'active' });
-  if (active) throw new ApiError(409, 'You already have an active membership. Use renewal instead.');
-  return Membership.create({ user_id: userId, gym_admission_id: admission._id, plan_id: plan._id, plan_name_snapshot: plan.name, plan_price_snapshot: plan.price, duration_days: plan.duration_days, status: 'pending' });
+  const active = await Membership.findOne({ user_id: userId, status: { $in: ['active', 'scheduled'] } });
+  if (active) throw new ApiError(409, 'You already have an active or scheduled membership. Use renewal instead.');
+  return Membership.create({ user_id: userId, gym_admission_id: admission._id, plan_id: plan._id, plan_name_snapshot: plan.name, plan_price_snapshot: plan.price, duration_days: plan.duration_days, status: 'pending', payment_status: 'pending' });
 }
 
-export async function payAdvance(userId, membershipId) {
-  const membership = await Membership.findOne({ _id: membershipId, user_id: userId, status: 'pending' });
-  if (!membership) throw new ApiError(404, 'Pending membership not found');
-  const advanceAmount = Number(process.env.MEMBERSHIP_ADVANCE_AMOUNT || 0);
-  if (advanceAmount <= 0) throw new ApiError(400, 'Membership advance payments are not enabled');
-  const paid = await getAdvancePaid(userId, membership._id);
-  if (paid >= advanceAmount) throw new ApiError(400, 'Advance already paid for this membership');
-  return Payment.create({ user_id: userId, membership_id: membership._id, amount: Math.min(advanceAmount - paid, membership.plan_price_snapshot), payment_type: 'membership_advance', payment_method: 'online', status: 'pending' });
+export async function payAdvance() {
+  throw new ApiError(400, 'Membership advance payment flow is disabled; use the full membership payment flow.');
 }
 
 export async function renewMembership(userId, membershipId) {
@@ -54,12 +51,12 @@ export async function renewMembership(userId, membershipId) {
   const plan = await MembershipPlan.findOne({ _id: oldMembership.plan_id, is_active: true });
   if (!plan) throw new ApiError(404, 'Original plan not found');
   await ensureNoPendingMembership(userId);
-  if (oldMembership.status === 'active') {
-    const otherActive = await Membership.findOne({ user_id: userId, status: 'active', _id: { $ne: oldMembership._id } });
-    if (otherActive) throw new ApiError(409, 'Another active membership already exists');
+  if (oldMembership.status === 'active' || oldMembership.status === 'scheduled') {
+    const otherActive = await Membership.findOne({ user_id: userId, status: { $in: ['active', 'scheduled'] }, _id: { $ne: oldMembership._id } });
+    if (otherActive) throw new ApiError(409, 'Another active or scheduled membership already exists');
   }
   const startDate = nextStartDate(oldMembership);
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + plan.duration_days);
-  return Membership.create({ user_id: userId, gym_admission_id: oldMembership.gym_admission_id, plan_id: plan._id, plan_name_snapshot: plan.name, plan_price_snapshot: plan.price, duration_days: plan.duration_days, start_date: dateOnly(startDate), end_date: dateOnly(endDate), status: 'pending' });
+  return Membership.create({ user_id: userId, gym_admission_id: oldMembership.gym_admission_id, plan_id: plan._id, plan_name_snapshot: plan.name, plan_price_snapshot: plan.price, duration_days: plan.duration_days, start_date: startDate, end_date: endDate, status: 'pending', payment_status: 'pending' });
 }
