@@ -13,11 +13,10 @@ const bodyMeasurementSchema = new mongoose.Schema({
   legs: { type: Number, default: 0, min: 0 },
   body_fat: { type: Number, default: 0, min: 0 },
   muscle_mass: { type: Number, default: 0, min: 0 },
-  notes: { type: String, default: '' },
-  measurement_date: { type: Date, default: () => new Date().toISOString().split('T')[0] },
+  notes: { type: String, default: '', maxlength: 2000 },
+  measurement_date: { type: Date, default: Date.now },
 }, { timestamps: true });
 
-bodyMeasurementSchema.index({ user_id: 1 });
-bodyMeasurementSchema.index({ measurement_date: -1 });
+bodyMeasurementSchema.index({ user_id: 1, measurement_date: -1 });
 
 export default mongoose.model('BodyMeasurement', bodyMeasurementSchema);

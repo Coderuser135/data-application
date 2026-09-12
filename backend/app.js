@@ -15,6 +15,7 @@ import notificationRoutes from './routes/notification.route.js';
 import settingsRoutes from './routes/setting.route.js';
 import gymSettingsRoutes from './routes/gymsetting.route.js';
 import dashboardRoutes from './routes/dashboard.route.js';
+import { razorpayWebhook } from './controllers/payment.controller.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
 const app = express();
@@ -23,7 +24,10 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
-app.use(express.json());
+
+// Razorpay signs the exact raw request body. This route must run before express.json().
+app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json' }), razorpayWebhook);
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 

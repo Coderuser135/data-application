@@ -15,3 +15,12 @@ export async function createRazorpayOrder(req, res, next) {
 export async function verifyRazorpayPayment(req, res, next) {
   try { res.json(await paymentService.verifyRazorpayPayment(req.user._id, req.body)); } catch (err) { next(err); }
 }
+
+export async function razorpayWebhook(req, res, next) {
+  try {
+    const signature = req.get('x-razorpay-signature');
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
+    const payload = JSON.parse(rawBody.toString('utf8'));
+    res.json(await paymentService.handleRazorpayWebhook(rawBody, signature, payload));
+  } catch (err) { next(err); }
+}
