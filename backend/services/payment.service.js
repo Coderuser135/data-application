@@ -35,7 +35,7 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
     if (!order) throw new ApiError(404, 'Pending order not found');
     amount = order.total_amount; paymentType = 'order';
   } else {
-    const membership = await Membership.findOne({ _id: membershipId, user_id: userId, status: 'pending' });
+    const membership = await Membership.findOne({ _id: membershipId, user_id: userId, status: 'pending', payment_status: 'pending' });
     if (!membership) throw new ApiError(404, 'Pending membership not found');
     amount = membership.plan_price_snapshot; paymentType = 'membership_full';
   }
@@ -64,10 +64,16 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   await payment.save({ session });
 
   if (payment.membership_id) {
-    const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending' }).session(session);
+    const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending', payment_status: 'pending' }).session(session);
     if (!membership) throw new ApiError(409, 'Pending membership not found');
-    const startDate = new Date(); const endDate = new Date(startDate); endDate.setDate(endDate.getDate() + membership.duration_days);
-    membership.start_date = startDate; membership.end_date = endDate; membership.status = 'active';
+    const startDate = membership.start_date ? new Date(membership.start_date) : new Date();
+    const endDate = membership.end_date ? new Date(membership.end_date) : new Date(startDate);
+    if (!membership.end_date) endDate.setDate(endDate.getDate() + membership.duration_days);
+    const now = new Date();
+    membership.start_date = startDate;
+    membership.end_date = endDate;
+    membership.payment_status = 'paid';
+    membership.status = startDate > now ? 'scheduled' : 'active';
     await membership.save({ session });
   }
   if (payment.order_id) {
@@ -106,7 +112,7 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
   const payment = await Payment.findById(paymentId);
   if (!payment) throw new ApiError(404, 'Payment not found');
   if (payment.status !== 'success') throw new ApiError(409, 'Only successful payments can be refunded');
-  if (payment.status === 'refunded' || payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
+  if (payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
   if (payment.payment_method !== 'online' || !payment.razorpay_payment_id) throw new ApiError(400, 'Only Razorpay payments can be refunded automatically');
 
   const refund = await gateway().payments.refund(payment.razorpay_payment_id, { amount: Math.round(payment.amount * 100) });
@@ -124,16 +130,12 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
       if (payment.order_id) {
         const order = await Order.findOne({ _id: payment.order_id, payment_id: payment._id }).session(session);
         if (order && order.status !== 'delivered') {
-          for (const item of order.order_items) {
-            await Product.updateOne({ _id: item.product_id }, { $inc: { stock_quantity: item.quantity } }, { session });
-          }
-          order.payment_status = 'refunded';
-          order.status = 'cancelled';
-          await order.save({ session });
+          for (const item of order.order_items) await Product.updateOne({ _id: item.product_id }, { $inc: { stock_quantity: item.quantity } }, { session });
+          order.payment_status = 'refunded'; order.status = 'cancelled'; await order.save({ session });
         }
       }
       if (payment.membership_id) {
-        await Membership.updateOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'active' }, { $set: { status: 'cancelled' } }, { session });
+        await Membership.updateOne({ _id: payment.membership_id, user_id: payment.user_id, payment_status: 'paid', status: { $in: ['active', 'scheduled'] } }, { $set: { status: 'cancelled', payment_status: 'refunded' } }, { session });
       }
     });
     return updated;
