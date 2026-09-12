@@ -16,6 +16,7 @@ import Store from '@/pages/public/Store';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
+import ResetPassword from '@/pages/auth/ResetPassword';
 
 import Dashboard from '@/pages/user/Dashboard';
 import Profile from '@/pages/user/Profile';
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/user" element={<ProtectedRoute><UserLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/user/dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />
@@ -95,5 +97,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-
