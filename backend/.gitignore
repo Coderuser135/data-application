@@ -1,2 +1,4 @@
 node_modules
-.evn
+.env
+.env.*
+!.env.example
