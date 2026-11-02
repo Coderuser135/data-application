@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import User from '../models/user.model.js';
 import Session from '../models/session.model.js';
 import PasswordResetToken from '../models/passwordResetToken.model.js';
@@ -8,6 +9,7 @@ import { ApiError } from '../utils/errors.utils.js';
 import { sendPasswordResetEmail } from '../utils/email.utils.js';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('not-a-real-user-password', 12);
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -27,9 +29,8 @@ function sessionMetadata(metadata = {}) {
 }
 
 async function createSession(user, metadata) {
-  const sessionId = new crypto.randomUUID();
   const familyId = crypto.randomUUID();
-  const sessionObjectId = new (await import('mongoose')).default.Types.ObjectId();
+  const sessionObjectId = new mongoose.Types.ObjectId();
   const refreshToken = generateRefreshToken(user, sessionObjectId);
   const session = await Session.create({
     _id: sessionObjectId,
@@ -70,9 +71,7 @@ export async function loginUser({ email, password }, metadata) {
   if (!normalizedEmail || typeof password !== 'string') throw new ApiError(401, 'Invalid credentials');
 
   const user = await User.findOne({ email: normalizedEmail }).select('+password');
-  const passwordMatches = user
-    ? await bcrypt.compare(password, user.password)
-    : await bcrypt.compare(password, '$2a$12$C6UzMDM.H6dfI/f/IKcEe.4zY4dJfQ0hJxQvQ2F5h6g9GxY3mX6uK');
+  const passwordMatches = await bcrypt.compare(password, user?.password || DUMMY_PASSWORD_HASH);
   if (!user || !passwordMatches) throw new ApiError(401, 'Invalid credentials');
 
   return createSession(user, metadata);
