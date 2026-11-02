@@ -48,8 +48,14 @@ async function issueEmailVerificationOtp(user) {
   try {
     await sendEmailVerificationOtp({ to: user.email, otp, fullName: user.full_name });
   } catch (error) {
+    console.error('[email] Verification email failed:', {
+      code: error?.code,
+      message: error?.message,
+      responseCode: error?.responseCode,
+      command: error?.command,
+    });
     await EmailOtp.deleteMany({ user_id: user._id, purpose: 'verify_email' });
-    throw new ApiError(503, 'Verification email could not be sent. Please try again later');
+    throw new ApiError(503, 'Verification email could not be sent. Check the server email configuration and logs.');
   }
 }
 async function createSession(user, metadata) {
@@ -207,7 +213,13 @@ export async function requestPasswordReset({ email }) {
   await PasswordResetToken.create({ user_id: user._id, token_hash: tokenHash, expires_at: new Date(Date.now() + 60 * 60 * 1000) });
   try {
     await sendPasswordResetEmail({ to: user.email, token: rawToken });
-  } catch {
+  } catch (error) {
+    console.error('[email] Password reset email failed:', {
+      code: error?.code,
+      message: error?.message,
+      responseCode: error?.responseCode,
+      command: error?.command,
+    });
     await PasswordResetToken.deleteOne({ token_hash: tokenHash });
     throw new ApiError(503, 'Password reset email service is temporarily unavailable');
   }
