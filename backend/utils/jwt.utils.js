@@ -53,3 +53,11 @@ export function verifyRefreshToken(token) {
     throw new ApiError(401, 'Invalid or expired refresh token');
   }
 }
+
+export function validateJwtConfiguration() {
+  const accessSecret = requiredSecret('JWT_ACCESS_SECRET');
+  const refreshSecret = requiredSecret('JWT_REFRESH_SECRET');
+  if (accessSecret === refreshSecret) {
+    throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values');
+  }
+}
