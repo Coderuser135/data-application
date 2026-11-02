@@ -25,9 +25,7 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 import { persistentRateLimit } from './middlewares/persistentRateLimit.middleware.js';
 
 const app = express();
-const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',').map((value) => value.trim()).filter(Boolean);
-
+const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean);
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(helmet());
@@ -43,6 +41,7 @@ app.use(cors({
 const authLimiter = persistentRateLimit({ windowMs: 15 * 60 * 1000, limit: 60, message: 'Too many authentication requests. Try again later.' });
 const loginLimiter = persistentRateLimit({ windowMs: 15 * 60 * 1000, limit: 10, message: 'Too many login attempts. Try again later.' });
 const registrationLimiter = persistentRateLimit({ windowMs: 60 * 60 * 1000, limit: 8, message: 'Too many registration attempts. Try again later.' });
+const verificationLimiter = persistentRateLimit({ windowMs: 60 * 60 * 1000, limit: 10, message: 'Too many verification requests. Try again later.' });
 const passwordResetLimiter = persistentRateLimit({ windowMs: 60 * 60 * 1000, limit: 5, message: 'Too many password reset attempts. Try again later.' });
 const paymentLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
@@ -58,13 +57,14 @@ app.get('/api/health', (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
   res.status(dbReady ? 200 : 503).json({ status: dbReady ? 'ok' : 'degraded', database: dbReady ? 'connected' : 'disconnected' });
 });
-
 app.get('/api/internal/cron/membership-expiry', cronProtection, async (req, res, next) => {
   try { res.json(await runMembershipExpiry()); } catch (err) { next(err); }
 });
 
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth/register', registrationLimiter);
+app.use('/api/auth/verify-email', verificationLimiter);
+app.use('/api/auth/resend-verification-otp', verificationLimiter);
 app.use('/api/auth/forgot-password', passwordResetLimiter);
 app.use('/api/auth/reset-password', passwordResetLimiter);
 app.use('/api/auth', authLimiter, authRoutes);
@@ -80,8 +80,6 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/gym-settings', gymSettingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use(errorHandler);
-
 export default app;
