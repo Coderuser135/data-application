@@ -51,7 +51,7 @@ async function createSession(user, metadata) {
 export async function registerUser({ email, password, full_name, fullName, phone }, metadata) {
   const normalizedEmail = normalizeEmail(email);
   validatePassword(password);
-  if (!normalizedEmail || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)) {
+  if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     throw new ApiError(400, 'A valid email is required');
   }
   const existing = await User.findOne({ email: normalizedEmail }).select('_id');
