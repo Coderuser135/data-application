@@ -16,8 +16,8 @@ function normalizeEmail(email) {
 }
 
 function validatePassword(password) {
-  if (typeof password !== 'string' || password.length < 12 || password.length > 128) {
-    throw new ApiError(400, 'Password must be between 12 and 128 characters');
+  if (typeof password !== 'string' || password.length < 12 || Buffer.byteLength(password, 'utf8') > 72) {
+    throw new ApiError(400, 'Password must be at least 12 characters and no more than 72 UTF-8 bytes');
   }
 }
 
