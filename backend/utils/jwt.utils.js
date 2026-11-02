@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import crypto from 'crypto';
 import { ApiError } from './errors.utils.js';
 
 function requiredSecret(name) {
