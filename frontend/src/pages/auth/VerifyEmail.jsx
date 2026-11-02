@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import { ArrowRight, Dumbbell } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -9,7 +8,6 @@ import { authService } from '@/services/authService';
 export default function VerifyEmail() {
   const location = useLocation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [email, setEmail] = useState(location.state?.email || '');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
