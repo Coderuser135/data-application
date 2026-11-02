@@ -9,11 +9,19 @@ function allowedOrigins() {
 
 export function originProtection(req, res, next) {
   if (SAFE_METHODS.has(req.method)) return next();
+
   const origin = req.get('origin');
-  if (!origin) return next();
-  if (!allowedOrigins().includes(origin)) {
+  if (origin && !allowedOrigins().includes(origin)) {
     return res.status(403).json({ error: 'Request origin is not allowed' });
   }
+
+  // Cookie-authenticated state changes must carry a browser Origin header.
+  // Non-browser integrations should use a separate, explicitly authenticated API.
+  const hasAuthCookie = Boolean(req.cookies?.accessToken || req.cookies?.refreshToken);
+  if (!origin && hasAuthCookie) {
+    return res.status(403).json({ error: 'Origin header required for cookie-authenticated requests' });
+  }
+
   return next();
 }
 

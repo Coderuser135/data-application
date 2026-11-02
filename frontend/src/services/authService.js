@@ -2,8 +2,11 @@ import api from './apiClient';
 
 export const authService = {
   register: (data) => api.post('/auth/register', data).then((r) => r.data),
+  verifyEmail: (data) => api.post('/auth/verify-email', data).then((r) => r.data),
+  resendVerificationOtp: (data) => api.post('/auth/resend-verification-otp', data).then((r) => r.data),
   login: (data) => api.post('/auth/login', data).then((r) => r.data),
   logout: () => api.post('/auth/logout').then((r) => r.data),
+  logoutAll: () => api.post('/auth/logout-all').then((r) => r.data),
   me: () => api.get('/auth/me').then((r) => r.data),
   changePassword: (data) => api.post('/auth/change-password', data).then((r) => r.data),
   forgotPassword: (data) => api.post('/auth/forgot-password', data).then((r) => r.data),
