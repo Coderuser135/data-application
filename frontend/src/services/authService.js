@@ -4,6 +4,7 @@ export const authService = {
   register: (data) => api.post('/auth/register', data).then((r) => r.data),
   login: (data) => api.post('/auth/login', data).then((r) => r.data),
   logout: () => api.post('/auth/logout').then((r) => r.data),
+  logoutAll: () => api.post('/auth/logout-all').then((r) => r.data),
   me: () => api.get('/auth/me').then((r) => r.data),
   changePassword: (data) => api.post('/auth/change-password', data).then((r) => r.data),
   forgotPassword: (data) => api.post('/auth/forgot-password', data).then((r) => r.data),
