@@ -6,8 +6,14 @@ export async function authMiddleware(req, res, next) {
   const token = req.cookies?.accessToken;
   if (!token) return res.status(401).json({ error: 'Authentication required' });
 
+  let decoded;
   try {
-    const decoded = verifyAccessToken(token);
+    decoded = verifyAccessToken(token);
+  } catch {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
     const session = await Session.findOne({
       _id: decoded.sid,
       user_id: decoded.id,
@@ -23,7 +29,7 @@ export async function authMiddleware(req, res, next) {
     req.user = user;
     req.session = session;
     return next();
-  } catch {
-    return res.status(401).json({ error: 'Authentication required' });
+  } catch (error) {
+    return next(error);
   }
 }
