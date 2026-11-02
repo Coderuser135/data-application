@@ -1,19 +1,19 @@
 import * as authService from '../services/auth.service.js';
 import { verifyRefreshToken } from '../utils/jwt.utils.js';
 
-function cookieOptions(maxAge) {
+const cookieOptions = (maxAge) => {
   const production = process.env.NODE_ENV === 'production';
   const sameSite = process.env.COOKIE_SAME_SITE || (production ? 'none' : 'lax');
   return { httpOnly: true, secure: production, sameSite, maxAge, path: '/' };
 };
-function requestMetadata(req) {
+const requestMetadata = (req) => {
   return { userAgent: req.get('user-agent') || '', ipAddress: req.ip || req.socket?.remoteAddress || '' };
 };
-function setAuthCookies(res, accessToken, refreshToken) {
+const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie('accessToken', accessToken, cookieOptions(15 * 60 * 1000));
   res.cookie('refreshToken', refreshToken, cookieOptions(7 * 24 * 60 * 60 * 1000));
 };
-function clearAuthCookies(res) {
+const clearAuthCookies = (res) => {
   const options = cookieOptions(0);
   res.clearCookie('accessToken', options);
   res.clearCookie('refreshToken', options);
