@@ -40,6 +40,9 @@ app.use(cors({
 }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false });
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many login attempts. Try again later.' } });
+const registrationLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many registration attempts. Try again later.' } });
+const passwordResetLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many password reset attempts. Try again later.' } });
 const paymentLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
 // Razorpay signs the exact raw request body. This route must run before express.json().
@@ -59,6 +62,10 @@ app.get('/api/internal/cron/membership-expiry', cronProtection, async (req, res,
   try { res.json(await runMembershipExpiry()); } catch (err) { next(err); }
 });
 
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/register', registrationLimiter);
+app.use('/api/auth/forgot-password', passwordResetLimiter);
+app.use('/api/auth/reset-password', passwordResetLimiter);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admissions', admissionRoutes);
