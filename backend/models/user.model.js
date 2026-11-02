@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 254 },
   password: { type: String, required: true, select: false },
+  email_verified: { type: Boolean, default: false, index: true },
+  email_verified_at: { type: Date, default: null },
   full_name: { type: String, default: '', maxlength: 100 },
   phone: { type: String, default: '', maxlength: 30 },
   address: { type: String, default: '' },
