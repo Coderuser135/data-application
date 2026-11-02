@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dumbbell, ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -9,6 +9,7 @@ import { signIn } from '@/redux/slices/authSlice';
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export default function Login() {
           </Link>
           <h1 className="font-display text-3xl font-bold text-ink-950 dark:text-white">Sign in</h1>
           <p className="mt-2 text-sm text-surface-500">Enter your credentials to access your account</p>
+          {location.state?.verified && <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">Email verified successfully. You can now sign in.</div>}
           {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">{error}</div>}
           <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
