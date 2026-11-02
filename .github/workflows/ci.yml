@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, production/auth-session-hardening]
   pull_request:
-    branches: [main]
+    branches: [main, production/auth-session-hardening]
 
 jobs:
   validate:
