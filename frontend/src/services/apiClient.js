@@ -19,6 +19,16 @@ function mapKeys(data) {
 const api = axios.create({ baseURL: API_URL, withCredentials: true });
 let refreshPromise = null;
 
+function refreshWithCrossTabLock() {
+  const refreshRequest = () => axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+
+  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+    return navigator.locks.request('gym-management-auth-refresh', refreshRequest);
+  }
+
+  return refreshRequest();
+}
+
 api.interceptors.response.use(
   (response) => { response.data = mapKeys(response.data); return response; },
   async (error) => {
@@ -26,7 +36,7 @@ api.interceptors.response.use(
     const isAuthRequest = originalRequest?.url?.includes('/auth/');
     if (error.response?.status !== 401 || !originalRequest || originalRequest._retry || isAuthRequest) return Promise.reject(error);
     originalRequest._retry = true;
-    refreshPromise ||= axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true }).finally(() => { refreshPromise = null; });
+    refreshPromise ||= refreshWithCrossTabLock().finally(() => { refreshPromise = null; });
     try {
       await refreshPromise;
       return api(originalRequest);
