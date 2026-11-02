@@ -22,6 +22,7 @@ import { razorpayWebhook } from './controllers/payment.controller.js';
 import { runMembershipExpiry } from './jobs/membershipExpiry.job.js';
 import { originProtection, cronProtection } from './middlewares/security.middleware.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
+import { persistentRateLimit } from './middlewares/persistentRateLimit.middleware.js';
 
 const app = express();
 const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
@@ -39,10 +40,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false });
-const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many login attempts. Try again later.' } });
-const registrationLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many registration attempts. Try again later.' } });
-const passwordResetLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many password reset attempts. Try again later.' } });
+const authLimiter = persistentRateLimit({ windowMs: 15 * 60 * 1000, limit: 60, message: 'Too many authentication requests. Try again later.' });
+const loginLimiter = persistentRateLimit({ windowMs: 15 * 60 * 1000, limit: 10, message: 'Too many login attempts. Try again later.' });
+const registrationLimiter = persistentRateLimit({ windowMs: 60 * 60 * 1000, limit: 8, message: 'Too many registration attempts. Try again later.' });
+const passwordResetLimiter = persistentRateLimit({ windowMs: 60 * 60 * 1000, limit: 5, message: 'Too many password reset attempts. Try again later.' });
 const paymentLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
 // Razorpay signs the exact raw request body. This route must run before express.json().
