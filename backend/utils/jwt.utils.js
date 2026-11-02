@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import crypto from 'crypto';
 import { ApiError } from './errors.utils.js';
 
 function requiredSecret(name) {
@@ -16,7 +17,7 @@ export function hashToken(token) {
 
 export function generateAccessToken(user, sessionId) {
   return jwt.sign(
-    { id: user._id.toString(), role: user.role, sid: sessionId.toString(), type: 'access' },
+    { id: user._id.toString(), role: user.role, sid: sessionId.toString(), type: 'access', jti: crypto.randomUUID() },
     requiredSecret('JWT_ACCESS_SECRET'),
     { expiresIn: '15m', issuer: 'gym-management-api', audience: 'gym-management-client' }
   );
@@ -24,7 +25,7 @@ export function generateAccessToken(user, sessionId) {
 
 export function generateRefreshToken(user, sessionId) {
   return jwt.sign(
-    { id: user._id.toString(), sid: sessionId.toString(), type: 'refresh' },
+    { id: user._id.toString(), sid: sessionId.toString(), type: 'refresh', jti: crypto.randomUUID() },
     requiredSecret('JWT_REFRESH_SECRET'),
     { expiresIn: '7d', issuer: 'gym-management-api', audience: 'gym-management-client' }
   );
