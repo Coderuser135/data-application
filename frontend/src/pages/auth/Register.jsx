@@ -21,7 +21,14 @@ export default function Register() {
     try {
       await dispatch(signUp({ email: form.email, password: form.password, fullName: form.fullName, phone: form.phone })).unwrap();
       navigate('/verify-email', { state: { email: form.email.trim().toLowerCase() } });
-    } catch (err) { setError(typeof err === 'string' ? err : 'Registration failed. Please try again.'); }
+    } catch (err) {
+      const message = typeof err === 'string' ? err : 'Registration failed. Please try again.';
+      if (message.includes('Email already registered') || message.includes('Verification email could not be sent')) {
+        navigate('/verify-email', { state: { email: form.email.trim().toLowerCase() } });
+        return;
+      }
+      setError(message);
+    }
     finally { setLoading(false); }
   }
   const benefits = ['Full gym access with membership', 'Track your body progress', 'Shop supplements online', 'Manage payments and orders'];
