@@ -57,12 +57,18 @@ export async function registerUser({ email, password, full_name, fullName, phone
   const existing = await User.findOne({ email: normalizedEmail }).select('_id');
   if (existing) throw new ApiError(409, 'Email already registered');
 
-  const user = await User.create({
-    email: normalizedEmail,
-    password: await bcrypt.hash(password, 12),
-    full_name: String(full_name ?? fullName ?? '').trim().slice(0, 100),
-    phone: String(phone || '').trim().slice(0, 30),
-  });
+  let user;
+  try {
+    user = await User.create({
+      email: normalizedEmail,
+      password: await bcrypt.hash(password, 12),
+      full_name: String(full_name ?? fullName ?? '').trim().slice(0, 100),
+      phone: String(phone || '').trim().slice(0, 30),
+    });
+  } catch (error) {
+    if (error?.code === 11000) throw new ApiError(409, 'Email already registered');
+    throw error;
+  }
   return createSession(user, metadata);
 }
 
