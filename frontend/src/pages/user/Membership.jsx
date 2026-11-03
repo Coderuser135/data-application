@@ -52,7 +52,7 @@ export default function Membership() {
   }
 
   async function purchasePlan(plan) {
-    if (!confirm(`Plan: ${plan.name}\nPrice: ${formatCurrency(plan.price)}\n\nProceed with purchase?`)) return;
+    const advanceCredit = Number(plan.advance_credit || 0);\n    const payablePrice = Number(plan.payable_price ?? plan.price);\n    if (!confirm(`Plan: ${plan.name}\nPlan price: ${formatCurrency(plan.price)}\nAdmission advance applied: ${formatCurrency(advanceCredit)}\nYou pay: ${formatCurrency(payablePrice)}\n\nProceed with purchase?`)) return;
     try {
       if (!admission || admission.status !== 'active') {
         alert('Your gym admission is pending. Please ask gym staff to complete your admission before purchasing a membership.');
@@ -102,7 +102,19 @@ export default function Membership() {
         return <Card key={plan.id} className={`relative ${plan.is_offer ? 'border-2 border-brand-600' : ''} ${i === 1 && !plan.is_offer ? 'ring-2 ring-brand-600/20' : ''}`}>
           {plan.is_offer && <div className="absolute -top-3 left-4"><span className="flex items-center gap-1 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white"><Tag size={12} /> {plan.offer_label || 'OFFER'}</span></div>}
           <div className="mt-2"><h4 className="font-display text-lg font-bold text-ink-950 dark:text-white">{plan.name}</h4><p className="text-xs text-surface-500">{plan.duration_days} days</p></div>
-          <div className="mt-4 flex items-baseline gap-2">{plan.is_offer && plan.original_price && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.original_price)}</span>}<span className="font-display text-2xl font-bold text-brand-600">{formatCurrency(plan.price)}</span>{plan.is_offer && plan.original_price && <Badge tone="danger">SAVE {Math.round((1 - plan.price / plan.original_price) * 100)}%</Badge>}</div>
+          <div className="mt-4 space-y-1">
+            <div className="flex flex-wrap items-baseline gap-2">
+              {plan.is_offer && plan.original_price && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.original_price)}</span>}
+              {Number(plan.advance_credit || 0) > 0 && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.price)}</span>}
+              <span className="font-display text-2xl font-bold text-brand-600">{formatCurrency(Number(plan.payable_price ?? plan.price))}</span>
+              {plan.is_offer && plan.original_price && <Badge tone="danger">SAVE {Math.round((1 - plan.price / plan.original_price) * 100)}%</Badge>}
+            </div>
+            {Number(plan.advance_credit || 0) > 0 && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+              <p>Plan price: {formatCurrency(plan.price)}</p>
+              <p>Admission advance: − {formatCurrency(plan.advance_credit)}</p>
+              <p className="mt-1 font-semibold">You pay: {formatCurrency(Number(plan.payable_price ?? plan.price))}</p>
+            </div>}
+          </div>
           {plan.description && <p className="mt-2 text-sm text-surface-500">{plan.description}</p>}
           {plan.features?.length > 0 && <ul className="mt-4 space-y-1.5">{plan.features.slice(0, 5).map((f, idx) => <li key={idx} className="flex items-center gap-2 text-xs text-surface-600 dark:text-surface-300"><Check size={14} className="text-emerald-500" /> {f}</li>)}</ul>}
           <div className="mt-5">{isCurrent ? <Button variant="secondary" size="sm" className="w-full" disabled>Current Plan</Button> : !admission || admission.status !== 'active' ? <Button variant="secondary" size="sm" className="w-full" disabled>Admission Required</Button> : activeMembership ? <Button variant="outline" size="sm" className="w-full" onClick={() => renew(activeMembership.id)}>Renew <ArrowRight size={14} /></Button> : <Button size="sm" className="w-full" onClick={() => purchasePlan(plan)}>Purchase</Button>}</div>
