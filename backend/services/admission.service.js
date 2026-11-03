@@ -181,6 +181,7 @@ export async function createAdmission(data) {
         advancePayment = new Payment({
           user_id,
           membership_id: null,
+          gym_admission_id: admission._id,
           amount,
           allocated_amount: 0,
           payment_type: 'membership_advance',
