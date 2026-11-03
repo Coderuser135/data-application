@@ -34,7 +34,7 @@ export async function getActivePlans(userId) {
 
   const advances = await Payment.find({
     user_id: userId,
-    gym_admission_id: admission._id,
+    $or: [{ gym_admission_id: admission._id }, { gym_admission_id: null }],
     payment_type: 'membership_advance',
     status: 'success',
   }).select('amount allocated_amount').lean();
@@ -69,7 +69,7 @@ async function applyAvailableAdvance(userId, membership, session) {
   let remaining = membership.plan_price_snapshot;
   const advances = await Payment.find({
     user_id: userId,
-    gym_admission_id: membership.gym_admission_id,
+    $or: [{ gym_admission_id: membership.gym_admission_id }, { gym_admission_id: null }],
     payment_type: 'membership_advance',
     status: 'success',
     $expr: { $lt: [{ $ifNull: ['$allocated_amount', 0] }, '$amount'] },
@@ -82,6 +82,7 @@ async function applyAvailableAdvance(userId, membership, session) {
     if (applied <= 0) continue;
     advance.allocated_amount = Number(advance.allocated_amount || 0) + applied;
     advance.membership_id = membership._id;
+    advance.gym_admission_id = membership.gym_admission_id;
     await advance.save({ session });
     membership.advance_paid += applied;
     remaining -= applied;
