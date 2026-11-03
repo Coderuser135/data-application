@@ -5,6 +5,7 @@ const paymentSchema = new mongoose.Schema({
   membership_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Membership', default: null },
   order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
   amount: { type: Number, required: true, min: 0 },
+  allocated_amount: { type: Number, default: 0, min: 0 },
   payment_type: { type: String, enum: ['membership_advance', 'membership_installment', 'membership_full', 'order'], required: true },
   payment_method: { type: String, enum: ['online', 'cash', 'other'], default: 'online' },
   status: { type: String, enum: ['pending', 'success', 'failed', 'refunded'], default: 'pending' },
