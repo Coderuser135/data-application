@@ -57,6 +57,6 @@ export async function createMeasurement(data) {
 }
 
 export async function getAdmittedUsers() {
-  const admissions = await GymAdmission.find().populate({ path: 'user_id', select: 'full_name' });
+  const admissions = await GymAdmission.find({ status: 'active' }).populate({ path: 'user_id', select: 'full_name' });
   return admissions.filter((a) => a.user_id).map((a) => ({ user_id: a.user_id._id, full_name: a.user_id.full_name }));
 }
