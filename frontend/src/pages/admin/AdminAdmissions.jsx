@@ -64,6 +64,18 @@ export default function AdminAdmissions() {
 
   function openAdmission(user) {
     setSelectedUser(user);
+    setFormData((previous) => ({
+      ...previous,
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      emergency_contact_name: '',
+      emergency_contact_phone: '',
+      notes: '',
+      payment_amount: '',
+      payment_method: 'cash',
+      measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' },
+    }));
     setStep(0);
     setError('');
     setShowModal(true);
@@ -89,7 +101,7 @@ export default function AdminAdmissions() {
         personal_details: {
           full_name: formData.full_name || selectedUser.full_name,
           phone: formData.phone || selectedUser.phone || '',
-          address: formData.address,
+          address: formData.address || selectedUser.address || '',
         },
         measurement: Object.values(formData.measurement).some((value) => String(value || '').trim())
           ? formData.measurement
