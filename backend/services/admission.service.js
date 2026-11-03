@@ -46,6 +46,7 @@ export async function searchUsers(query, page = 1, limit = 20) {
       full_name: user.full_name,
       email: user.email,
       phone: user.phone,
+      address: user.address,
       role: user.role,
       member_id: admission?.member_id || null,
       is_admitted: Boolean(admission),
