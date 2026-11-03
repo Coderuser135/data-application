@@ -17,7 +17,9 @@ function nextStartDate(membership) {
 }
 
 export async function getMembershipsByUserId(userId) {
-  return Membership.find({ user_id: userId }).sort({ createdAt: -1 });
+  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
+  if (!admission) return [];
+  return Membership.find({ user_id: userId, gym_admission_id: admission._id }).sort({ createdAt: -1 });
 }
 export async function getAllMemberships() {
   return Membership.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
