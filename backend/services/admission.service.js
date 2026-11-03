@@ -4,6 +4,7 @@ import BodyMeasurement from '../models/bodyMeasurement.model.js';
 import Payment from '../models/payment.model.js';
 import Notification from '../models/notification.model.js';
 import User from '../models/user.model.js';
+import MembershipPlan from '../models/membershipPlan.model.js';
 import { generateMemberId } from '../utils/generators.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
 
@@ -88,6 +89,25 @@ export async function createAdmission(data) {
   if (!Number.isFinite(amount) || amount < 0) {
     throw new ApiError(400, 'Admission advance amount must be zero or a positive number');
   }
+
+  if (amount > 0) {
+    const lowestPricedPlan = await MembershipPlan.findOne({ is_active: true })
+      .sort({ price: 1 })
+      .select('name price')
+      .lean();
+
+    if (!lowestPricedPlan) {
+      throw new ApiError(400, 'No active membership plan is available. Activate a membership plan before receiving an advance.');
+    }
+
+    if (amount > lowestPricedPlan.price) {
+      throw new ApiError(
+        400,
+        `Advance amount cannot exceed the lowest active membership plan price (${lowestPricedPlan.name}: ₹${lowestPricedPlan.price}).`,
+      );
+    }
+  }
+
   if (amount > 0 && !['cash', 'online', 'other'].includes(payment_method)) {
     throw new ApiError(400, 'Select a valid payment method for the advance received');
   }
