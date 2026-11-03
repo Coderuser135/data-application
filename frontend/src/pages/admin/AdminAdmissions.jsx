@@ -313,18 +313,6 @@ export default function AdminAdmissions() {
                   <p className="text-sm text-surface-500">Confirm admission. The member's gym admission will become active, but their membership plan will remain unpurchased until they select one.</p>
                 </div>
               )}
-              {false && step === 5 && (
-                <div className="space-y-3">
-                  <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
-                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">User</span><span className="font-medium">{selectedUser.full_name}</span></div>
-                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">Member ID</span><span className="font-mono font-semibold text-brand-600">Auto-generated</span></div>
-                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">Plan</span><span className="font-medium">{selectedPlan?.name || 'None'}</span></div>
-                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">Amount</span><span className="font-medium">{formData.payment_amount ? formatCurrency(Number(formData.payment_amount)) : '—'}</span></div>
-                    <div className="flex justify-between py-2 text-sm"><span className="text-surface-500">Method</span><span className="font-medium capitalize">{formData.payment_method}</span></div>
-                  </div>
-                  <p className="text-sm text-surface-500">Click confirm to create the admission. A notification will be sent to the user.</p>
-                </div>
-              )}
             </div>
 
             <div className="sticky bottom-0 flex items-center justify-between border-t border-surface-200 bg-white px-6 py-4 dark:border-surface-800 dark:bg-surface-900">
