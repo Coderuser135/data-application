@@ -24,8 +24,30 @@ export async function getMembershipsByUserId(userId) {
 export async function getAllMemberships() {
   return Membership.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
 }
-export async function getActivePlans() {
-  return MembershipPlan.find({ is_active: true }).sort({ display_order: 1 });
+export async function getActivePlans(userId) {
+  const plans = await MembershipPlan.find({ is_active: true }).sort({ display_order: 1 }).lean();
+  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id').lean();
+
+  if (!admission) {
+    return plans.map((plan) => ({ ...plan, advance_credit: 0, payable_price: plan.price }));
+  }
+
+  const advances = await Payment.find({
+    user_id: userId,
+    gym_admission_id: admission._id,
+    payment_type: 'membership_advance',
+    status: 'success',
+  }).select('amount allocated_amount').lean();
+
+  const advanceCredit = advances.reduce((total, payment) => (
+    total + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0))
+  ), 0);
+
+  return plans.map((plan) => ({
+    ...plan,
+    advance_credit: advanceCredit,
+    payable_price: Math.max(0, Number((plan.price - advanceCredit).toFixed(2))),
+  }));
 }
 
 export async function getAdvancePaid(userId, membershipId) {
@@ -47,6 +69,7 @@ async function applyAvailableAdvance(userId, membership, session) {
   let remaining = membership.plan_price_snapshot;
   const advances = await Payment.find({
     user_id: userId,
+    gym_admission_id: membership.gym_admission_id,
     payment_type: 'membership_advance',
     status: 'success',
     $expr: { $lt: [{ $ifNull: ['$allocated_amount', 0] }, '$amount'] },
