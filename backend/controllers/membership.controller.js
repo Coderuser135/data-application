@@ -7,7 +7,7 @@ export const getAllMemberships = async (req, res, next) => {
   try { res.json(await membershipService.getAllMemberships()); } catch (err) { next(err); }
 };
 export const getActivePlans = async (req, res, next) => {
-  try { res.json(await membershipService.getActivePlans()); } catch (err) { next(err); }
+  try { res.json(await membershipService.getActivePlans(req.user._id)); } catch (err) { next(err); }
 };
 export const getAdvancePaid = async (req, res, next) => {
   try {
