@@ -37,7 +37,7 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
   } else {
     const membership = await Membership.findOne({ _id: membershipId, user_id: userId, status: 'pending', payment_status: 'pending' });
     if (!membership) throw new ApiError(404, 'Pending membership not found');
-    amount = membership.plan_price_snapshot; paymentType = 'membership_full';
+    amount = Number(membership.amount_due ?? membership.plan_price_snapshot); paymentType = 'membership_full';
   }
   if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Invalid payment amount');
   const targetFilter = orderId ? { order_id: orderId } : { membership_id: membershipId };
@@ -73,6 +73,7 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
     membership.start_date = startDate;
     membership.end_date = endDate;
     membership.payment_status = 'paid';
+    membership.amount_due = 0;
     membership.status = startDate > now ? 'scheduled' : 'active';
     await membership.save({ session });
   }
@@ -112,6 +113,9 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
   const payment = await Payment.findById(paymentId);
   if (!payment) throw new ApiError(404, 'Payment not found');
   if (payment.status !== 'success') throw new ApiError(409, 'Only successful payments can be refunded');
+  if (payment.payment_type === 'membership_advance' && Number(payment.allocated_amount || 0) > 0) {
+    throw new ApiError(409, 'This advance has already been applied to a membership. Reverse the membership adjustment before refunding it.');
+  }
   if (payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
   if (payment.payment_method !== 'online' || !payment.razorpay_payment_id) throw new ApiError(400, 'Only Razorpay payments can be refunded automatically');
 
