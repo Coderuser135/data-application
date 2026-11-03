@@ -10,7 +10,7 @@ import { searchUsers, createAdmission } from '@/redux/slices/admissionSlice';
 import { fetchMembershipPlans } from '@/redux/slices/membershipPlanSlice';
 import { formatCurrency } from '@/utils/formatters';
 
-const STEPS = ['User', 'Details', 'Measurement', 'Plan', 'Payment', 'Confirm'];
+const STEPS = ['User', 'Personal Details', 'Measurement', 'Advance Payment', 'Confirm'];
 
 function Stepper({ current }) {
   return (
@@ -47,7 +47,9 @@ export default function AdminAdmissions() {
     emergency_contact_name: '',
     emergency_contact_phone: '',
     notes: '',
-    selected_plan_id: '',
+    full_name: '',
+    phone: '',
+    address: '',
     measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' },
     payment_method: 'cash',
     payment_amount: '',
@@ -71,10 +73,6 @@ export default function AdminAdmissions() {
   function updateMeasurement(key, value) { setFormData((prev) => ({ ...prev, measurement: { ...prev.measurement, [key]: value } })); }
 
   function nextStep() {
-    if (step === 3 && formData.selected_plan_id) {
-      const plan = plans.find((p) => p.id === formData.selected_plan_id);
-      if (plan && !formData.payment_amount) updateField('payment_amount', String(plan.price));
-    }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
   function prevStep() { setStep((s) => Math.max(s - 1, 0)); }
@@ -88,14 +86,20 @@ export default function AdminAdmissions() {
         emergency_contact_name: formData.emergency_contact_name,
         emergency_contact_phone: formData.emergency_contact_phone,
         notes: formData.notes,
-        selected_plan_id: formData.selected_plan_id || undefined,
-        measurement: formData.measurement.measurement_date ? formData.measurement : { ...formData.measurement, measurement_date: undefined },
+        personal_details: {
+          full_name: formData.full_name || selectedUser.full_name,
+          phone: formData.phone || selectedUser.phone || '',
+          address: formData.address,
+        },
+        measurement: Object.values(formData.measurement).some((value) => String(value || '').trim())
+          ? formData.measurement
+          : undefined,
         payment_method: formData.payment_method,
-        payment_amount: Number(formData.payment_amount) || undefined,
+        payment_amount: Number(formData.payment_amount) || 0,
       };
       await dispatch(createAdmission(payload)).unwrap();
       setShowModal(false);
-      setFormData({ emergency_contact_name: '', emergency_contact_phone: '', notes: '', selected_plan_id: '', measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' }, payment_method: 'cash', payment_amount: '' });
+      setFormData({ emergency_contact_name: '', emergency_contact_phone: '', notes: '', full_name: '', phone: '', address: '', measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' }, payment_method: 'cash', payment_amount: '' });
       dispatch(searchUsers({ q: query, page }));
     } catch (err) {
       setError(typeof err === 'string' ? err : 'Failed to create admission');
@@ -105,7 +109,6 @@ export default function AdminAdmissions() {
   }
 
   const rows = searchResults.rows || [];
-  const selectedPlan = plans.find((p) => p.id === formData.selected_plan_id);
 
   return (
     <div className="space-y-6">
@@ -214,6 +217,9 @@ export default function AdminAdmissions() {
 
               {step === 1 && (
                 <div className="space-y-4">
+                  <Input label="Full Name" value={formData.full_name || selectedUser.full_name || ''} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Member full name" />
+                  <Input label="Phone" value={formData.phone || selectedUser.phone || ''} onChange={(e) => updateField('phone', e.target.value)} placeholder="Phone number" />
+                  <Input label="Address" value={formData.address} onChange={(e) => updateField('address', e.target.value)} placeholder="Full address" />
                   <Input label="Emergency Contact Name" value={formData.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="Contact name" />
                   <Input label="Emergency Contact Phone" value={formData.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value)} placeholder="Phone number" />
                   <Input label="Notes (optional)" value={formData.notes} onChange={(e) => updateField('notes', e.target.value)} placeholder="Any admission notes" />
@@ -240,49 +246,38 @@ export default function AdminAdmissions() {
               )}
 
               {step === 3 && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-surface-500">Select a membership plan (optional)</p>
-                  {plans.filter((p) => p.is_active).map((plan) => (
-                    <button key={plan.id} onClick={() => updateField('selected_plan_id', plan.id)} className={`w-full rounded-xl border p-4 text-left transition ${formData.selected_plan_id === plan.id ? 'border-brand-600 bg-brand-50 dark:bg-brand-500/10' : 'border-surface-200 hover:border-surface-300 dark:border-surface-700'}`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-ink-900 dark:text-white">{plan.name} {plan.is_offer && <Badge tone="danger">OFFER</Badge>}</p>
-                          <p className="text-xs text-surface-500">{plan.duration_days} days · {plan.features.length} features</p>
-                        </div>
-                        <div className="text-right">
-                          {plan.is_offer && plan.original_price && <span className="mr-2 text-xs text-surface-400 line-through">{formatCurrency(plan.original_price)}</span>}
-                          <span className="font-bold text-brand-600">{formatCurrency(plan.price)}</span>
-                        </div>
+                <div className="space-y-4">
+                  <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
+                    <p className="font-semibold text-ink-900 dark:text-white">Membership advance payment (optional)</p>
+                    <p className="mt-1 text-sm text-surface-500">This is not a membership purchase. Any amount received now will be credited and adjusted against the plan the member chooses later.</p>
+                  </div>
+                  <Input label="Advance Amount (₹)" type="number" min="0" value={formData.payment_amount} onChange={(e) => updateField('payment_amount', e.target.value)} placeholder="Enter 0 if no advance is received" />
+                  {Number(formData.payment_amount) > 0 && (
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-ink-700 dark:text-surface-200">Received Via</label>
+                      <div className="flex gap-2">
+                        {['cash', 'online', 'other'].map((method) => (
+                          <button key={method} type="button" onClick={() => updateField('payment_method', method)} className={`flex-1 rounded-xl border py-3 text-sm font-medium capitalize transition ${formData.payment_method === method ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-surface-200 text-surface-500 dark:border-surface-700'}`}>{method}</button>
+                        ))}
                       </div>
-                    </button>
-                  ))}
-                  <button onClick={() => updateField('selected_plan_id', '')} className={`w-full rounded-xl border p-3 text-sm transition ${!formData.selected_plan_id ? 'border-brand-600 bg-brand-50 dark:bg-brand-500/10' : 'border-surface-200 dark:border-surface-700'}`}>Skip membership for now</button>
+                    </div>
+                  )}
+                  <p className="text-xs text-surface-500">The member will select a membership plan from their own dashboard after admission. The advance will reduce the amount due for that plan.</p>
                 </div>
               )}
 
               {step === 4 && (
-                <div className="space-y-4">
-                  {formData.selected_plan_id ? (
-                    <>
-                      <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
-                        <div className="flex justify-between text-sm"><span className="text-surface-500">Plan</span><span className="font-semibold">{selectedPlan?.name || '—'}</span></div>
-                        <div className="mt-2 flex justify-between text-sm"><span className="text-surface-500">Plan Price</span><span className="font-semibold">{formatCurrency(selectedPlan?.price || 0)}</span></div>
-                      </div>
-                      <Input label="Payment Amount" type="number" value={formData.payment_amount} onChange={(e) => updateField('payment_amount', e.target.value)} placeholder="Amount in rupees" />
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-ink-700 dark:text-surface-200">Payment Method</label>
-                        <div className="flex gap-2">
-                          {['cash', 'online', 'other'].map((m) => (
-                            <button key={m} onClick={() => updateField('payment_method', m)} className={`flex-1 rounded-xl border py-3 text-sm font-medium capitalize transition ${formData.payment_method === m ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-surface-200 text-surface-500 dark:border-surface-700'}`}>{m}</button>
-                          ))}
-                        </div>
-                        {formData.payment_method === 'online' && <p className="mt-2 text-xs text-amber-500">Online payments require Razorpay verification to activate the membership.</p>}
-                      </div>
-                    </>
-                  ) : <p className="text-sm text-surface-500">No membership plan selected. Payment step skipped — admission will be created without a membership.</p>}
+                <div className="space-y-3">
+                  <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
+                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">User</span><span className="font-medium">{formData.full_name || selectedUser.full_name}</span></div>
+                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">Member ID</span><span className="font-mono font-semibold text-brand-600">Auto-generated</span></div>
+                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">Membership Plan</span><span className="font-medium">Member will choose later</span></div>
+                    <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">Advance Received</span><span className="font-medium">{formatCurrency(Number(formData.payment_amount) || 0)}</span></div>
+                    <div className="flex justify-between py-2 text-sm"><span className="text-surface-500">Method</span><span className="font-medium capitalize">{Number(formData.payment_amount) > 0 ? formData.payment_method : 'None'}</span></div>
+                  </div>
+                  <p className="text-sm text-surface-500">Confirm admission. The member's gym admission will become active, but their membership plan will remain unpurchased until they select one.</p>
                 </div>
               )}
-
               {step === 5 && (
                 <div className="space-y-3">
                   <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
