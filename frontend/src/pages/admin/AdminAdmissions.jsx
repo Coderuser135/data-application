@@ -84,7 +84,23 @@ export default function AdminAdmissions() {
   function updateField(key, value) { setFormData((prev) => ({ ...prev, [key]: value })); }
   function updateMeasurement(key, value) { setFormData((prev) => ({ ...prev, measurement: { ...prev.measurement, [key]: value } })); }
 
+  const activePlans = (plans || []).filter((plan) => plan.is_active !== false);
+  const lowestPricedPlan = activePlans.reduce((lowest, plan) => (
+    !lowest || Number(plan.price) < Number(lowest.price) ? plan : lowest
+  ), null);
+  const advanceAmount = Number(formData.payment_amount) || 0;
+  const advanceError = advanceAmount > 0 && !lowestPricedPlan
+    ? 'No active membership plan is available. Activate a plan before receiving an advance.'
+    : advanceAmount > Number(lowestPricedPlan?.price ?? 0)
+      ? `Advance amount cannot exceed the lowest active membership plan price (${lowestPricedPlan.name}: ${formatCurrency(Number(lowestPricedPlan.price))}).`
+      : '';
+
   function nextStep() {
+    if (step === 3 && advanceError) {
+      setError(advanceError);
+      return;
+    }
+    setError('');
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
   function prevStep() { setStep((s) => Math.max(s - 1, 0)); }
@@ -93,6 +109,11 @@ export default function AdminAdmissions() {
     setSubmitting(true);
     setError('');
     try {
+      if (advanceError) {
+        setError(advanceError);
+        setSubmitting(false);
+        return;
+      }
       const payload = {
         user_id: selectedUser._id || selectedUser.id,
         emergency_contact_name: formData.emergency_contact_name,
@@ -263,7 +284,9 @@ export default function AdminAdmissions() {
                     <p className="font-semibold text-ink-900 dark:text-white">Membership advance payment (optional)</p>
                     <p className="mt-1 text-sm text-surface-500">This is not a membership purchase. Any amount received now will be credited and adjusted against the plan the member chooses later.</p>
                   </div>
-                  <Input label="Advance Amount (₹)" type="number" min="0" value={formData.payment_amount} onChange={(e) => updateField('payment_amount', e.target.value)} placeholder="Enter 0 if no advance is received" />
+                  <Input label="Advance Amount (₹)" type="number" min="0" value={formData.payment_amount} onChange={(e) => { updateField('payment_amount', e.target.value); setError(''); }} placeholder="Enter 0 if no advance is received" />
+                  {lowestPricedPlan && <p className="text-xs text-surface-500">Maximum allowed advance: {formatCurrency(Number(lowestPricedPlan.price))} (lowest active plan: {lowestPricedPlan.name})</p>}
+                  {advanceError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{advanceError}</p>}
                   {Number(formData.payment_amount) > 0 && (
                     <div>
                       <label className="mb-2 block text-sm font-medium text-ink-700 dark:text-surface-200">Received Via</label>
@@ -290,7 +313,7 @@ export default function AdminAdmissions() {
                   <p className="text-sm text-surface-500">Confirm admission. The member's gym admission will become active, but their membership plan will remain unpurchased until they select one.</p>
                 </div>
               )}
-              {step === 5 && (
+              {false && step === 5 && (
                 <div className="space-y-3">
                   <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
                     <div className="flex justify-between border-b border-surface-200 py-2 text-sm dark:border-surface-700"><span className="text-surface-500">User</span><span className="font-medium">{selectedUser.full_name}</span></div>
