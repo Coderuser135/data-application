@@ -6,6 +6,8 @@ const membershipSchema = new mongoose.Schema({
   plan_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MembershipPlan', default: null },
   plan_name_snapshot: { type: String, required: true, trim: true },
   plan_price_snapshot: { type: Number, required: true, min: 0 },
+  advance_paid: { type: Number, default: 0, min: 0 },
+  amount_due: { type: Number, default: 0, min: 0 },
   duration_days: { type: Number, required: true, min: 1 },
   start_date: { type: Date },
   end_date: { type: Date },
