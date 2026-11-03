@@ -54,7 +54,16 @@ export default function Membership() {
   async function purchasePlan(plan) {
     if (!confirm(`Plan: ${plan.name}\nPrice: ${formatCurrency(plan.price)}\n\nProceed with purchase?`)) return;
     try {
+      if (!admission || admission.status !== 'active') {
+        alert('Your gym admission is pending. Please ask gym staff to complete your admission before purchasing a membership.');
+        return;
+      }
       const membership = await dispatch(purchaseMembership(plan.id)).unwrap();
+      if (membership.payment_status === 'paid' || Number(membership.amount_due) === 0) {
+        await dispatch(fetchMyMemberships());
+        alert('Your advance credit covered the full plan price. Your membership is now active.');
+        return;
+      }
       await payMembership(membership);
       alert('Payment successful. Your membership is now active.');
     } catch (err) { alert(typeof err === 'string' ? err : (err?.message || 'Membership purchase failed')); }
@@ -63,6 +72,11 @@ export default function Membership() {
   async function renew(id) {
     try {
       const membership = await dispatch(renewMembership(id)).unwrap();
+      if (membership.payment_status === 'paid' || Number(membership.amount_due) === 0) {
+        await dispatch(fetchMyMemberships());
+        alert('Your available advance credit covered the renewal. Your membership is renewed.');
+        return;
+      }
       await payMembership(membership);
       alert('Payment successful. Your membership is renewed.');
     } catch (err) { alert(typeof err === 'string' ? err : (err?.message || 'Membership renewal failed')); }
@@ -81,9 +95,9 @@ export default function Membership() {
         </Card>
       )}
 
-      {!admission && <Card className="border-2 border-amber-500 bg-amber-50 dark:bg-amber-500/10"><div className="flex flex-col items-center py-8 text-center"><AlertCircle size={48} className="text-amber-500" /><h3 className="mt-4 font-display text-lg font-bold text-ink-950 dark:text-white">Admission Required</h3><p className="mt-2 max-w-sm text-sm text-surface-500">You need to be admitted by gym staff before purchasing a membership. Please visit the gym front desk to complete your admission.</p></div></Card>}
+      {(!admission || admission.status !== 'active') && <Card className="border-2 border-amber-500 bg-amber-50 dark:bg-amber-500/10"><div className="flex flex-col items-center py-8 text-center"><AlertCircle size={48} className="text-amber-500" /><h3 className="mt-4 font-display text-lg font-bold text-ink-950 dark:text-white">Admission Pending</h3><p className="mt-2 max-w-sm text-sm text-surface-500">You can view available membership plans now. Gym staff must complete your admission before you can purchase one.</p></div></Card>}
 
-      {admission && (plans || []).length > 0 && <div><div className="mb-4 flex items-center gap-2"><CreditCard size={20} className="text-brand-600" /><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Available Plans</h3></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{(plans || []).map((plan, i) => {
+      {(plans || []).length > 0 && <div><div className="mb-4 flex items-center gap-2"><CreditCard size={20} className="text-brand-600" /><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Available Plans</h3></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{(plans || []).map((plan, i) => {
         const isCurrent = activeMembership?.plan_id === plan.id;
         return <Card key={plan.id} className={`relative ${plan.is_offer ? 'border-2 border-brand-600' : ''} ${i === 1 && !plan.is_offer ? 'ring-2 ring-brand-600/20' : ''}`}>
           {plan.is_offer && <div className="absolute -top-3 left-4"><span className="flex items-center gap-1 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white"><Tag size={12} /> {plan.offer_label || 'OFFER'}</span></div>}
@@ -91,11 +105,11 @@ export default function Membership() {
           <div className="mt-4 flex items-baseline gap-2">{plan.is_offer && plan.original_price && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.original_price)}</span>}<span className="font-display text-2xl font-bold text-brand-600">{formatCurrency(plan.price)}</span>{plan.is_offer && plan.original_price && <Badge tone="danger">SAVE {Math.round((1 - plan.price / plan.original_price) * 100)}%</Badge>}</div>
           {plan.description && <p className="mt-2 text-sm text-surface-500">{plan.description}</p>}
           {plan.features?.length > 0 && <ul className="mt-4 space-y-1.5">{plan.features.slice(0, 5).map((f, idx) => <li key={idx} className="flex items-center gap-2 text-xs text-surface-600 dark:text-surface-300"><Check size={14} className="text-emerald-500" /> {f}</li>)}</ul>}
-          <div className="mt-5">{isCurrent ? <Button variant="secondary" size="sm" className="w-full" disabled>Current Plan</Button> : activeMembership ? <Button variant="outline" size="sm" className="w-full" onClick={() => renew(activeMembership.id)}>Renew <ArrowRight size={14} /></Button> : <Button size="sm" className="w-full" onClick={() => purchasePlan(plan)}>Purchase</Button>}</div>
+          <div className="mt-5">{isCurrent ? <Button variant="secondary" size="sm" className="w-full" disabled>Current Plan</Button> : !admission || admission.status !== 'active' ? <Button variant="secondary" size="sm" className="w-full" disabled>Admission Required</Button> : activeMembership ? <Button variant="outline" size="sm" className="w-full" onClick={() => renew(activeMembership.id)}>Renew <ArrowRight size={14} /></Button> : <Button size="sm" className="w-full" onClick={() => purchasePlan(plan)}>Purchase</Button>}</div>
         </Card>;
       })}</div></div>}
 
-      <Card padding={false}><div className="border-b border-surface-200 px-5 py-4 dark:border-surface-800"><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Membership History</h3></div>{(memberships || []).length > 0 ? <div className="p-5"><div className="space-y-3">{memberships.map((m) => <div key={m.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800"><div><p className="text-sm font-medium text-ink-900 dark:text-white">{m.plan_name_snapshot} — {formatCurrency(m.plan_price_snapshot)}</p><p className="text-xs text-surface-500">{formatDate(m.start_date)} → {formatDate(m.end_date)}</p></div><div className="flex items-center gap-3">{m.status === 'pending' && <Button size="sm" onClick={() => payMembership(m)}>Pay Now</Button>}{m.status === 'expired' && <Button size="sm" variant="secondary" onClick={() => renew(m.id)}>Renew</Button>}<Badge tone={statusTone[m.status] || 'neutral'}>{m.status.replace(/_/g, ' ')}</Badge></div></div>)}</div></div> : <div className="p-5"><EmptyState title="No memberships yet" /></div>}</Card>
+      <Card padding={false}><div className="border-b border-surface-200 px-5 py-4 dark:border-surface-800"><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Membership History</h3></div>{(memberships || []).length > 0 ? <div className="p-5"><div className="space-y-3">{memberships.map((m) => <div key={m.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800"><div><p className="text-sm font-medium text-ink-900 dark:text-white">{m.plan_name_snapshot} — {formatCurrency(m.plan_price_snapshot)}</p><p className="text-xs text-surface-500">{formatDate(m.start_date)} → {formatDate(m.end_date)}</p><p className="text-xs text-surface-500">Advance applied: {formatCurrency(Number(m.advance_paid || 0))} · Remaining: {formatCurrency(Number(m.amount_due ?? 0))}</p></div><div className="flex items-center gap-3">{m.status === 'pending' && <Button size="sm" onClick={() => payMembership(m)}>Pay Now</Button>}{m.status === 'expired' && <Button size="sm" variant="secondary" onClick={() => renew(m.id)}>Renew</Button>}<Badge tone={statusTone[m.status] || 'neutral'}>{m.status.replace(/_/g, ' ')}</Badge></div></div>)}</div></div> : <div className="p-5"><EmptyState title="No memberships yet" /></div>}</Card>
     </div>
   );
 }
