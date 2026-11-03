@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const paymentSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   membership_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Membership', default: null },
+  gym_admission_id: { type: mongoose.Schema.Types.ObjectId, ref: 'GymAdmission', default: null },
   order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
   amount: { type: Number, required: true, min: 0 },
   allocated_amount: { type: Number, default: 0, min: 0 },
@@ -21,6 +22,7 @@ const paymentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 paymentSchema.index({ user_id: 1, membership_id: 1 });
+paymentSchema.index({ user_id: 1, gym_admission_id: 1, payment_type: 1, status: 1 });
 paymentSchema.index({ user_id: 1, status: 1, createdAt: -1 });
 paymentSchema.index({ order_id: 1, status: 1 });
 
