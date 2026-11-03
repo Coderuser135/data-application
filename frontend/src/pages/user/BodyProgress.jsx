@@ -4,6 +4,7 @@ import { Ruler, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 import { fetchMyMeasurements } from '@/redux/slices/measurementSlice';
+import { fetchMyAdmission } from '@/redux/slices/admissionSlice';
 import { formatDate } from '@/utils/formatters';
 
 const FIELDS = [
@@ -64,8 +65,12 @@ export default function BodyProgress() {
   const dispatch = useDispatch();
   const measurements = useSelector((state) => state.measurements.items);
   const loading = useSelector((state) => state.measurements.loading);
+  const admission = useSelector((state) => state.admissions.admission);
 
-  useEffect(() => { dispatch(fetchMyMeasurements()); }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchMyMeasurements());
+    dispatch(fetchMyAdmission());
+  }, [dispatch]);
 
   if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
 
@@ -163,7 +168,7 @@ export default function BodyProgress() {
           </Card>
         </>
       ) : (
-        <EmptyState title="No measurements yet" description="Your body measurements will appear here once recorded by gym staff. Only gym staff can create measurement records." />
+        <EmptyState title={admission?.status === 'active' ? 'No measurements yet' : 'Gym admission required'} description={admission?.status === 'active' ? 'Your body measurements will appear here once recorded by gym staff. Only gym staff can create measurement records.' : 'Your body measurement section will become available after gym staff completes your admission.'} />
       )}
     </div>
   );
