@@ -29,7 +29,7 @@ export async function getActivePlans(userId) {
   const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id').lean();
 
   if (!admission) {
-    return plans.map((plan) => ({ ...plan, advance_credit: 0, payable_price: plan.price }));
+    return plans.map((plan) => ({ ...plan, id: plan._id.toString(), advance_credit: 0, payable_price: plan.price }));
   }
 
   const advances = await Payment.find({
@@ -45,6 +45,7 @@ export async function getActivePlans(userId) {
 
   return plans.map((plan) => ({
     ...plan,
+    id: plan._id.toString(),
     advance_credit: advanceCredit,
     payable_price: Math.max(0, Number((plan.price - advanceCredit).toFixed(2))),
   }));
