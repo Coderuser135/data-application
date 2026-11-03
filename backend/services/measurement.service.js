@@ -4,7 +4,9 @@ import User from '../models/user.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 
 export async function getMeasurementsByUserId(userId) {
-  return BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 });
+  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
+  if (!admission) return [];
+  return BodyMeasurement.find({ user_id: userId, gym_admission_id: admission._id }).sort({ measurement_date: -1 });
 }
 
 export async function getAllMeasurements() {
@@ -12,7 +14,9 @@ export async function getAllMeasurements() {
 }
 
 export async function getMeasurementsByUserIdAdmin(userId) {
-  return BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 });
+  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
+  if (!admission) return [];
+  return BodyMeasurement.find({ user_id: userId, gym_admission_id: admission._id }).sort({ measurement_date: -1 });
 }
 
 function numberField(value, label, { min = 0, max = Number.POSITIVE_INFINITY, integer = false } = {}) {
@@ -28,8 +32,8 @@ export async function createMeasurement(data) {
   if (!data.user_id) throw new ApiError(400, 'User is required');
   const user = await User.findById(data.user_id);
   if (!user) throw new ApiError(404, 'User not found');
-  const admission = await GymAdmission.findOne({ user_id: data.user_id });
-  if (!admission) throw new ApiError(400, 'User must be admitted before measurements can be recorded');
+  const admission = await GymAdmission.findOne({ user_id: data.user_id, status: 'active' });
+  if (!admission) throw new ApiError(400, 'User must have an active gym admission before measurements can be recorded');
 
   const measurementDate = data.measurement_date ? new Date(data.measurement_date) : new Date();
   if (Number.isNaN(measurementDate.getTime())) throw new ApiError(400, 'Invalid measurement date');
