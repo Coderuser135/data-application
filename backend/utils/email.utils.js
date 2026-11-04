@@ -1,42 +1,43 @@
 import nodemailer from 'nodemailer';
 
 function getTransporter() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPassword = process.env.GMAIL_APP_PASSWORD;
 
-  if (!user || !pass) {
-    throw new Error('GMAIL_USER and GMAIL_APP_PASSWORD must be configured');
+  if (gmailUser && gmailPassword) {
+    return nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: gmailUser, pass: gmailPassword },
+    });
+  }
+
+  const required = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD'];
+  if (required.some((key) => !process.env[key])) {
+    throw new Error('Configure GMAIL_USER/GMAIL_APP_PASSWORD or SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD');
   }
 
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user,
-      pass,
-    },
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
   });
 }
 
 function getSenderAddress() {
-  const sender = process.env.GMAIL_USER;
-  if (!sender) {
-    throw new Error('GMAIL_USER must be configured');
-  }
-  return sender;
+  return process.env.GMAIL_USER || process.env.SMTP_FROM || process.env.SMTP_USER;
 }
 
 export async function sendEmailVerificationOtp({ to, otp, fullName }) {
   const transporter = getTransporter();
-  const from = getSenderAddress();
+  const sender = getSenderAddress();
+  if (!sender) throw new Error('Email sender address is not configured');
   const safeName = String(fullName || 'there').replace(/[&<>"]/g, '');
 
   await transporter.sendMail({
-    from: {
-      name: 'IronForge Gym',
-      address: from,
-    },
+    from: { name: 'IronForge Gym', address: sender },
     to,
     subject: 'Verify your IronForge email address',
     text: `Hello ${safeName}, your email verification code is ${otp}. It expires in 5 minutes. Do not share this code.`,
@@ -46,14 +47,13 @@ export async function sendEmailVerificationOtp({ to, otp, fullName }) {
 
 export async function sendPasswordResetEmail({ to, token }) {
   const transporter = getTransporter();
+  const sender = getSenderAddress();
+  if (!sender) throw new Error('Email sender address is not configured');
   const baseUrl = String(process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
   const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
 
   await transporter.sendMail({
-    from: {
-      name: 'IronForge Gym',
-      address: getSenderAddress(),
-    },
+    from: { name: 'IronForge Gym', address: sender },
     to,
     subject: 'Reset your gym account password',
     text: `Reset your password using this link: ${resetUrl}\n\nThis link expires in 60 minutes. If you did not request this, you can ignore this email.`,
