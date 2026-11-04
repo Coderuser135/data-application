@@ -66,8 +66,26 @@ async function ensureNoPendingMembership(userId, session) {
   if (pending) throw new ApiError(409, 'You already have a pending membership payment. Complete it before creating another.');
 }
 
-async function applyAvailableAdvance(userId, membership, session) {
-  let remaining = membership.plan_price_snapshot;
+async function getAvailableAdvance(userId, admissionId, session) {
+  const advances = await Payment.find({
+    user_id: userId,
+    $or: [{ gym_admission_id: admissionId }, { gym_admission_id: null }],
+    payment_type: 'membership_advance',
+    status: 'success',
+    $expr: { $lt: [{ $ifNull: ['$allocated_amount', 0] }, '$amount'] },
+  }).sort({ payment_date: 1, createdAt: 1 }).session(session);
+
+  return advances.reduce((total, advance) => (
+    total + Math.max(0, Number(advance.amount || 0) - Number(advance.allocated_amount || 0))
+  ), 0);
+}
+
+// Called only when the first membership is fully paid (or its balance is zero).
+// Merely creating a pending membership must not consume the user's admission advance.
+export async function allocateMembershipAdvance(userId, membership, session) {
+  let remaining = Number(membership.advance_paid || 0);
+  if (remaining <= 0) return;
+
   const advances = await Payment.find({
     user_id: userId,
     $or: [{ gym_admission_id: membership.gym_admission_id }, { gym_admission_id: null }],
@@ -78,22 +96,23 @@ async function applyAvailableAdvance(userId, membership, session) {
 
   for (const advance of advances) {
     if (remaining <= 0) break;
-    const available = Math.max(0, advance.amount - Number(advance.allocated_amount || 0));
+    const available = Math.max(0, Number(advance.amount || 0) - Number(advance.allocated_amount || 0));
     const applied = Math.min(available, remaining);
     if (applied <= 0) continue;
+
     advance.allocated_amount = Number(advance.allocated_amount || 0) + applied;
     advance.membership_id = membership._id;
     advance.gym_admission_id = membership.gym_admission_id;
     await advance.save({ session });
-    membership.advance_paid += applied;
     remaining -= applied;
   }
 
-  membership.amount_due = Math.max(0, Number((membership.plan_price_snapshot - membership.advance_paid).toFixed(2)));
-  return membership;
+  if (remaining > 0) {
+    throw new ApiError(409, 'Admission advance credit is no longer available. Please refresh and try again.');
+  }
 }
 
-async function createMembershipWithAdvance({ userId, admission, plan, startDate }) {
+async function createMembershipWithAdvance({ userId, admission, plan, startDate, useAdmissionAdvance = false }) {
   const session = await mongoose.startSession();
   try {
     let result;
@@ -112,7 +131,11 @@ async function createMembershipWithAdvance({ userId, admission, plan, startDate 
         advance_paid: 0,
         amount_due: plan.price,
       });
-      await applyAvailableAdvance(userId, membership, session);
+      if (useAdmissionAdvance) {
+        const availableCredit = await getAvailableAdvance(userId, admission._id, session);
+        membership.advance_paid = Math.min(Number(plan.price), availableCredit);
+        membership.amount_due = Math.max(0, Number((plan.price - membership.advance_paid).toFixed(2)));
+      }
 
       if (membership.amount_due === 0) {
         const endDate = new Date(startDate);
@@ -124,6 +147,7 @@ async function createMembershipWithAdvance({ userId, admission, plan, startDate 
       await membership.save({ session });
 
       if (membership.payment_status === 'paid') {
+        await allocateMembershipAdvance(userId, membership, session);
         await new Notification({
           user_id: userId,
           title: 'Membership Activated',
@@ -148,7 +172,7 @@ export async function purchaseMembership(userId, planId) {
   if (!admission) throw new ApiError(400, 'No active gym admission found. Ask gym staff to admit you first.');
   const active = await Membership.findOne({ user_id: userId, status: { $in: ['active', 'scheduled'] } });
   if (active) throw new ApiError(409, 'You already have an active or scheduled membership. Use renewal instead.');
-  return createMembershipWithAdvance({ userId, admission, plan, startDate: new Date() });
+  return createMembershipWithAdvance({ userId, admission, plan, startDate: new Date(), useAdmissionAdvance: true });
 }
 
 export async function payAdvance() {
@@ -175,5 +199,6 @@ export async function renewMembership(userId, membershipId) {
     admission,
     plan,
     startDate: nextStartDate(oldMembership),
+    useAdmissionAdvance: false,
   });
 }
