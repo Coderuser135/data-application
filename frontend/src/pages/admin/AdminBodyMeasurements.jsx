@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Search, X, Plus, Ruler, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, X, Plus, Pencil, Trash2, Ruler, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
-import { fetchAllMeasurements, fetchAdmittedMembers, createMeasurement, fetchMeasurementsByUser } from '@/redux/slices/measurementSlice';
+import { fetchAllMeasurements, fetchAdmittedMembers, createMeasurement, updateMeasurement, deleteMeasurement, fetchMeasurementsByUser } from '@/redux/slices/measurementSlice';
 import { admissionService } from '@/services/admissionService';
 import { formatDate } from '@/utils/formatters';
 
@@ -19,6 +19,7 @@ export default function AdminBodyMeasurements() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' });
@@ -45,13 +46,39 @@ export default function AdminBodyMeasurements() {
 
   function updateField(key, value) { setFormData((prev) => ({ ...prev, [key]: value })); }
 
+  function openCreateForm() {
+    setEditingMeasurement(null);
+    setFormData({ age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' });
+    setError('');
+    setShowForm(true);
+  }
+
+  function openEditForm(m) {
+    setEditingMeasurement(m);
+    setFormData({ age: m.age ?? '', height: m.height ?? '', weight: m.weight ?? '', stomach: m.stomach ?? '', chest: m.chest ?? '', biceps: m.biceps ?? '', back: m.back ?? '', legs: m.legs ?? '', body_fat: m.body_fat ?? '', muscle_mass: m.muscle_mass ?? '', notes: m.notes || '', measurement_date: m.measurement_date ? new Date(m.measurement_date).toISOString().slice(0, 10) : '' });
+    setError('');
+    setShowForm(true);
+  }
+
+  async function handleDelete(m) {
+    if (!window.confirm('Delete this body measurement record? This action cannot be undone.')) return;
+    try {
+      await dispatch(deleteMeasurement(m._id || m.id)).unwrap();
+      const userId = selectedMember.user_id || selectedMember._id;
+      dispatch(fetchMeasurementsByUser(userId));
+      dispatch(fetchAllMeasurements());
+    } catch (err) { setError(typeof err === 'string' ? err : 'Failed to delete measurement'); }
+  }
+
   async function handleSubmit() {
     if (!selectedMember) { setError('Select a member first'); return; }
     setSubmitting(true);
     setError('');
     try {
       const userId = selectedMember.user_id || selectedMember._id;
-      await dispatch(createMeasurement({ user_id: userId, ...formData, measurement_date: formData.measurement_date || undefined })).unwrap();
+      const payload = { user_id: userId, ...formData, measurement_date: formData.measurement_date || undefined };
+      if (editingMeasurement) await dispatch(updateMeasurement({ id: editingMeasurement._id || editingMeasurement.id, data: payload })).unwrap();
+      else await dispatch(createMeasurement(payload)).unwrap();
       setShowForm(false);
       setFormData({ age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' });
       dispatch(fetchMeasurementsByUser(userId));
@@ -80,7 +107,7 @@ export default function AdminBodyMeasurements() {
           <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Body Measurements</h1>
           <p className="mt-1 text-sm text-surface-500">Record and track member body progress</p>
         </div>
-        {selectedMember && <Button onClick={() => setShowForm(true)}><Plus size={16} /> Add Measurement</Button>}
+        {selectedMember && <Button onClick={openCreateForm}><Plus size={16} /> Add Measurement</Button>}
       </div>
 
       <Card>
@@ -155,7 +182,7 @@ export default function AdminBodyMeasurements() {
                   <th className="px-5 py-3 font-medium">Chest</th>
                   <th className="px-5 py-3 font-medium">Waist</th>
                   <th className="px-5 py-3 font-medium">Biceps</th>
-                  <th className="px-5 py-3 font-medium">Body Fat</th>
+                  <th className="px-5 py-3 font-medium">Body Fat</th>{selectedMember && <th className="px-5 py-3 font-medium">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +194,7 @@ export default function AdminBodyMeasurements() {
                     <td className="px-5 py-3">{m.chest || '—'}</td>
                     <td className="px-5 py-3">{m.stomach || '—'}</td>
                     <td className="px-5 py-3">{m.biceps || '—'}</td>
-                    <td className="px-5 py-3">{m.body_fat || '—'}</td>
+                    <td className="px-5 py-3">{m.body_fat || '—'}</td>{selectedMember && <td className="px-5 py-3"><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => openEditForm(m)}><Pencil size={13} /> Edit</Button><Button size="sm" variant="danger" onClick={() => handleDelete(m)}><Trash2 size={13} /> Delete</Button></div></td>}
                   </tr>
                 ))}
               </tbody>
@@ -180,7 +207,7 @@ export default function AdminBodyMeasurements() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowForm(false)}>
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4 dark:border-surface-800">
-              <h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">Add Measurement</h2>
+              <h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">{editingMeasurement ? 'Edit Measurement' : 'Add Measurement'}</h2>
               <button onClick={() => setShowForm(false)} className="rounded-lg p-2 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18} /></button>
             </div>
             <div className="space-y-4 p-6">
@@ -202,7 +229,7 @@ export default function AdminBodyMeasurements() {
             </div>
             <div className="flex justify-end gap-2 border-t border-surface-200 px-6 py-4 dark:border-surface-800">
               <Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button onClick={handleSubmit} loading={submitting}>Save Measurement</Button>
+              <Button onClick={handleSubmit} loading={submitting}>{editingMeasurement ? 'Update Measurement' : 'Save Measurement'}</Button>
             </div>
           </div>
         </div>
