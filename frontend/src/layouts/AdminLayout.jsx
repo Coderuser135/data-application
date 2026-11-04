@@ -58,7 +58,7 @@ export default function AdminLayout() {
           </nav>
         </aside>
         {open && <div onClick={() => setOpen(false)} className="fixed inset-0 z-20 bg-black/30 lg:hidden" />}
-        <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8"><Outlet /></main>
+        <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8"><Outlet /></main><footer className="border-t border-surface-200 bg-white px-5 py-4 text-center text-xs leading-6 text-surface-500 dark:border-surface-800 dark:bg-surface-900"><p>© {new Date().getFullYear()} {gymProfile.name}</p><p>{gymProfile.address}</p><p><a className="hover:text-brand-600" href={`tel:${gymProfile.phoneHref}`}>{gymProfile.phone}</a> · {gymProfile.hoursSummary}</p></footer>
       </div>
     </div>
   );
