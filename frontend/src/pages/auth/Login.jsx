@@ -45,7 +45,7 @@ export default function Login() {
             <p className="font-display text-4xl font-bold leading-tight">Welcome back.<br /><span className="text-brand-400">Let's get to work.</span></p>
             <p className="mt-4 max-w-sm text-surface-400">Your training, your progress, your supplements — all in one place.</p>
           </div>
-          <p className="text-xs text-surface-500">© {new Date().getFullYear()} IronForge Fitness</p>
+          <p className="text-xs text-surface-500">© {new Date().getFullYear()} Heaven Gym</p>
         </div>
       </div>
       <div className="flex w-full items-center justify-center bg-surface-50 px-5 py-12 dark:bg-surface-950 lg:w-1/2">
