@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import GymAdmission from '../models/gymAdmission.model.js';
 import BodyMeasurement from '../models/bodyMeasurement.model.js';
 import Payment from '../models/payment.model.js';
@@ -119,118 +118,141 @@ export async function createAdmission(data) {
   }
 
   const details = personal_details && typeof personal_details === 'object' ? personal_details : {};
-  const session = await mongoose.startSession();
+  const user = await User.findById(user_id);
 
-  try {
-    let result;
+  if (!user) throw new ApiError(404, 'User not found');
+  if (user.role !== 'user') throw new ApiError(400, 'Only customer accounts can receive a gym admission');
+  if (!user.email_verified) throw new ApiError(409, 'User must verify their email before gym admission');
 
-    await session.withTransaction(async () => {
-      const user = await User.findById(user_id).session(session);
+  const existing = await GymAdmission.findOne({ user_id });
+  if (existing) throw new ApiError(409, 'User already has a gym admission');
 
-      if (!user) throw new ApiError(404, 'User not found');
-      if (user.role !== 'user') throw new ApiError(400, 'Only customer accounts can receive a gym admission');
-      if (!user.email_verified) throw new ApiError(409, 'User must verify their email before gym admission');
+  // Validate optional measurements before writing any records.
+  let measurementDoc = null;
 
-      const existing = await GymAdmission.findOne({ user_id }).session(session);
-      if (existing) throw new ApiError(409, 'User already has a gym admission');
-
-      let member_id;
-
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const candidate = generateMemberId();
-        if (!(await GymAdmission.exists({ member_id: candidate }).session(session))) {
-          member_id = candidate;
-          break;
-        }
-      }
-
-      if (!member_id) throw new ApiError(500, 'Failed to generate unique member ID');
-
-      user.full_name = String(details.full_name ?? full_name ?? user.full_name).trim().slice(0, 100);
-      user.phone = String(details.phone ?? phone ?? user.phone).trim().slice(0, 30);
-      user.address = String(details.address ?? address ?? user.address).trim().slice(0, 1000);
-      await user.save({ session });
-
-      const admission = new GymAdmission({
-        user_id,
-        member_id,
-        status: 'active',
-        emergency_contact_name: String(emergency_contact_name || '').trim().slice(0, 100),
-        emergency_contact_phone: String(emergency_contact_phone || '').trim().slice(0, 30),
-        notes: String(notes || '').slice(0, 2000),
-        selected_plan_id: null,
-      });
-
-      await admission.save({ session });
-
-      if (measurement && typeof measurement === 'object') {
-        const measurementDoc = new BodyMeasurement({
-          user_id,
-          gym_admission_id: admission._id,
-          age: measurementNumber(measurement.age, 'age', 120),
-          height: measurementNumber(measurement.height, 'height', 300),
-          weight: measurementNumber(measurement.weight, 'weight', 500),
-          stomach: measurementNumber(measurement.stomach, 'stomach', 300),
-          chest: measurementNumber(measurement.chest, 'chest', 300),
-          biceps: measurementNumber(measurement.biceps, 'biceps', 150),
-          back: measurementNumber(measurement.back, 'back', 300),
-          legs: measurementNumber(measurement.legs, 'legs', 300),
-          body_fat: measurementNumber(measurement.body_fat, 'body fat', 100),
-          muscle_mass: measurementNumber(measurement.muscle_mass, 'muscle mass', 500),
-          notes: String(measurement.notes || '').slice(0, 2000),
-          measurement_date: measurement.measurement_date ? new Date(measurement.measurement_date) : new Date(),
-        });
-
-        if (Number.isNaN(measurementDoc.measurement_date.getTime())) {
-          throw new ApiError(400, 'Invalid measurement date');
-        }
-
-        await measurementDoc.save({ session });
-      }
-
-      let advancePayment = null;
-
-      if (amount > 0) {
-        advancePayment = new Payment({
-          user_id,
-          membership_id: null,
-          gym_admission_id: admission._id,
-          amount,
-          allocated_amount: 0,
-          payment_type: 'membership_advance',
-          payment_method,
-          status: 'success',
-          payment_date: new Date(),
-          reference_note: 'Advance received during gym admission; will be adjusted against the first membership selected by the member.',
-        });
-
-        await advancePayment.save({ session });
-      }
-
-      await new Notification({
-        user_id,
-        title: 'Gym Admission Confirmed',
-        message: `Welcome to the gym! Your member ID is ${member_id}. You can now choose a membership plan from your dashboard.`,
-        type: 'admission',
-        related_id: admission._id,
-        related_type: 'GymAdmission',
-      }).save({ session });
-
-      result = { admission, membership: null, payment: advancePayment, member_id };
+  if (measurement && typeof measurement === 'object') {
+    measurementDoc = new BodyMeasurement({
+      user_id,
+      age: measurementNumber(measurement.age, 'age', 120),
+      height: measurementNumber(measurement.height, 'height', 300),
+      weight: measurementNumber(measurement.weight, 'weight', 500),
+      stomach: measurementNumber(measurement.stomach, 'stomach', 300),
+      chest: measurementNumber(measurement.chest, 'chest', 300),
+      biceps: measurementNumber(measurement.biceps, 'biceps', 150),
+      back: measurementNumber(measurement.back, 'back', 300),
+      legs: measurementNumber(measurement.legs, 'legs', 300),
+      body_fat: measurementNumber(measurement.body_fat, 'body fat', 100),
+      muscle_mass: measurementNumber(measurement.muscle_mass, 'muscle mass', 500),
+      notes: String(measurement.notes || '').slice(0, 2000),
+      measurement_date: measurement.measurement_date ? new Date(measurement.measurement_date) : new Date(),
     });
 
-    return result;
+    if (Number.isNaN(measurementDoc.measurement_date.getTime())) {
+      throw new ApiError(400, 'Invalid measurement date');
+    }
+  }
+
+  let member_id;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = generateMemberId();
+    if (!(await GymAdmission.exists({ member_id: candidate }))) {
+      member_id = candidate;
+      break;
+    }
+  }
+
+  if (!member_id) throw new ApiError(500, 'Failed to generate unique member ID');
+
+  const admission = new GymAdmission({
+    user_id,
+    member_id,
+    status: 'active',
+    emergency_contact_name: String(emergency_contact_name || '').trim().slice(0, 100),
+    emergency_contact_phone: String(emergency_contact_phone || '').trim().slice(0, 30),
+    notes: String(notes || '').slice(0, 2000),
+    selected_plan_id: null,
+  });
+
+  let advancePayment = null;
+  let notification = null;
+  let admissionSaved = false;
+  let measurementSaved = false;
+  let paymentSaved = false;
+  let notificationSaved = false;
+
+  try {
+    // Use ordinary MongoDB writes; no replica set or transaction is required.
+    await admission.save();
+    admissionSaved = true;
+
+    if (measurementDoc) {
+      measurementDoc.gym_admission_id = admission._id;
+      await measurementDoc.save();
+      measurementSaved = true;
+    }
+
+    if (amount > 0) {
+      advancePayment = new Payment({
+        user_id,
+        membership_id: null,
+        gym_admission_id: admission._id,
+        amount,
+        allocated_amount: 0,
+        payment_type: 'membership_advance',
+        payment_method,
+        status: 'success',
+        payment_date: new Date(),
+        reference_note: 'Advance received during gym admission; will be adjusted against the first membership selected by the member.',
+      });
+
+      await advancePayment.save();
+      paymentSaved = true;
+    }
+
+    notification = new Notification({
+      user_id,
+      title: 'Gym Admission Confirmed',
+      message: `Welcome to the gym! Your member ID is ${member_id}. You can now choose a membership plan from your dashboard.`,
+      type: 'admission',
+      related_id: admission._id,
+      related_type: 'GymAdmission',
+    });
+
+    await notification.save();
+    notificationSaved = true;
+
+    user.full_name = String(details.full_name ?? full_name ?? user.full_name).trim().slice(0, 100);
+    user.phone = String(details.phone ?? phone ?? user.phone).trim().slice(0, 30);
+    user.address = String(details.address ?? address ?? user.address).trim().slice(0, 1000);
+    await user.save();
+
+    return { admission, membership: null, payment: advancePayment, member_id };
   } catch (error) {
-    if (/Transaction numbers are only allowed|replica set|mongos/i.test(error.message || '')) {
-      throw new ApiError(
-        503,
-        'Admission could not be saved because MongoDB transactions are unavailable. Configure MONGODB_URI to use a MongoDB replica set (MongoDB Atlas supports this), then retry.',
-      );
+    // Compensate for a failed later write by removing records created by this request.
+    const cleanupTasks = [];
+
+    if (notificationSaved) cleanupTasks.push(Notification.deleteOne({ _id: notification._id }));
+    if (paymentSaved) cleanupTasks.push(Payment.deleteOne({ _id: advancePayment._id }));
+    if (measurementSaved) cleanupTasks.push(BodyMeasurement.deleteOne({ _id: measurementDoc._id }));
+    if (admissionSaved) cleanupTasks.push(GymAdmission.deleteOne({ _id: admission._id }));
+
+    const cleanupResults = await Promise.allSettled(cleanupTasks);
+    const cleanupFailed = cleanupResults.some((result) => result.status === 'rejected');
+
+    if (cleanupFailed) {
+      console.error('Admission cleanup failed; manual database review is required.', {
+        admissionId: admission._id,
+        originalError: error,
+      });
+      throw new ApiError(500, 'Admission could not be completed and automatic cleanup was incomplete. Please check admin records before retrying.');
+    }
+
+    if (error?.code === 11000) {
+      throw new ApiError(409, 'This user already has an admission or the generated member ID is already in use. Refresh and try again.');
     }
 
     throw error;
-  } finally {
-    await session.endSession();
   }
 }
 
