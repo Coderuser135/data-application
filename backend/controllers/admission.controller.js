@@ -4,30 +4,50 @@ export const getAllAdmissions = async (req, res, next) => {
   try {
     const admissions = await admissionService.getAllAdmissions();
     res.json(admissions);
-  } catch (err) { next(err); }
+  } catch (error) {
+    next(error);
+  }
 };
+
 export const getMyAdmission = async (req, res, next) => {
   try {
     const admission = await admissionService.getAdmissionByUserId(req.user._id);
     res.json(admission);
-  } catch (err) { next(err); }
+  } catch (error) {
+    next(error);
+  }
 };
+
 export const createAdmission = async (req, res, next) => {
   try {
     const result = await admissionService.createAdmission(req.body);
     res.status(201).json(result);
-  } catch (err) { next(err); }
+  } catch (error) {
+    next(error);
+  }
 };
+
 export const updateAdmission = async (req, res, next) => {
   try {
     const admission = await admissionService.updateAdmission(req.params.id, req.body);
     res.json(admission);
-  } catch (err) { next(err); }
+  } catch (error) {
+    next(error);
+  }
 };
+
 export const searchUsers = async (req, res, next) => {
   try {
-    const { q, page, limit } = req.query;
-    const result = await admissionService.searchUsers(q, Number(page) || 1, Number(limit) || 20);
+    const { q, page, limit, exclude_admins } = req.query;
+    const result = await admissionService.searchUsers(
+      q,
+      Number(page) || 1,
+      Number(limit) || 20,
+      { excludeAdmins: exclude_admins === 'true' },
+    );
+
     res.json(result);
-  } catch (err) { next(err); }
+  } catch (error) {
+    next(error);
+  }
 };
