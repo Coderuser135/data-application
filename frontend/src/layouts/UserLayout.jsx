@@ -124,7 +124,7 @@ export default function UserLayout() {
         </header>
 
         <main className="min-h-[calc(100vh-72px)] bg-surface-50 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 dark:bg-[#08090c]"><div className="mx-auto w-full max-w-[1440px]"><Outlet /></div></main>
-        <footer className="border-t border-surface-200 bg-white px-4 py-5 text-center text-xs text-surface-500 sm:px-6 dark:border-white/[0.08] dark:bg-[#08090c] dark:text-slate-500">© {new Date().getFullYear()} {gymProfile.name} · Secure payments powered by Razorpay</footer>
+        <footer className="border-t border-surface-200 bg-white px-4 py-5 text-center text-xs leading-6 text-surface-500 sm:px-6 dark:border-white/[0.08] dark:bg-[#08090c] dark:text-slate-500"><p>© {new Date().getFullYear()} {gymProfile.name} · Secure payments powered by Razorpay</p><p>{gymProfile.address}</p><p><a className="hover:text-brand-600" href={`tel:${gymProfile.phoneHref}`}>{gymProfile.phone}</a> · {gymProfile.hoursSummary}</p></footer>
       </div>
     </div>
   );
