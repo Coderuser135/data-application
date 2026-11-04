@@ -26,7 +26,27 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
 const app = express();
 
-// Vercel reuses warm function instances, so reuse the cached MongoDB connection.
+const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+app.use(helmet());
+
+// CORS must run before database connection so browser requests receive
+// the correct CORS headers even when MongoDB is temporarily unavailable.
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS origin not allowed'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+}));
+
+// Reuse the cached MongoDB connection in warm serverless instances.
 app.use(async (req, res, next) => {
   if (req.method === 'OPTIONS') return next();
 
@@ -37,25 +57,11 @@ app.use(async (req, res, next) => {
     next(error);
   }
 });
-const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',').map((value) => value.trim()).filter(Boolean);
-
-app.disable('x-powered-by');
-app.set('trust proxy', 1);
-app.use(helmet());
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('CORS origin not allowed'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-}));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false });
 const paymentLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
-// Razorpay signs the exact raw request body. This route must run before express.json().
+// Razorpay signs the exact raw request body. Keep this before express.json().
 app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json', limit: '1mb' }), razorpayWebhook);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
