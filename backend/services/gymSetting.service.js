@@ -19,8 +19,21 @@ export async function getGymSettings() {
   // Backfill only blank profile fields. Never overwrite values already
   // entered by the gym owner in the admin settings panel.
   let changed = false;
+
+  // Migrate the previous demo branding to the real gym profile once.
+  // Existing custom values entered by the gym owner are otherwise preserved.
+  const legacyValues = {
+    gym_name: ['IronForge Gym', 'IronForge', 'Iron Forge Gym'],
+    contact_phone: [''],
+    address: ['', 'Gym address', 'Your gym address'],
+    opening_hours: ['', 'Monday – Saturday: 5:00 AM – 10:00 PM'],
+    maps_url: [''],
+  };
+
   for (const [key, value] of Object.entries(VERIFIED_GYM_DEFAULTS)) {
-    if (!String(settings[key] || '').trim()) {
+    const currentValue = String(settings[key] || '').trim();
+    const isLegacyValue = (legacyValues[key] || []).includes(currentValue);
+    if (!currentValue || isLegacyValue) {
       settings[key] = value;
       changed = true;
     }
