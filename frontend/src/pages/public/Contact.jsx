@@ -1,7 +1,6 @@
 import { Clock3, MapPin, Phone, ExternalLink } from 'lucide-react';
 import { gymProfile } from '@/config/gymProfile';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import SectionHeading from '@/components/ui/SectionHeading';
 
 export default function Contact() {
