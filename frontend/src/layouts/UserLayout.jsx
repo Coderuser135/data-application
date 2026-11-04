@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { signOut } from '@/redux/slices/authSlice';
 import { fetchUnreadCount } from '@/redux/slices/notificationSlice';
+import { gymProfile } from '@/config/gymProfile';
 
 const navItems = [
   { to: '/user/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -63,7 +64,7 @@ export default function UserLayout() {
         <div className={`flex h-[72px] shrink-0 items-center border-b border-surface-200 dark:border-white/[0.08] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           <Link to="/" className="group flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[0_0_24px_rgba(220,38,38,0.20)] transition group-hover:scale-105"><Dumbbell size={20} strokeWidth={2.5} /></span>
-            {!collapsed && <span className="font-display whitespace-nowrap text-[17px] font-extrabold tracking-tight text-ink-900 dark:text-white">IRON<span className="text-brand-500">FORGE</span></span>}
+            {!collapsed && <span className="font-display whitespace-nowrap text-[17px] font-extrabold tracking-tight text-ink-900 dark:text-white">{gymProfile.name}</span>}
           </Link>
           {!collapsed && <button type="button" onClick={() => setCollapsed(true)} aria-label="Collapse sidebar" className="rounded-lg p-2 text-surface-400 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-white"><PanelLeftClose size={17} /></button>}
         </div>
@@ -94,7 +95,7 @@ export default function UserLayout() {
 
       <aside className={`fixed inset-y-0 left-0 z-[60] w-[286px] transform border-r border-surface-200 bg-white transition-transform duration-300 lg:hidden dark:border-white/[0.08] dark:bg-[#11131b] ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-[72px] items-center justify-between border-b border-surface-200 px-5 dark:border-white/[0.08]">
-          <Link to="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={20} /></span><span className="font-display text-[17px] font-extrabold text-ink-900 dark:text-white">IRON<span className="text-brand-500">FORGE</span></span></Link>
+          <Link to="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={20} /></span><span className="font-display text-[17px] font-extrabold text-ink-900 dark:text-white">{gymProfile.name}</span></Link>
           <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-2 text-surface-500 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white" aria-label="Close menu"><X size={20} /></button>
         </div>
         <nav className="custom-scrollbar overflow-y-auto px-3 py-5" style={{ maxHeight: 'calc(100vh - 72px)' }}>
@@ -108,7 +109,7 @@ export default function UserLayout() {
           <div className="flex h-full items-center justify-between px-4 sm:px-6 lg:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <button type="button" onClick={() => setOpen(true)} className="rounded-xl border border-surface-200 bg-surface-50 p-2.5 text-surface-500 hover:bg-surface-100 hover:text-ink-900 lg:hidden dark:border-white/[0.08] dark:bg-white/[0.025] dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white" aria-label="Open menu"><Menu size={20} /></button>
-              <div className="min-w-0"><p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500 sm:block">IronForge Gym</p><h1 className="truncate font-display text-lg font-extrabold tracking-tight text-ink-900 sm:text-xl dark:text-white">{pageTitle}</h1></div>
+              <div className="min-w-0"><p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500 sm:block">{gymProfile.name}</p><h1 className="truncate font-display text-lg font-extrabold tracking-tight text-ink-900 sm:text-xl dark:text-white">{pageTitle}</h1></div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <ThemeToggle />
@@ -123,7 +124,7 @@ export default function UserLayout() {
         </header>
 
         <main className="min-h-[calc(100vh-72px)] bg-surface-50 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 dark:bg-[#08090c]"><div className="mx-auto w-full max-w-[1440px]"><Outlet /></div></main>
-        <footer className="border-t border-surface-200 bg-white px-4 py-5 text-center text-xs text-surface-500 sm:px-6 dark:border-white/[0.08] dark:bg-[#08090c] dark:text-slate-500">© {new Date().getFullYear()} IronForge Gym · Secure payments powered by Razorpay</footer>
+        <footer className="border-t border-surface-200 bg-white px-4 py-5 text-center text-xs text-surface-500 sm:px-6 dark:border-white/[0.08] dark:bg-[#08090c] dark:text-slate-500">© {new Date().getFullYear()} {gymProfile.name} · Secure payments powered by Razorpay</footer>
       </div>
     </div>
   );
