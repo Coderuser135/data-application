@@ -37,7 +37,7 @@ export async function sendEmailVerificationOtp({ to, otp, fullName }) {
   const safeName = String(fullName || 'there').replace(/[&<>"]/g, '');
 
   await transporter.sendMail({
-    from: { name: 'IronForge Gym', address: sender },
+    from: process.env.SMTP_FROM || { name: 'IronForge Gym', address: sender },
     to,
     subject: 'Verify your IronForge email address',
     text: `Hello ${safeName}, your email verification code is ${otp}. It expires in 5 minutes. Do not share this code.`,
