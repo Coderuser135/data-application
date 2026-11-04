@@ -28,19 +28,11 @@ function numberField(value, label, { min = 0, max = Number.POSITIVE_INFINITY, in
   return number;
 }
 
-export async function createMeasurement(data) {
-  if (!data.user_id) throw new ApiError(400, 'User is required');
-  const user = await User.findById(data.user_id);
-  if (!user) throw new ApiError(404, 'User not found');
-  const admission = await GymAdmission.findOne({ user_id: data.user_id, status: 'active' });
-  if (!admission) throw new ApiError(400, 'User must have an active gym admission before measurements can be recorded');
-
+function buildMeasurementData(data) {
   const measurementDate = data.measurement_date ? new Date(data.measurement_date) : new Date();
   if (Number.isNaN(measurementDate.getTime())) throw new ApiError(400, 'Invalid measurement date');
-
-  return BodyMeasurement.create({
-    user_id: data.user_id,
-    gym_admission_id: admission._id,
+  return {
+  return {
     age: numberField(data.age, 'age', { max: 120, integer: true }),
     height: numberField(data.height, 'height', { max: 300 }),
     weight: numberField(data.weight, 'weight', { max: 500 }),
@@ -53,7 +45,39 @@ export async function createMeasurement(data) {
     muscle_mass: numberField(data.muscle_mass, 'muscle mass', { max: 500 }),
     notes: String(data.notes || '').slice(0, 2000),
     measurement_date: measurementDate,
-  });
+  };
+}
+
+export async function createMeasurement(data) {
+  if (!data.user_id) throw new ApiError(400, 'User is required');
+  const user = await User.findById(data.user_id);
+  if (!user) throw new ApiError(404, 'User not found');
+  const admission = await GymAdmission.findOne({ user_id: data.user_id, status: 'active' });
+  if (!admission) throw new ApiError(400, 'User must have an active gym admission before measurements can be recorded');
+  return BodyMeasurement.create({ user_id: data.user_id, gym_admission_id: admission._id, ...buildMeasurementData(data) });
+}
+
+export async function updateMeasurement(measurementId, data) {
+  const existing = await BodyMeasurement.findById(measurementId);
+  if (!existing) throw new ApiError(404, 'Measurement not found');
+  const admission = await GymAdmission.findOne({ _id: existing.gym_admission_id, user_id: existing.user_id, status: 'active' });
+  if (!admission) throw new ApiError(409, 'An active gym admission is required to update this measurement');
+  const updated = await BodyMeasurement.findOneAndUpdate(
+    { _id: measurementId, user_id: existing.user_id, gym_admission_id: admission._id },
+    { $set: buildMeasurementData(data) },
+    { new: true, runValidators: true },
+  );
+  if (!updated) throw new ApiError(404, 'Measurement not found');
+  return updated;
+}
+
+export async function deleteMeasurement(measurementId) {
+  const existing = await BodyMeasurement.findById(measurementId);
+  if (!existing) throw new ApiError(404, 'Measurement not found');
+  const admission = await GymAdmission.findOne({ _id: existing.gym_admission_id, user_id: existing.user_id, status: 'active' });
+  if (!admission) throw new ApiError(409, 'An active gym admission is required to delete this measurement');
+  await BodyMeasurement.deleteOne({ _id: measurementId, user_id: existing.user_id, gym_admission_id: admission._id });
+  return { success: true, message: 'Measurement deleted successfully' };
 }
 
 export async function getAdmittedUsers() {
