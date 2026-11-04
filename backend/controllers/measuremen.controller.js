@@ -30,3 +30,9 @@ export const getAdmittedUsers = async (req, res, next) => {
     res.json(users);
   } catch (err) { next(err); }
 };
+export const updateMeasurement = async (req, res, next) => {
+  try { res.json(await measurementService.updateMeasurement(req.params.id, req.body)); } catch (err) { next(err); }
+};
+export const deleteMeasurement = async (req, res, next) => {
+  try { res.json(await measurementService.deleteMeasurement(req.params.id)); } catch (err) { next(err); }
+};
