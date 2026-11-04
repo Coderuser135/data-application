@@ -52,7 +52,7 @@ export default function Checkout() {
           key: keyId,
           amount: razorpayOrder.amount,
           currency: razorpayOrder.currency || 'INR',
-          name: 'IronForge Store',
+          name: 'Heaven Gym Store',
           description: `Order ${order.order_number}`,
           order_id: razorpayOrder.id,
           handler: async (response) => {
