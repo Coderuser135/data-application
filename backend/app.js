@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
+import { connectDB } from './config/db.config.js';
 import authRoutes from './routes/auth.route.js';
 import userRoutes from './routes/user.route.js';
 import admissionRoutes from './routes/admission.route.js';
@@ -24,6 +25,16 @@ import { originProtection, cronProtection } from './middlewares/security.middlew
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
 const app = express();
+
+// Vercel reuses warm function instances, so reuse the cached MongoDB connection.
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',').map((value) => value.trim()).filter(Boolean);
 
