@@ -6,6 +6,7 @@ import Membership from '../models/membership.model.js';
 import Order from '../models/order.model.js';
 import Product from '../models/product.model.js';
 import { ApiError } from '../utils/errors.utils.js';
+import { allocateMembershipAdvance } from './membership.service.js';
 
 function gateway() {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) throw new ApiError(503, 'Online payments are not configured');
@@ -66,6 +67,7 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   if (payment.membership_id) {
     const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending', payment_status: 'pending' }).session(session);
     if (!membership) throw new ApiError(409, 'Pending membership not found');
+    await allocateMembershipAdvance(payment.user_id, membership, session);
     const startDate = membership.start_date ? new Date(membership.start_date) : new Date();
     const endDate = membership.end_date ? new Date(membership.end_date) : new Date(startDate);
     if (!membership.end_date) endDate.setDate(endDate.getDate() + membership.duration_days);
