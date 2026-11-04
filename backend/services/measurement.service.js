@@ -32,7 +32,6 @@ function buildMeasurementData(data) {
   const measurementDate = data.measurement_date ? new Date(data.measurement_date) : new Date();
   if (Number.isNaN(measurementDate.getTime())) throw new ApiError(400, 'Invalid measurement date');
   return {
-  return {
     age: numberField(data.age, 'age', { max: 120, integer: true }),
     height: numberField(data.height, 'height', { max: 300 }),
     weight: numberField(data.weight, 'weight', { max: 500 }),
