@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { signOut } from '@/redux/slices/authSlice';
+import { gymProfile } from '@/config/gymProfile';
 
 const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -35,7 +36,7 @@ export default function AdminLayout() {
             <button onClick={() => setOpen(!open)} className="rounded-lg p-2 text-surface-300 hover:bg-white/10 lg:hidden">{open ? <X size={20} /> : <Menu size={20} />}</button>
             <Link to="/admin/dashboard" className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white"><Dumbbell size={18} /></span>
-              <span className="font-display text-base font-bold">IRON<span className="text-brand-500">FORGE</span></span>
+              <span className="font-display text-base font-bold">{gymProfile.name}</span>
               <span className="ml-2 rounded-md bg-brand-600/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-brand-500">Admin</span>
             </Link>
           </div>
