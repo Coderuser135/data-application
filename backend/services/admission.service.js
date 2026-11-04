@@ -10,7 +10,7 @@ import { ApiError } from '../utils/errors.utils.js';
 
 export async function getAllAdmissions() {
   return GymAdmission.find()
-    .populate({ path: 'user_id', select: 'full_name email phone address' })
+    .populate({ path: 'user_id', select: 'full_name email phone address role' })
     .populate({ path: 'selected_plan_id', select: 'name' })
     .sort({ createdAt: -1 });
 }
@@ -20,10 +20,11 @@ export async function getAdmissionByUserId(userId) {
     .populate({ path: 'selected_plan_id', select: 'name price duration_days' });
 }
 
-export async function searchUsers(query, page = 1, limit = 20) {
+export async function searchUsers(query, page = 1, limit = 20, { excludeAdmins = false } = {}) {
   const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
-  const filter = {};
+  const filter = excludeAdmins ? { role: 'user' } : {};
+
   if (query) {
     const safeQuery = String(query).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
@@ -32,14 +33,17 @@ export async function searchUsers(query, page = 1, limit = 20) {
       { phone: { $regex: safeQuery, $options: 'i' } },
     ];
   }
+
   const skip = (safePage - 1) * safeLimit;
   const [users, total] = await Promise.all([
     User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).lean(),
     User.countDocuments(filter),
   ]);
+
   const userIds = users.map((user) => user._id);
   const admissions = await GymAdmission.find({ user_id: { $in: userIds } }).lean();
   const admissionMap = new Map(admissions.map((admission) => [admission.user_id.toString(), admission]));
+
   const rows = users.map((user) => {
     const admission = admissionMap.get(user._id.toString());
     return {
@@ -54,6 +58,7 @@ export async function searchUsers(query, page = 1, limit = 20) {
       admission_status: admission?.status || null,
     };
   });
+
   return { rows, total, page: safePage, pages: Math.ceil(total / safeLimit) };
 }
 
@@ -86,6 +91,7 @@ export async function createAdmission(data) {
   const amount = payment_amount === undefined || payment_amount === null || payment_amount === ''
     ? 0
     : Number(payment_amount);
+
   if (!Number.isFinite(amount) || amount < 0) {
     throw new ApiError(400, 'Admission advance amount must be zero or a positive number');
   }
@@ -114,17 +120,22 @@ export async function createAdmission(data) {
 
   const details = personal_details && typeof personal_details === 'object' ? personal_details : {};
   const session = await mongoose.startSession();
+
   try {
     let result;
+
     await session.withTransaction(async () => {
       const user = await User.findById(user_id).session(session);
+
       if (!user) throw new ApiError(404, 'User not found');
+      if (user.role !== 'user') throw new ApiError(400, 'Only customer accounts can receive a gym admission');
       if (!user.email_verified) throw new ApiError(409, 'User must verify their email before gym admission');
 
       const existing = await GymAdmission.findOne({ user_id }).session(session);
       if (existing) throw new ApiError(409, 'User already has a gym admission');
 
       let member_id;
+
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const candidate = generateMemberId();
         if (!(await GymAdmission.exists({ member_id: candidate }).session(session))) {
@@ -132,14 +143,12 @@ export async function createAdmission(data) {
           break;
         }
       }
+
       if (!member_id) throw new ApiError(500, 'Failed to generate unique member ID');
 
-      const updatedName = String(details.full_name ?? full_name ?? user.full_name).trim().slice(0, 100);
-      const updatedPhone = String(details.phone ?? phone ?? user.phone).trim().slice(0, 30);
-      const updatedAddress = String(details.address ?? address ?? user.address).trim().slice(0, 1000);
-      user.full_name = updatedName;
-      user.phone = updatedPhone;
-      user.address = updatedAddress;
+      user.full_name = String(details.full_name ?? full_name ?? user.full_name).trim().slice(0, 100);
+      user.phone = String(details.phone ?? phone ?? user.phone).trim().slice(0, 30);
+      user.address = String(details.address ?? address ?? user.address).trim().slice(0, 1000);
       await user.save({ session });
 
       const admission = new GymAdmission({
@@ -151,6 +160,7 @@ export async function createAdmission(data) {
         notes: String(notes || '').slice(0, 2000),
         selected_plan_id: null,
       });
+
       await admission.save({ session });
 
       if (measurement && typeof measurement === 'object') {
@@ -170,13 +180,16 @@ export async function createAdmission(data) {
           notes: String(measurement.notes || '').slice(0, 2000),
           measurement_date: measurement.measurement_date ? new Date(measurement.measurement_date) : new Date(),
         });
+
         if (Number.isNaN(measurementDoc.measurement_date.getTime())) {
           throw new ApiError(400, 'Invalid measurement date');
         }
+
         await measurementDoc.save({ session });
       }
 
       let advancePayment = null;
+
       if (amount > 0) {
         advancePayment = new Payment({
           user_id,
@@ -190,6 +203,7 @@ export async function createAdmission(data) {
           payment_date: new Date(),
           reference_note: 'Advance received during gym admission; will be adjusted against the first membership selected by the member.',
         });
+
         await advancePayment.save({ session });
       }
 
@@ -204,7 +218,17 @@ export async function createAdmission(data) {
 
       result = { admission, membership: null, payment: advancePayment, member_id };
     });
+
     return result;
+  } catch (error) {
+    if (/Transaction numbers are only allowed|replica set|mongos/i.test(error.message || '')) {
+      throw new ApiError(
+        503,
+        'Admission could not be saved because MongoDB transactions are unavailable. Configure MONGODB_URI to use a MongoDB replica set (MongoDB Atlas supports this), then retry.',
+      );
+    }
+
+    throw error;
   } finally {
     await session.endSession();
   }
@@ -213,10 +237,13 @@ export async function createAdmission(data) {
 export async function updateAdmission(admissionId, data) {
   const allowed = ['emergency_contact_name', 'emergency_contact_phone', 'notes', 'status'];
   const update = Object.fromEntries(Object.entries(data || {}).filter(([key]) => allowed.includes(key)));
+
   if (update.status && !['active', 'inactive'].includes(update.status)) {
     throw new ApiError(400, 'Invalid admission status');
   }
+
   const admission = await GymAdmission.findByIdAndUpdate(admissionId, update, { new: true, runValidators: true });
   if (!admission) throw new ApiError(404, 'Admission not found');
+
   return admission;
 }
