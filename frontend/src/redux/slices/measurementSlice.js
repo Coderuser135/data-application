@@ -19,6 +19,12 @@ export const createMeasurement = createAsyncThunk('measurements/create', async (
   try { return await measurementService.create(data); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to create measurement')); }
 });
 
+export const updateMeasurement = createAsyncThunk('measurements/update', async ({ id, data }, { rejectWithValue }) => {
+  try { return await measurementService.update(id, data); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to update measurement')); }
+});
+export const deleteMeasurement = createAsyncThunk('measurements/delete', async (id, { rejectWithValue }) => {
+  try { await measurementService.remove(id); return id; } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to delete measurement')); }
+});
 export const fetchAdmittedMembers = createAsyncThunk('measurements/fetchMembers', async (_, { rejectWithValue }) => {
   try { return await measurementService.getMembers(); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to fetch members')); }
 });
@@ -37,6 +43,14 @@ const measurementSlice = createSlice({
       .addCase(fetchAllMeasurements.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(fetchMeasurementsByUser.fulfilled, (state, action) => { state.selectedUserMeasurements = action.payload; })
       .addCase(createMeasurement.fulfilled, (state, action) => { state.adminItems.unshift(action.payload); })
+      .addCase(updateMeasurement.fulfilled, (state, action) => {
+        state.adminItems = state.adminItems.map((item) => item._id === action.payload._id ? action.payload : item);
+        state.selectedUserMeasurements = state.selectedUserMeasurements.map((item) => item._id === action.payload._id ? action.payload : item);
+      })
+      .addCase(deleteMeasurement.fulfilled, (state, action) => {
+        state.adminItems = state.adminItems.filter((item) => item._id !== action.payload);
+        state.selectedUserMeasurements = state.selectedUserMeasurements.filter((item) => item._id !== action.payload);
+      })
       .addCase(fetchAdmittedMembers.fulfilled, (state, action) => { state.members = action.payload; });
   },
 });
