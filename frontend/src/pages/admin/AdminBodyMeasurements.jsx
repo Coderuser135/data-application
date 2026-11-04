@@ -34,7 +34,7 @@ export default function AdminBodyMeasurements() {
     const q = e.target.value;
     setSearchQuery(q);
     if (q.length >= 2) {
-      try { const res = await admissionService.searchUsers(q, 1, 10); setSearchResults(res.rows || []); } catch { setSearchResults([]); }
+      try { const res = await admissionService.searchUsers(q, 1, 10); setSearchResults((res.rows || []).filter((user) => user.is_admitted && user.admission_status === 'active')); } catch { setSearchResults([]); }
     } else { setSearchResults([]); }
   }
 
@@ -84,7 +84,7 @@ export default function AdminBodyMeasurements() {
       dispatch(fetchMeasurementsByUser(userId));
       dispatch(fetchAllMeasurements());
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Failed to create measurement');
+      setError(typeof err === 'string' ? err : 'Failed to save measurement');
     } finally {
       setSubmitting(false);
     }
