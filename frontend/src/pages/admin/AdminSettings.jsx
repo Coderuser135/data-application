@@ -6,7 +6,14 @@ import Input from '@/components/ui/Input';
 import { gymSettingsService } from '@/services/settingsService';
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState({ gym_name: '', contact_phone: '', contact_email: '', address: '' });
+  const [settings, setSettings] = useState({
+    gym_name: 'Heaven Gym',
+    contact_phone: '+91 96501 23729',
+    contact_email: '',
+    address: 'Jhanda Chowk, near LG showroom, Naya Tola, Purnia, Bihar 854301, India',
+    opening_hours: 'Monday – Saturday: 6:00 AM – 10:30 PM; Sunday: 7:30 AM – 10:30 PM',
+    maps_url: 'https://www.google.com/maps/search/?api=1&query=Heaven+Gym%2C+Jhanda+Chowk%2C+near+LG+showroom%2C+Naya+Tola%2C+Purnia%2C+Bihar+854301',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -48,6 +55,8 @@ export default function AdminSettings() {
             <Input label="Contact Email" value={settings.contact_email || ''} onChange={(e) => update('contact_email', e.target.value)} placeholder="email@gym.com" />
           </div>
           <Input label="Address" value={settings.address || ''} onChange={(e) => update('address', e.target.value)} placeholder="Gym address" />
+          <Input label="Opening Hours" value={settings.opening_hours || ''} onChange={(e) => update('opening_hours', e.target.value)} placeholder="Monday – Saturday: 6 AM – 10:30 PM" />
+          <Input label="Google Maps URL" value={settings.maps_url || ''} onChange={(e) => update('maps_url', e.target.value)} placeholder="Google Maps place link" />
         </div>
       </Card>
 
