@@ -37,11 +37,11 @@ export async function sendEmailVerificationOtp({ to, otp, fullName }) {
   const safeName = String(fullName || 'there').replace(/[&<>"]/g, '');
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || { name: 'IronForge Gym', address: sender },
+    from: process.env.SMTP_FROM || { name: 'Heaven Gym', address: sender },
     to,
-    subject: 'Verify your IronForge email address',
+    subject: 'Verify your Heaven Gym email address',
     text: `Hello ${safeName}, your email verification code is ${otp}. It expires in 5 minutes. Do not share this code.`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px"><h2>Verify your email</h2><p>Hello ${safeName},</p><p>Use this code to verify your IronForge account:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px;padding:16px;background:#f3f4f6;text-align:center">${otp}</div><p>This code expires in 5 minutes. Do not share it with anyone.</p></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px"><h2>Verify your email</h2><p>Hello ${safeName},</p><p>Use this code to verify your Heaven Gym account:</p><div style="font-size:32px;font-weight:700;letter-spacing:8px;padding:16px;background:#f3f4f6;text-align:center">${otp}</div><p>This code expires in 5 minutes. Do not share it with anyone.</p></div>`,
   });
 }
 
