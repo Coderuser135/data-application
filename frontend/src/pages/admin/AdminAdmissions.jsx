@@ -133,7 +133,7 @@ export default function AdminAdmissions() {
       await dispatch(createAdmission(payload)).unwrap();
       setShowModal(false);
       setFormData({ emergency_contact_name: '', emergency_contact_phone: '', notes: '', full_name: '', phone: '', address: '', measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' }, payment_method: 'cash', payment_amount: '' });
-      dispatch(searchUsers({ q: query, page }));
+      dispatch(searchUsers({ q: query, page, excludeAdmins: true }));
     } catch (err) {
       setError(typeof err === 'string' ? err : err?.message || 'Failed to create admission. Please check the backend logs.');
     } finally {
