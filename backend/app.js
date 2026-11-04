@@ -28,6 +28,8 @@ const app = express();
 
 // Vercel reuses warm function instances, so reuse the cached MongoDB connection.
 app.use(async (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+
   try {
     await connectDB();
     next();
