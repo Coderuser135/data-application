@@ -48,7 +48,7 @@ export default function Membership() {
       rzp.on('payment.failed', (response) => reject(new Error(response?.error?.description || 'Payment failed')));
       rzp.open();
     });
-    await dispatch(fetchMyMemberships());
+    await Promise.all([dispatch(fetchMyMemberships()), dispatch(fetchActivePlans())]);
   }
 
   async function purchasePlan(plan) {
@@ -62,7 +62,7 @@ export default function Membership() {
       }
       const membership = await dispatch(purchaseMembership(plan.id)).unwrap();
       if (membership.payment_status === 'paid' || Number(membership.amount_due) === 0) {
-        await dispatch(fetchMyMemberships());
+        await Promise.all([dispatch(fetchMyMemberships()), dispatch(fetchActivePlans())]);
         alert('Your advance credit covered the full plan price. Your membership is now active.');
         return;
       }
