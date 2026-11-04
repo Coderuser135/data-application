@@ -26,10 +26,11 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
 const app = express();
 
-const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean);
+const allowedOrigins = new Set([
+  'https://heavengymfrontend-application.vercel.app',
+  'http://localhost:5173',
+  ...String(process.env.CLIENT_URL || '').split(',').map((value) => value.trim().replace(/\\/$/, '')).filter(Boolean),
+]);
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -39,7 +40,8 @@ app.use(helmet());
 // the correct CORS headers even when MongoDB is temporarily unavailable.
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    console.error('[CORS] Rejected browser origin:', origin);
     return callback(new Error('CORS origin not allowed'));
   },
   credentials: true,
