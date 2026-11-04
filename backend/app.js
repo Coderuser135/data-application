@@ -23,20 +23,9 @@ import { razorpayWebhook } from './controllers/payment.controller.js';
 import { runMembershipExpiry } from './jobs/membershipExpiry.job.js';
 import { originProtection, cronProtection } from './middlewares/security.middleware.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
+import { isAllowedFrontendOrigin } from './utils/frontendOrigin.js';
 
 const app = express();
-
-const allowedOrigins = new Set([
-  'https://heavengymfrontend-application.vercel.app',
-  'http://localhost:5173',
-  ...String(process.env.CLIENT_URL || '')
-    .split(',')
-    .map((value) => {
-      const origin = value.trim();
-      return origin.endsWith('/') ? origin.slice(0, -1) : origin;
-    })
-    .filter(Boolean),
-]);
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -46,7 +35,7 @@ app.use(helmet());
 // the correct CORS headers even when MongoDB is temporarily unavailable.
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    if (isAllowedFrontendOrigin(origin)) return callback(null, true);
     console.error('[CORS] Rejected browser origin:', origin);
     return callback(new Error('CORS origin not allowed'));
   },
