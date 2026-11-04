@@ -43,6 +43,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
 
+// Vercel's Express routing can deliver /api/* requests to this app with
+// the /api prefix removed. Normalize both forms so local and Vercel URLs work.
+app.use((req, res, next) => {
+  if (req.path !== '/' && !req.path.startsWith('/api/')) {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
+
 // Reuse the cached MongoDB connection in warm serverless instances.
 app.use(async (req, res, next) => {
   if (req.method === 'OPTIONS') return next();
