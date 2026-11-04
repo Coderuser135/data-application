@@ -53,7 +53,7 @@ export async function sendPasswordResetEmail({ to, token }) {
   const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
 
   await transporter.sendMail({
-    from: { name: 'IronForge Gym', address: sender },
+    from: { name: 'Heaven Gym', address: sender },
     to,
     subject: 'Reset your gym account password',
     text: `Reset your password using this link: ${resetUrl}\n\nThis link expires in 60 minutes. If you did not request this, you can ignore this email.`,
