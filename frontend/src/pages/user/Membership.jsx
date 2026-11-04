@@ -52,7 +52,9 @@ export default function Membership() {
   }
 
   async function purchasePlan(plan) {
-    const advanceCredit = Number(plan.advance_credit || 0);\n    const payablePrice = Number(plan.payable_price ?? plan.price);\n    if (!confirm(`Plan: ${plan.name}\nPlan price: ${formatCurrency(plan.price)}\nAdmission advance applied: ${formatCurrency(advanceCredit)}\nYou pay: ${formatCurrency(payablePrice)}\n\nProceed with purchase?`)) return;
+    const advanceCredit = Number(plan.advance_credit || 0);
+    const payablePrice = Number(plan.payable_price ?? plan.price);
+    if (!confirm(`Plan: ${plan.name}\nPlan price: ${formatCurrency(plan.price)}\nAdmission advance applied: ${formatCurrency(advanceCredit)}\nYou pay: ${formatCurrency(payablePrice)}\n\nProceed with purchase?`)) return;
     try {
       if (!admission || admission.status !== 'active') {
         alert('Your gym admission is pending. Please ask gym staff to complete your admission before purchasing a membership.');
@@ -74,7 +76,7 @@ export default function Membership() {
       const membership = await dispatch(renewMembership(id)).unwrap();
       if (membership.payment_status === 'paid' || Number(membership.amount_due) === 0) {
         await dispatch(fetchMyMemberships());
-        alert('Your available advance credit covered the renewal. Your membership is renewed.');
+        alert('Your membership is renewed.');
         return;
       }
       await payMembership(membership);
