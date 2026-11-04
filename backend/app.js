@@ -29,7 +29,13 @@ const app = express();
 const allowedOrigins = new Set([
   'https://heavengymfrontend-application.vercel.app',
   'http://localhost:5173',
-  ...String(process.env.CLIENT_URL || '').split(',').map((value) => value.trim().replace(/\\/$/, '')).filter(Boolean),
+  ...String(process.env.CLIENT_URL || '')
+    .split(',')
+    .map((value) => {
+      const origin = value.trim();
+      return origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    })
+    .filter(Boolean),
 ]);
 
 app.disable('x-powered-by');
