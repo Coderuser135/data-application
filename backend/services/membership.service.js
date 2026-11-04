@@ -32,6 +32,16 @@ export async function getActivePlans(userId) {
     return plans.map((plan) => ({ ...plan, id: plan._id.toString(), advance_credit: 0, payable_price: plan.price }));
   }
 
+  // Admission advance is visible only until the user's first membership has been paid.
+  const hasPurchasedMembership = await Membership.exists({
+    user_id: userId,
+    gym_admission_id: admission._id,
+    payment_status: 'paid',
+  });
+  if (hasPurchasedMembership) {
+    return plans.map((plan) => ({ ...plan, id: plan._id.toString(), advance_credit: 0, payable_price: plan.price }));
+  }
+
   const advances = await Payment.find({
     user_id: userId,
     $or: [{ gym_admission_id: admission._id }, { gym_admission_id: null }],
