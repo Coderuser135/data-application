@@ -84,6 +84,13 @@ export default function BodyProgress() {
   }
 
   const bmi = latest ? calcBMI(Number(latest.weight), Number(latest.height)) : null;
+  const monthlyGroups = measurements.reduce((groups, measurement) => {
+    const date = new Date(measurement.measurement_date);
+    const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(measurement);
+    return groups;
+  }, {});
 
   return (
     <div className="space-y-6">
