@@ -9,6 +9,7 @@ import { fetchMyMemberships, fetchActivePlans, purchaseMembership, renewMembersh
 import { fetchMyAdmission } from '@/redux/slices/admissionSlice';
 import { paymentService } from '@/services/paymentService';
 import { formatCurrency, formatDate, getDaysRemaining } from '@/utils/formatters';
+import { gymProfile } from '@/config/gymProfile';
 
 export default function Membership() {
   const dispatch = useDispatch();
@@ -36,7 +37,7 @@ export default function Membership() {
         key: keyId,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency || 'INR',
-        name: 'IronForge Gym',
+        name: gymProfile.name,
         description: `${membership.plan_name_snapshot} membership`,
         order_id: razorpayOrder.id,
         handler: async (response) => {
