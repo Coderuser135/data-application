@@ -56,7 +56,7 @@ export default function AdminAdmissions() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page })); }, 300);
+    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, excludeAdmins: true })); }, 300);
     return () => clearTimeout(timer);
   }, [dispatch, query, page]);
 
@@ -135,7 +135,7 @@ export default function AdminAdmissions() {
       setFormData({ emergency_contact_name: '', emergency_contact_phone: '', notes: '', full_name: '', phone: '', address: '', measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' }, payment_method: 'cash', payment_amount: '' });
       dispatch(searchUsers({ q: query, page }));
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Failed to create admission');
+      setError(typeof err === 'string' ? err : err?.message || 'Failed to create admission. Please check the backend logs.');
     } finally {
       setSubmitting(false);
     }
@@ -183,7 +183,7 @@ export default function AdminAdmissions() {
                         <Avatar name={u.full_name} />
                         <div>
                           <p className="font-medium text-ink-900 dark:text-white">{u.full_name || '—'}</p>
-                          {u.role === 'admin' && <Badge tone="info">Admin</Badge>}
+                          
                         </div>
                       </div>
                     </td>
