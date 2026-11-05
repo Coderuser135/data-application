@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -32,7 +33,7 @@ export default function AdminProducts() {
 
   async function remove(id) { if (confirm('Delete this product?')) { await productService.delete(id); productService.getAll().then((data) => setProducts(data || [])); } }
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <AdminLoadingSkeleton variant="cards" />;
 
   return (
     <div className="space-y-6">
