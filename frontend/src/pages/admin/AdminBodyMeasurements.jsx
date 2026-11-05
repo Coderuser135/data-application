@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, X, Plus, Pencil, Trash2, Ruler, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -99,6 +100,8 @@ export default function AdminBodyMeasurements() {
     const diff = Number(latest[field]) - Number(previous[field]);
     return diff === 0 ? null : diff;
   }
+
+  if (loading && measurements.length === 0) return <AdminLoadingSkeleton variant="table" rows={6} />;
 
   return (
     <div className="space-y-6">
