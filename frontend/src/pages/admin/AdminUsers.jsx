@@ -33,7 +33,7 @@ export default function AdminUsers() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [results, setResults] = useState({ rows: [], total: 0, page: 1, pages: 1 });
+  const [results, setResults] = useState({ rows: [], total: 0, page: 1, pages: 1, stats: { totalUsers: 0, admitted: 0, notAdmitted: 0 } });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
@@ -42,7 +42,7 @@ export default function AdminUsers() {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await admissionService.searchUsers(query, page, limit);
+        const res = await admissionService.searchUsers(query, page, limit, { admissionFilter: filter });
         if (active) setResults(res);
       } catch {
         if (active) setResults({ rows: [], total: 0, page: 1, pages: 1 });
@@ -55,14 +55,10 @@ export default function AdminUsers() {
       active = false;
       clearTimeout(timer);
     };
-  }, [query, page, limit]);
+  }, [query, page, limit, filter]);
 
   const rows = results.rows || [];
-  const filtered = filter === 'all'
-    ? rows
-    : filter === 'admitted'
-      ? rows.filter((user) => user.is_admitted)
-      : rows.filter((user) => !user.is_admitted);
+  const filtered = rows;
 
   const pageCount = Math.max(1, Number(results.pages) || 1);
   const firstPageNumber = Math.max(1, Math.min(page - 2, pageCount - 4));
@@ -81,10 +77,10 @@ export default function AdminUsers() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatPill icon={Users} label="Total Users" value={results.total} tone="info" />
-        <StatPill icon={UserCheck} label="Admitted on this page" value={rows.filter((user) => user.is_admitted).length} tone="success" />
-        <StatPill icon={UserX} label="Not admitted on this page" value={rows.filter((user) => !user.is_admitted).length} tone="warning" />
-        <StatPill icon={CreditCard} label="Records on this page" value={rows.length} tone="neutral" />
+        <StatPill icon={Users} label="Total Users" value={results.stats?.totalUsers ?? results.total} tone="info" />
+        <StatPill icon={UserCheck} label="Total Admitted" value={results.stats?.admitted ?? 0} tone="success" />
+        <StatPill icon={UserX} label="Not Admitted" value={results.stats?.notAdmitted ?? 0} tone="warning" />
+        <StatPill icon={CreditCard} label="Showing on Page" value={rows.length} tone="neutral" />
       </div>
 
       <Card>
