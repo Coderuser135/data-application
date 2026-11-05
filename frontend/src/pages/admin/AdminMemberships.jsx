@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -17,7 +18,7 @@ export default function AdminMemberships() {
     membershipService.getAll().then((data) => { setMemberships(data || []); setLoading(false); });
   }, []);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <AdminLoadingSkeleton variant="table" rows={6} />;
 
   const active = memberships.filter((m) => m.status === 'active').length;
   const expired = memberships.filter((m) => m.status === 'expired').length;
