@@ -213,7 +213,7 @@ export async function searchUsers(query, page = 1, limit = 10, {
 }
 
 export async function getMemberOverview(userId) {
-  if (!/^[a-f\\d]{24}$/i.test(String(userId))) throw new ApiError(400, 'Invalid user ID');
+  if (!/^[a-f\d]{24}$/i.test(String(userId))) throw new ApiError(400, 'Invalid user ID');
   const user = await User.findOne({ _id: userId, role: 'user' })
     .select('full_name email phone address email_verified createdAt')
     .lean();
