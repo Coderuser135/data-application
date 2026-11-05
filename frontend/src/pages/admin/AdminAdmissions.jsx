@@ -151,19 +151,28 @@ export default function AdminAdmissions() {
       : '';
 
   function nextStep() {
+    let errors = {};
+
     if (step === 1) {
-      const errors = validateAdmissionDetails(formData, selectedUser);
-      setFieldErrors(errors);
-      if (Object.keys(errors).length) { setError('Please correct the highlighted fields before continuing.'); return; }
+      errors = validateAdmissionDetails(formData, selectedUser);
+    } else if (step === 2 && !measurementSkipped) {
+      errors = validateMeasurements(formData.measurement);
     }
-    if (step === 2) {
-      const errors = measurementSkipped ? {} : validateMeasurements(formData.measurement);
-      setFieldErrors(errors);
-      if (Object.keys(errors).length) { setError('Correct the highlighted measurement fields, or skip measurements.'); return; }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setError('Please fix the highlighted fields before moving to the next step.');
+      return;
     }
-    if (step === 3 && advanceError) { setError(advanceError); return; }
+
+    if (step === 3 && advanceError) {
+      setError(advanceError);
+      return;
+    }
+
     setError('');
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setStep((currentStep) => Math.min(currentStep + 1, STEPS.length - 1));
   }
   function prevStep() { setStep((s) => Math.max(s - 1, 0)); }
 
@@ -192,9 +201,9 @@ export default function AdminAdmissions() {
         emergency_contact_phone: formData.emergency_contact_phone,
         notes: formData.notes,
         personal_details: {
-          full_name: formData.full_name || selectedUser.full_name,
-          phone: formData.phone || selectedUser.phone || '',
-          address: formData.address || selectedUser.address || '',
+          full_name: formData.full_name,
+          phone: formData.phone,
+          address: formData.address,
         },
         measurement: !measurementSkipped && Object.entries(formData.measurement).some(([key, value]) => !['notes', 'measurement_date'].includes(key) && String(value ?? '').trim() !== '') ? formData.measurement : undefined,
         payment_method: formData.payment_method,
@@ -356,9 +365,9 @@ export default function AdminAdmissions() {
 
               {step === 1 && (
                 <div className="space-y-4">
-                  <Input label="Full Name *" required value={formData.full_name || selectedUser.full_name || ''} error={fieldErrors.full_name} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Member full name" />
-                  <Input label="Phone *" required value={formData.phone || selectedUser.phone || ''} error={fieldErrors.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="10-digit mobile number" />
-                  <Input label="Address *" required value={formData.address} error={fieldErrors.address} onChange={(e) => updateField('address', e.target.value)} placeholder="Full address" />
+                  <Input label="Full Name *" required value={formData.full_name} error={fieldErrors.full_name} aria-invalid={Boolean(fieldErrors.full_name)} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Member full name" />
+                  <Input label="Phone *" required value={formData.phone} error={fieldErrors.phone} aria-invalid={Boolean(fieldErrors.phone)} onChange={(e) => updateField('phone', e.target.value)} placeholder="10-digit mobile number" />
+                  <Input label="Address *" required value={formData.address} error={fieldErrors.address} aria-invalid={Boolean(fieldErrors.address)} onChange={(e) => updateField('address', e.target.value)} placeholder="Full address" />
                   <Input label="Emergency Contact Name (optional)" value={formData.emergency_contact_name} error={fieldErrors.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="Contact name" />
                   <Input label="Emergency Contact Phone (optional)" value={formData.emergency_contact_phone} error={fieldErrors.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value)} placeholder="10-digit mobile number" />
                   <Input label="Notes (optional)" value={formData.notes} error={fieldErrors.notes} onChange={(e) => updateField('notes', e.target.value)} placeholder="Any admission notes" />
