@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Dumbbell, CreditCard, Package, TrendingUp, IndianRupee, ShoppingCart, AlertTriangle, Calendar, ArrowRight, Activity, Store } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -96,7 +97,7 @@ export default function AdminDashboard() {
   useEffect(() => { dispatch(fetchAdminStats()); }, [dispatch]);
   useEffect(() => { dispatch(fetchRevenueAnalytics(period)); }, [dispatch, period]);
 
-  if (loading && !adminStats) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading && !adminStats) return <AdminLoadingSkeleton variant="dashboard" />;
   if (!adminStats) return <EmptyState title="Failed to load dashboard" />;
 
   const s = adminStats.stats;
