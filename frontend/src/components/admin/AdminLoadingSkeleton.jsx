@@ -38,6 +38,39 @@ export default function AdminLoadingSkeleton({ variant = 'dashboard', rows = 5 }
     );
   }
 
+  if (variant === 'chart') {
+    return (
+      <div className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900" aria-label="Loading analytics">
+        <div className="flex items-center justify-between gap-3">
+          <div className="admin-skeleton h-5 w-40" />
+          <div className="admin-skeleton h-8 w-28 rounded-lg" />
+        </div>
+        <div className="mt-6 flex h-44 items-end gap-2">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <div key={index} className="admin-skeleton flex-1 rounded-t-md" style={{ height: `${28 + ((index * 29) % 105)}px` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'details') {
+    return (
+      <div className="space-y-5 p-5" aria-label="Loading admission details">
+        <div className="admin-skeleton h-5 w-44" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="rounded-xl border border-surface-200 p-4 dark:border-surface-800">
+              <div className="admin-skeleton h-3 w-24" />
+              <div className="admin-skeleton mt-3 h-4 w-3/4" />
+            </div>
+          ))}
+        </div>
+        <div className="admin-skeleton h-28 w-full rounded-xl" />
+      </div>
+    );
+  }
+
   if (variant === 'form') {
     return (
       <div className="space-y-6" aria-label="Loading form">
