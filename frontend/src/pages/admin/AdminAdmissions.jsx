@@ -38,6 +38,7 @@ export default function AdminAdmissions() {
   const plans = useSelector((state) => state.membershipPlans.items);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -56,9 +57,9 @@ export default function AdminAdmissions() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, excludeAdmins: true })); }, 300);
+    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, excludeAdmins: true })); }, 300);
     return () => clearTimeout(timer);
-  }, [dispatch, query, page]);
+  }, [dispatch, query, page, limit]);
 
   useEffect(() => { dispatch(fetchMembershipPlans()); }, [dispatch]);
 
@@ -133,7 +134,7 @@ export default function AdminAdmissions() {
       await dispatch(createAdmission(payload)).unwrap();
       setShowModal(false);
       setFormData({ emergency_contact_name: '', emergency_contact_phone: '', notes: '', full_name: '', phone: '', address: '', measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' }, payment_method: 'cash', payment_amount: '' });
-      dispatch(searchUsers({ q: query, page, excludeAdmins: true }));
+      dispatch(searchUsers({ q: query, page, limit, excludeAdmins: true }));
     } catch (err) {
       setError(typeof err === 'string' ? err : err?.message || 'Failed to create admission. Please check the backend logs.');
     } finally {
@@ -151,14 +152,27 @@ export default function AdminAdmissions() {
       </div>
 
       <Card>
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" />
-          <input
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-            placeholder="Search by name, email, or phone..."
-            className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-surface-700 dark:bg-surface-950 dark:text-white"
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" />
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+              placeholder="Search by name, email, or phone..."
+              className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-surface-700 dark:bg-surface-950 dark:text-white"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-surface-500">
+            <span className="whitespace-nowrap">Rows per page</span>
+            <select
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+              className="rounded-lg border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-500 dark:border-surface-700 dark:bg-surface-950 dark:text-white"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+            </select>
+          </label>
         </div>
       </Card>
 
@@ -190,6 +204,9 @@ export default function AdminAdmissions() {
                     <td className="px-5 py-4">
                       <p className="text-surface-600 dark:text-surface-300">{u.email}</p>
                       <p className="text-xs text-surface-500">{u.phone || '—'}</p>
+                      <p className={`mt-1 text-[11px] ${u.email_verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {u.email_verified ? 'Email verified' : 'Email verification pending'}
+                      </p>
                     </td>
                     <td className="px-5 py-4 font-mono text-xs font-semibold text-brand-600">{u.member_id || '—'}</td>
                     <td className="px-5 py-4">
@@ -198,6 +215,8 @@ export default function AdminAdmissions() {
                     <td className="px-5 py-4 text-right">
                       {u.is_admitted ? (
                         <Button variant="ghost" size="sm">View</Button>
+                      ) : !u.email_verified ? (
+                        <Badge tone="warning">Verify email first</Badge>
                       ) : (
                         <Button size="sm" onClick={() => openAdmission(u)}><UserPlus size={14} /> Admit</Button>
                       )}
@@ -207,12 +226,30 @@ export default function AdminAdmissions() {
               </tbody>
             </table>
           </div>
-          {(searchResults.pages || 1) > 1 && (
-            <div className="flex items-center justify-between border-t border-surface-200 px-5 py-3 dark:border-surface-800">
-              <span className="text-xs text-surface-500">Page {searchResults.page} of {searchResults.pages} ({searchResults.total} users)</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
-                <Button variant="outline" size="sm" disabled={page >= searchResults.pages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+          {searchResults.total > 0 && (
+            <div className="flex flex-col gap-3 border-t border-surface-200 px-5 py-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs text-surface-500">
+                Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, searchResults.total)} of {searchResults.total} users
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Prev</Button>
+                {Array.from(
+                  { length: Math.min(5, searchResults.pages || 1) },
+                  (_, index) => Math.max(1, Math.min(page - 2, (searchResults.pages || 1) - 4)) + index,
+                ).map((pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    aria-current={pageNumber === page ? 'page' : undefined}
+                    onClick={() => setPage(pageNumber)}
+                    className={`h-8 min-w-8 rounded-lg px-2 text-sm font-medium transition ${pageNumber === page
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-surface-200 text-surface-600 hover:bg-surface-100 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800'}`}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+                <Button variant="outline" size="sm" disabled={page >= searchResults.pages} onClick={() => setPage((current) => current + 1)}>Next</Button>
               </div>
             </div>
           )}
