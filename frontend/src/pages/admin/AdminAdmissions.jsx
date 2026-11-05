@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft, User, Phone, Mail, CreditCard, Ruler, IndianRupee } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
@@ -364,8 +365,8 @@ export default function AdminAdmissions() {
         </Card>
       ) : loading ? <AdminLoadingSkeleton variant="table" rows={5} /> : <EmptyState title="No users found" description="Try a different search term." />}
 
-      {(viewLoading || viewError || viewingAdmission) && (
-        <div className="admin-admission-details-backdrop fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-black/65 p-3 sm:p-5" onClick={() => { if (!viewLoading) { setViewingAdmission(null); setViewError(''); } }}>
+      {(viewLoading || viewError || viewingAdmission) && createPortal(
+        <div className="admin-admission-details-backdrop fixed inset-0 z-[9999] grid place-items-center overflow-y-auto bg-black/65 p-3 sm:p-5" onClick={() => { if (!viewLoading) { setViewingAdmission(null); setViewError(''); } }}>
           <div className="admin-admission-details-modal my-auto max-h-[min(90dvh,900px)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-surface-200 bg-white px-6 py-4 dark:border-surface-800 dark:bg-surface-900">
               <div>
@@ -468,7 +469,8 @@ export default function AdminAdmissions() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {showModal && selectedUser && (
