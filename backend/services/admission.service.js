@@ -100,7 +100,7 @@ function validateMeasurement(measurement) {
     biceps: measurementNumber(measurement.biceps, 'Biceps (inches)', 1, 100),
     back: measurementNumber(measurement.back, 'Back (inches)', 1, 300),
     legs: measurementNumber(measurement.legs, 'Legs (inches)', 1, 300),
-    body_fat: measurementNumber(measurement.body_fat, 'Body fat (%)', 1, 75),
+    body_fat: measurementNumber(measurement.body_fat, 'Body fat (%)', 0, 75),
     muscle_mass: measurementNumber(measurement.muscle_mass, 'Muscle mass (kg)', 1, 300),
     notes: String(measurement.notes || '').trim(),
     measurement_date: date,
