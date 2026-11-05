@@ -71,7 +71,8 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
   }
 
   if (query) {
-    const safeQuery = String(query).slice(0, 100).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+    const regexSpecialCharacters = new Set(['.', '*', '+', '?', '^', '$', '{', '}', '(', ')', '|', '[', ']', String.fromCharCode(92)]);
+    const safeQuery = [...String(query).slice(0, 100)].map((character) => regexSpecialCharacters.has(character) ? String.fromCharCode(92) + character : character).join('');
     const matchingAdmissionUsers = await GymAdmission.find({
       member_id: { $regex: safeQuery, $options: 'i' },
     }).distinct('user_id');
