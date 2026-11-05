@@ -1,6 +1,7 @@
 import GymAdmission from '../models/gymAdmission.model.js';
 import BodyMeasurement from '../models/bodyMeasurement.model.js';
 import Payment from '../models/payment.model.js';
+import Membership from '../models/membership.model.js';
 import Notification from '../models/notification.model.js';
 import User from '../models/user.model.js';
 import MembershipPlan from '../models/membershipPlan.model.js';
@@ -12,6 +13,33 @@ export async function getAllAdmissions() {
     .populate({ path: 'user_id', select: 'full_name email phone address role' })
     .populate({ path: 'selected_plan_id', select: 'name' })
     .sort({ createdAt: -1 });
+}
+
+export async function getAdmissionDetails(admissionId) {
+  if (!/^[a-f\\d]{24}$/i.test(String(admissionId))) {
+    throw new ApiError(400, 'Invalid admission ID');
+  }
+
+  const admission = await GymAdmission.findById(admissionId)
+    .populate({ path: 'user_id', select: 'full_name email phone address role email_verified createdAt' })
+    .populate({ path: 'selected_plan_id', select: 'name description price duration_days' })
+    .lean();
+
+  if (!admission) throw new ApiError(404, 'Admission not found');
+
+  const [measurements, payments, memberships] = await Promise.all([
+    BodyMeasurement.find({ gym_admission_id: admission._id }).sort({ measurement_date: -1 }).lean(),
+    Payment.find({ gym_admission_id: admission._id })
+      .select('-razorpay_signature')
+      .sort({ payment_date: -1 })
+      .lean(),
+    Membership.find({ gym_admission_id: admission._id })
+      .populate({ path: 'plan_id', select: 'name price duration_days' })
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  return { admission, measurements, payments, memberships };
 }
 
 export async function getAdmissionByUserId(userId) {
