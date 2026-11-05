@@ -161,7 +161,7 @@ export async function createAdmission(data) {
 
   const details = personal_details && typeof personal_details === 'object' && !Array.isArray(personal_details) ? personal_details : {};
   const memberName = requiredText(details.full_name ?? full_name ?? '', 'Full name', 2, 100);
-  if (!/^[\p{L}][\\p{L} .'-]*$/u.test(memberName)) throw new ApiError(400, 'Full name contains invalid characters');
+  if (!/^[\p{L}][\p{L} .'-]*$/u.test(memberName)) throw new ApiError(400, 'Full name contains invalid characters');
   const memberPhone = validIndianPhone(details.phone ?? phone, 'Phone number', true);
   const memberAddress = requiredText(details.address ?? address ?? '', 'Address', 5, 1000);
   const user = await User.findById(user_id);
