@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -86,7 +87,7 @@ export default function AdminOrders() {
             </table>
           </div>
         </Card>
-      ) : !loading ? <EmptyState title="No orders found" /> : null}
+      ) : loading ? <AdminLoadingSkeleton variant="table" rows={6} /> : <EmptyState title="No orders found" />}
 
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedOrder(null)}>
