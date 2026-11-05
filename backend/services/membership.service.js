@@ -21,8 +21,117 @@ export async function getMembershipsByUserId(userId) {
   if (!admission) return [];
   return Membership.find({ user_id: userId, gym_admission_id: admission._id }).sort({ createdAt: -1 });
 }
-export async function getAllMemberships() {
-  return Membership.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
+export async function getAllMemberships({
+  search = '',
+  status = 'all',
+  paymentStatus = 'all',
+  expiry = 'all',
+  plan = 'all',
+  page = 1,
+  limit = 10,
+} = {}) {
+  const now = new Date();
+  const filter = {};
+  if (status !== 'all') {
+    if (status === 'expired') {
+      filter.$or = [{ status: 'expired' }, { end_date: { $lt: now }, status: { $in: ['active', 'scheduled'] } }];
+    } else if (status === 'active') {
+      filter.status = 'active';
+      filter.$and = [{ $or: [{ end_date: null }, { end_date: { $gte: now } }] }];
+    } else {
+      filter.status = status;
+    }
+  } else {
+    filter.$or = [
+      { status: { $nin: ['active', 'scheduled'] } },
+      { end_date: null },
+      { end_date: { $gte: now } },
+    ];
+    // Expired records remain in the list and are presented with their effective status.
+    filter.$or = undefined;
+    delete filter.$or;
+  }
+
+  if (paymentStatus !== 'all') filter.payment_status = paymentStatus;
+  if (plan !== 'all') filter.plan_id = plan;
+
+  if (expiry === 'expired') {
+    filter.end_date = { $lt: now };
+  } else if (expiry === 'today') {
+    const end = new Date(now); end.setHours(23, 59, 59, 999);
+    filter.end_date = { $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()), $lte: end };
+  } else if (expiry === '7' || expiry === '30') {
+    const end = new Date(now); end.setDate(end.getDate() + Number(expiry));
+    filter.end_date = { $gte: now, $lte: end };
+  }
+
+  if (search.trim()) {
+    const users = await mongoose.model('User').find({
+      role: 'user',
+      $or: [
+        { full_name: { $regex: search.trim(), $options: 'i' } },
+        { email: { $regex: search.trim(), $options: 'i' } },
+        { phone: { $regex: search.trim(), $options: 'i' } },
+      ],
+    }).select('_id').lean();
+    filter.user_id = { $in: users.map((user) => user._id) };
+  }
+
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
+  const [rows, total, plans, counts] = await Promise.all([
+    Membership.find(filter)
+      .populate({ path: 'user_id', select: 'full_name email phone role' })
+      .sort({ createdAt: -1 })
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .lean(),
+    Membership.countDocuments(filter),
+    MembershipPlan.find().select('_id name').sort({ display_order: 1 }).lean(),
+    Promise.all([
+      Membership.countDocuments({ status: 'active', $or: [{ end_date: null }, { end_date: { $gte: now } }] }),
+      Membership.countDocuments({ status: 'pending' }),
+      Membership.countDocuments({ $or: [{ status: 'expired' }, { end_date: { $lt: now }, status: { $in: ['active', 'scheduled'] } }] }),
+      Membership.countDocuments({ end_date: { $gte: now, $lte: new Date(now.getTime() + 7 * 86400000) }, status: { $in: ['active', 'scheduled'] } }),
+      Membership.countDocuments({}),
+    ]),
+  ]);
+
+  const safeRows = rows.filter((item) => item.user_id?.role === 'user').map((item) => ({
+    ...item,
+    effective_status: (item.end_date && new Date(item.end_date) < now && ['active', 'scheduled'].includes(item.status))
+      ? 'expired'
+      : item.status,
+  }));
+
+  return {
+    rows: safeRows,
+    total,
+    page: safePage,
+    pages: Math.max(1, Math.ceil(total / safeLimit)),
+    limit: safeLimit,
+    plans,
+    stats: { active: counts[0], pending: counts[1], expired: counts[2], expiringSoon: counts[3], total: counts[4] },
+  };
+}
+
+export async function getMembershipDetails(membershipId) {
+  if (!mongoose.isValidObjectId(membershipId)) throw new ApiError(400, 'Invalid membership ID');
+  const membership = await Membership.findById(membershipId)
+    .populate({ path: 'user_id', select: 'full_name email phone role createdAt' })
+    .populate({ path: 'gym_admission_id', select: 'member_id admission_date status' })
+    .lean();
+  if (!membership || membership.user_id?.role !== 'user') throw new ApiError(404, 'Membership not found');
+  const payments = await Payment.find({ user_id: membership.user_id._id, membership_id: membership._id })
+    .select('-razorpay_signature')
+    .sort({ payment_date: -1, createdAt: -1 })
+    .lean();
+  return {
+    ...membership,
+    effective_status: membership.end_date && new Date(membership.end_date) < new Date()
+      && ['active', 'scheduled'].includes(membership.status) ? 'expired' : membership.status,
+    payments,
+  };
 }
 export async function getActivePlans(userId) {
   const plans = await MembershipPlan.find({ is_active: true }).sort({ display_order: 1 }).lean();
