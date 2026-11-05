@@ -84,7 +84,7 @@ export default function AdminUsers() {
       {filtered.length > 0 ? (
         <Card padding={false}>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="admin-mobile-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-4 font-medium">User</th>
@@ -98,20 +98,20 @@ export default function AdminUsers() {
               <tbody>
                 {filtered.map((u) => (
                   <tr key={u._id || u.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                    <td className="px-5 py-4">
+                    <td data-label="User" className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/10 text-sm font-bold text-brand-500">{u.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
                         <span className="font-medium text-ink-900 dark:text-white">{u.full_name || '—'}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td data-label="Contact" className="px-5 py-4">
                       <p className="text-surface-600 dark:text-surface-300">{u.email}</p>
                       <p className="text-xs text-surface-500">{u.phone || '—'}</p>
                     </td>
-                    <td className="px-5 py-4 font-mono text-xs font-semibold text-brand-600">{u.member_id || '—'}</td>
-                    <td className="px-5 py-4">{u.role === 'admin' ? <Badge tone="info">Admin</Badge> : <Badge tone="neutral">User</Badge>}</td>
-                    <td className="px-5 py-4">{u.is_admitted ? <Badge tone="success">Admitted</Badge> : <Badge tone="warning">Not Admitted</Badge>}</td>
-                    <td className="px-5 py-4 text-surface-500">{formatDate(u.created_at)}</td>
+                    <td data-label="Member ID" className="px-5 py-4 font-mono text-xs font-semibold text-brand-600">{u.member_id || '—'}</td>
+                    <td data-label="Role" className="px-5 py-4">{u.role === 'admin' ? <Badge tone="info">Admin</Badge> : <Badge tone="neutral">User</Badge>}</td>
+                    <td data-label="Status" className="px-5 py-4">{u.is_admitted ? <Badge tone="success">Admitted</Badge> : <Badge tone="warning">Not Admitted</Badge>}</td>
+                    <td data-label="Joined" className="px-5 py-4 text-surface-500">{formatDate(u.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
