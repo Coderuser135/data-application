@@ -156,7 +156,7 @@ export default function AdminAdmissions() {
     let errors = {};
 
     if (step === 1) {
-      errors = validateAdmissionDetails(formData, selectedUser);
+      errors = validateAdmissionDetails(formData);
     } else if (step === 2 && !measurementSkipped) {
       errors = validateMeasurements(formData.measurement);
     }
@@ -182,7 +182,7 @@ export default function AdminAdmissions() {
     setSubmitting(true);
     setError('');
     try {
-      const detailErrors = validateAdmissionDetails(formData, selectedUser);
+      const detailErrors = validateAdmissionDetails(formData);
       const measurementErrors = measurementSkipped ? {} : validateMeasurements(formData.measurement);
       const allErrors = { ...detailErrors, ...measurementErrors };
       setFieldErrors(allErrors);
