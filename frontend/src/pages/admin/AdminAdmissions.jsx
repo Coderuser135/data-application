@@ -287,7 +287,7 @@ export default function AdminAdmissions() {
       {rows.length > 0 ? (
         <Card padding={false}>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="admin-mobile-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-4 font-medium">User</th>
@@ -300,7 +300,7 @@ export default function AdminAdmissions() {
               <tbody>
                 {rows.map((u) => (
                   <tr key={u._id || u.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                    <td className="px-5 py-4">
+                    <td data-label="User" className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={u.full_name} />
                         <div>
@@ -309,18 +309,18 @@ export default function AdminAdmissions() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td data-label="Contact" className="px-5 py-4">
                       <p className="text-surface-600 dark:text-surface-300">{u.email}</p>
                       <p className="text-xs text-surface-500">{u.phone || '—'}</p>
                       <p className={`mt-1 text-[11px] ${u.email_verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                         {u.email_verified ? 'Email verified' : 'Email verification pending'}
                       </p>
                     </td>
-                    <td className="px-5 py-4 font-mono text-xs font-semibold text-brand-600">{u.member_id || '—'}</td>
-                    <td className="px-5 py-4">
+                    <td data-label="Member ID" className="px-5 py-4 font-mono text-xs font-semibold text-brand-600">{u.member_id || '—'}</td>
+                    <td data-label="Status" className="px-5 py-4">
                       {u.is_admitted ? <Badge tone={u.admission_status === 'active' ? 'success' : 'neutral'}>{u.admission_status}</Badge> : <Badge tone="warning">Not Admitted</Badge>}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td data-label="Action" className="px-5 py-4 text-right">
                       {u.is_admitted ? (
                         <Button variant="ghost" size="sm" onClick={() => viewAdmission(u)}>View</Button>
                       ) : !u.email_verified ? (
