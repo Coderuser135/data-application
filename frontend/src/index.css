@@ -233,3 +233,111 @@ button, input, select, textarea { font: inherit; }
   .admin-shell table.admin-mobile-cards tbody td[data-label="Action"] { justify-content: space-between; }
   .admin-shell table.admin-mobile-cards tbody td[data-label="Action"] button { min-width: 100px; }
 }
+
+
+/* Admission details dialog: true viewport centering and crisp information panels. */
+.admin-admission-details-backdrop {
+  display: grid !important;
+  place-items: center !important;
+  padding: 16px !important;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.admin-admission-details-modal {
+  width: min(100%,  min(48rem, calc(100vw - 32px)));
+  max-height: min(90dvh, 900px);
+  margin: auto !important;
+  flex: none;
+  border: 1px solid #d5dce6 !important;
+  background: #fff !important;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, .28), 0 4px 14px rgba(15, 23, 42, .10) !important;
+  scrollbar-width: thin;
+  scrollbar-color: #b8c2d0 transparent;
+}
+.dark .admin-admission-details-modal {
+  border-color: #354154 !important;
+  background: #111923 !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .55) !important;
+}
+.admin-admission-details-modal > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  border-color: #e0e5ec !important;
+  background: rgba(255,255,255,.97) !important;
+}
+.dark .admin-admission-details-modal > div:first-child {
+  border-color: #303b4b !important;
+  background: rgba(17,25,35,.97) !important;
+}
+.admin-admission-details-modal h2 {
+  color: #101828 !important;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+.dark .admin-admission-details-modal h2 { color: #f8fafc !important; }
+.admin-admission-details-content { text-align: left; }
+.admin-detail-section > h3 {
+  color: #202b3b !important;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+.dark .admin-detail-section > h3 { color: #f1f5f9 !important; }
+.admin-detail-grid {
+  gap: 10px !important;
+  border: 1px solid #dfe5ed;
+  background: #f2f5f9 !important;
+}
+.dark .admin-detail-grid {
+  border-color: #344154;
+  background: #182230 !important;
+}
+.admin-detail-grid > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e0e6ee;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16,24,40,.035);
+}
+.dark .admin-detail-grid > div {
+  border-color: #344154;
+  background: #111a26;
+}
+.admin-detail-grid > div > p:first-child {
+  color: #596579 !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .025em;
+}
+.admin-detail-grid > div > p:last-child {
+  color: #172033 !important;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.dark .admin-detail-grid > div > p:first-child { color: #a8b5c6 !important; }
+.dark .admin-detail-grid > div > p:last-child { color: #f1f5f9 !important; }
+.admin-admission-details-modal .bg-surface-50 {
+  border: 1px solid #e0e6ee;
+  background: #f4f6f9 !important;
+}
+.dark .admin-admission-details-modal .bg-surface-50 {
+  border-color: #344154;
+  background: #182230 !important;
+}
+@media (max-width: 639px) {
+  .admin-admission-details-backdrop { padding: 10px !important; }
+  .admin-admission-details-modal {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    border-radius: 16px;
+  }
+  .admin-admission-details-modal > div:first-child { min-height: 60px; padding: 12px 16px; }
+  .admin-admission-details-content { padding: 16px !important; }
+  .admin-detail-grid { padding: 10px !important; }
+  .admin-detail-grid > div { padding: 10px; }
+}
