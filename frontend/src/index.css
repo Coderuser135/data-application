@@ -186,3 +186,50 @@ button, input, select, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .admin-shell *, .admin-shell *::before, .admin-shell *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+
+@media (max-width: 639px) {
+  .admin-shell .overflow-x-auto:has(> .admin-mobile-cards) { overflow: visible; }
+  .admin-shell table.admin-mobile-cards { display: block; min-width: 0; }
+  .admin-shell table.admin-mobile-cards thead { display: none; }
+  .admin-shell table.admin-mobile-cards tbody { display: grid; gap: 12px; padding: 12px; }
+  .admin-shell table.admin-mobile-cards tbody tr {
+    display: block;
+    overflow: hidden;
+    border: 1px solid #dce2ea;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(16,24,40,.035);
+  }
+  .dark .admin-shell table.admin-mobile-cards tbody tr {
+    border-color: #303a49;
+    background: #151c27;
+  }
+  .admin-shell table.admin-mobile-cards tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #edf0f4;
+    text-align: right;
+    font-size: 12px;
+  }
+  .dark .admin-shell table.admin-mobile-cards tbody td { border-color: #293443; }
+  .admin-shell table.admin-mobile-cards tbody td:last-child { border-bottom: 0; }
+  .admin-shell table.admin-mobile-cards tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 82px;
+    color: #697586;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .055em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  .dark .admin-shell table.admin-mobile-cards tbody td::before { color: #aab5c4; }
+  .admin-shell table.admin-mobile-cards tbody td:first-child { justify-content: flex-start; }
+  .admin-shell table.admin-mobile-cards tbody td:first-child::before { flex-basis: 62px; }
+  .admin-shell table.admin-mobile-cards tbody td[data-label="Action"] { justify-content: space-between; }
+  .admin-shell table.admin-mobile-cards tbody td[data-label="Action"] button { min-width: 100px; }
+}
