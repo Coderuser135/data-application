@@ -12,6 +12,43 @@ import { formatCurrency } from '@/utils/formatters';
 
 const STEPS = ['User', 'Personal Details', 'Measurement', 'Advance Payment', 'Confirm'];
 
+const MEASUREMENT_RULES = {"age":[13,100],"height":[50,250],"weight":[20,300],"stomach":[1,300],"chest":[1,300],"biceps":[1,100],"back":[1,300],"legs":[1,300],"body_fat":[0,75],"muscle_mass":[1,300]};
+function validateAdmissionDetails(data, user) {
+  const errors = {};
+  const name = String(data.full_name || user?.full_name || '').trim();
+  const phone = String(data.phone || user?.phone || '').replace(/[\s-]/g, '');
+  const address = String(data.address || user?.address || '').trim();
+  if (name.length < 2 || name.length > 100 || !/^[\p{L}][\p{L} .'-]*$/u.test(name)) errors.full_name = 'Enter a valid full name (2–100 characters).';
+  if (!/^(?:\+91)?[6-9]\d{9}$/.test(phone)) errors.phone = 'Enter a valid 10-digit Indian mobile number.';
+  if (address.length < 5 || address.length > 1000) errors.address = 'Address is required (5–1000 characters).';
+  const emergencyName = String(data.emergency_contact_name || '').trim();
+  const emergencyPhone = String(data.emergency_contact_phone || '').replace(/[\s-]/g, '');
+  if (Boolean(emergencyName) !== Boolean(emergencyPhone)) {
+    errors.emergency_contact_name = 'Enter both emergency contact name and phone, or leave both empty.';
+    errors.emergency_contact_phone = 'Enter both emergency contact name and phone, or leave both empty.';
+  } else if (emergencyName && (emergencyName.length < 2 || emergencyName.length > 100 || !/^[\p{L}][\p{L} .'-]*$/u.test(emergencyName))) errors.emergency_contact_name = 'Enter a valid contact name.';
+  if (emergencyPhone && !/^(?:\+91)?[6-9]\d{9}$/.test(emergencyPhone)) errors.emergency_contact_phone = 'Enter a valid 10-digit Indian mobile number.';
+  if (String(data.notes || '').length > 2000) errors.notes = 'Notes cannot exceed 2000 characters.';
+  return errors;
+}
+function validateMeasurements(measurement) {
+  const errors = {};
+  for (const [key, range] of Object.entries(MEASUREMENT_RULES)) {
+    const raw = measurement[key];
+    if (raw === '' || raw === null || raw === undefined) continue;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < range[0] || value > range[1]) errors[`measurement.${key}`] = `${key.replace('_', ' ')} must be between ${range[0]} and ${range[1]}.`;
+  }
+  if (measurement.measurement_date) {
+    const date = new Date(`${measurement.measurement_date}T00:00:00`);
+    const today = new Date(); today.setHours(0,0,0,0);
+    if (Number.isNaN(date.getTime()) || date > today) errors['measurement.measurement_date'] = 'Measurement date cannot be in the future.';
+  }
+  if (String(measurement.notes || '').length > 2000) errors['measurement.notes'] = 'Measurement notes cannot exceed 2000 characters.';
+  return errors;
+}
+
+
 function Stepper({ current }) {
   return (
     <div className="flex items-center justify-between">
@@ -44,6 +81,8 @@ export default function AdminAdmissions() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [measurementSkipped, setMeasurementSkipped] = useState(false);
   const [formData, setFormData] = useState({
     emergency_contact_name: '',
     emergency_contact_phone: '',
@@ -79,11 +118,26 @@ export default function AdminAdmissions() {
     }));
     setStep(0);
     setError('');
+    setFieldErrors({});
+    setMeasurementSkipped(false);
     setShowModal(true);
   }
 
-  function updateField(key, value) { setFormData((prev) => ({ ...prev, [key]: value })); }
-  function updateMeasurement(key, value) { setFormData((prev) => ({ ...prev, measurement: { ...prev.measurement, [key]: value } })); }
+  function updateField(key, value) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => ({ ...prev, [key]: '' }));
+  }
+  function updateMeasurement(key, value) {
+    setMeasurementSkipped(false);
+    setFormData((prev) => ({ ...prev, measurement: { ...prev.measurement, [key]: value } }));
+    setFieldErrors((prev) => ({ ...prev, [`measurement.${key}`]: '' }));
+  }
+  function skipMeasurements() {
+    setMeasurementSkipped(true);
+    setFieldErrors((prev) => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith('measurement.'))));
+    setStep(3);
+    setError('');
+  }
 
   const activePlans = (plans || []).filter((plan) => plan.is_active !== false);
   const lowestPricedPlan = activePlans.reduce((lowest, plan) => (
@@ -97,10 +151,17 @@ export default function AdminAdmissions() {
       : '';
 
   function nextStep() {
-    if (step === 3 && advanceError) {
-      setError(advanceError);
-      return;
+    if (step === 1) {
+      const errors = validateAdmissionDetails(formData, selectedUser);
+      setFieldErrors(errors);
+      if (Object.keys(errors).length) { setError('Please correct the highlighted fields before continuing.'); return; }
     }
+    if (step === 2) {
+      const errors = measurementSkipped ? {} : validateMeasurements(formData.measurement);
+      setFieldErrors(errors);
+      if (Object.keys(errors).length) { setError('Correct the highlighted measurement fields, or skip measurements.'); return; }
+    }
+    if (step === 3 && advanceError) { setError(advanceError); return; }
     setError('');
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
@@ -110,6 +171,16 @@ export default function AdminAdmissions() {
     setSubmitting(true);
     setError('');
     try {
+      const detailErrors = validateAdmissionDetails(formData, selectedUser);
+      const measurementErrors = measurementSkipped ? {} : validateMeasurements(formData.measurement);
+      const allErrors = { ...detailErrors, ...measurementErrors };
+      setFieldErrors(allErrors);
+      if (Object.keys(allErrors).length) {
+        setStep(Object.keys(detailErrors).length ? 1 : 2);
+        setError('Please correct the highlighted fields before confirming admission.');
+        setSubmitting(false);
+        return;
+      }
       if (advanceError) {
         setError(advanceError);
         setSubmitting(false);
@@ -125,9 +196,7 @@ export default function AdminAdmissions() {
           phone: formData.phone || selectedUser.phone || '',
           address: formData.address || selectedUser.address || '',
         },
-        measurement: Object.values(formData.measurement).some((value) => String(value || '').trim())
-          ? formData.measurement
-          : undefined,
+        measurement: !measurementSkipped && Object.entries(formData.measurement).some(([key, value]) => !['notes', 'measurement_date'].includes(key) && String(value ?? '').trim() !== '') ? formData.measurement : undefined,
         payment_method: formData.payment_method,
         payment_amount: Number(formData.payment_amount) || 0,
       };
@@ -287,12 +356,12 @@ export default function AdminAdmissions() {
 
               {step === 1 && (
                 <div className="space-y-4">
-                  <Input label="Full Name" value={formData.full_name || selectedUser.full_name || ''} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Member full name" />
-                  <Input label="Phone" value={formData.phone || selectedUser.phone || ''} onChange={(e) => updateField('phone', e.target.value)} placeholder="Phone number" />
-                  <Input label="Address" value={formData.address} onChange={(e) => updateField('address', e.target.value)} placeholder="Full address" />
-                  <Input label="Emergency Contact Name" value={formData.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="Contact name" />
-                  <Input label="Emergency Contact Phone" value={formData.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value)} placeholder="Phone number" />
-                  <Input label="Notes (optional)" value={formData.notes} onChange={(e) => updateField('notes', e.target.value)} placeholder="Any admission notes" />
+                  <Input label="Full Name *" required value={formData.full_name || selectedUser.full_name || ''} error={fieldErrors.full_name} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Member full name" />
+                  <Input label="Phone *" required value={formData.phone || selectedUser.phone || ''} error={fieldErrors.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="10-digit mobile number" />
+                  <Input label="Address *" required value={formData.address} error={fieldErrors.address} onChange={(e) => updateField('address', e.target.value)} placeholder="Full address" />
+                  <Input label="Emergency Contact Name (optional)" value={formData.emergency_contact_name} error={fieldErrors.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="Contact name" />
+                  <Input label="Emergency Contact Phone (optional)" value={formData.emergency_contact_phone} error={fieldErrors.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value)} placeholder="10-digit mobile number" />
+                  <Input label="Notes (optional)" value={formData.notes} error={fieldErrors.notes} onChange={(e) => updateField('notes', e.target.value)} placeholder="Any admission notes" />
                 </div>
               )}
 
@@ -300,18 +369,21 @@ export default function AdminAdmissions() {
                 <div className="space-y-4">
                   <p className="text-sm font-medium text-surface-500">Initial body measurement (optional)</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <Input label="Age" type="number" value={formData.measurement.age} onChange={(e) => updateMeasurement('age', e.target.value)} placeholder="Years" />
-                    <Input label="Height (cm)" type="number" value={formData.measurement.height} onChange={(e) => updateMeasurement('height', e.target.value)} placeholder="cm" />
-                    <Input label="Weight (kg)" type="number" value={formData.measurement.weight} onChange={(e) => updateMeasurement('weight', e.target.value)} placeholder="kg" />
-                    <Input label="Chest (in)" type="number" value={formData.measurement.chest} onChange={(e) => updateMeasurement('chest', e.target.value)} placeholder="inches" />
-                    <Input label="Stomach (in)" type="number" value={formData.measurement.stomach} onChange={(e) => updateMeasurement('stomach', e.target.value)} placeholder="inches" />
-                    <Input label="Biceps (in)" type="number" value={formData.measurement.biceps} onChange={(e) => updateMeasurement('biceps', e.target.value)} placeholder="inches" />
-                    <Input label="Back (in)" type="number" value={formData.measurement.back} onChange={(e) => updateMeasurement('back', e.target.value)} placeholder="inches" />
-                    <Input label="Legs (in)" type="number" value={formData.measurement.legs} onChange={(e) => updateMeasurement('legs', e.target.value)} placeholder="inches" />
-                    <Input label="Body Fat %" type="number" value={formData.measurement.body_fat} onChange={(e) => updateMeasurement('body_fat', e.target.value)} placeholder="%" />
-                    <Input label="Muscle Mass (kg)" type="number" value={formData.measurement.muscle_mass} onChange={(e) => updateMeasurement('muscle_mass', e.target.value)} placeholder="kg" />
+                    <Input label="Age" type="number" min="13" max="100" step="0.1" value={formData.measurement.age} error={fieldErrors['measurement.age']} onChange={(e) => updateMeasurement('age', e.target.value)} placeholder="Years" />
+                    <Input label="Height (cm)" type="number" min="50" max="250" step="0.1" value={formData.measurement.height} error={fieldErrors['measurement.height']} onChange={(e) => updateMeasurement('height', e.target.value)} placeholder="cm" />
+                    <Input label="Weight (kg)" type="number" min="20" max="300" step="0.1" value={formData.measurement.weight} error={fieldErrors['measurement.weight']} onChange={(e) => updateMeasurement('weight', e.target.value)} placeholder="kg" />
+                    <Input label="Chest (in)" type="number" min="1" max="300" step="0.1" value={formData.measurement.chest} error={fieldErrors['measurement.chest']} onChange={(e) => updateMeasurement('chest', e.target.value)} placeholder="inches" />
+                    <Input label="Stomach (in)" type="number" min="1" max="300" step="0.1" value={formData.measurement.stomach} error={fieldErrors['measurement.stomach']} onChange={(e) => updateMeasurement('stomach', e.target.value)} placeholder="inches" />
+                    <Input label="Biceps (in)" type="number" min="1" max="100" step="0.1" value={formData.measurement.biceps} error={fieldErrors['measurement.biceps']} onChange={(e) => updateMeasurement('biceps', e.target.value)} placeholder="inches" />
+                    <Input label="Back (in)" type="number" min="1" max="300" step="0.1" value={formData.measurement.back} error={fieldErrors['measurement.back']} onChange={(e) => updateMeasurement('back', e.target.value)} placeholder="inches" />
+                    <Input label="Legs (in)" type="number" min="1" max="300" step="0.1" value={formData.measurement.legs} error={fieldErrors['measurement.legs']} onChange={(e) => updateMeasurement('legs', e.target.value)} placeholder="inches" />
+                    <Input label="Body Fat %" type="number" min="0" max="75" step="0.1" value={formData.measurement.body_fat} error={fieldErrors['measurement.body_fat']} onChange={(e) => updateMeasurement('body_fat', e.target.value)} placeholder="%" />
+                    <Input label="Muscle Mass (kg)" type="number" min="1" max="300" step="0.1" value={formData.measurement.muscle_mass} error={fieldErrors['measurement.muscle_mass']} onChange={(e) => updateMeasurement('muscle_mass', e.target.value)} placeholder="kg" />
                   </div>
-                  <Input label="Measurement Date" type="date" value={formData.measurement.measurement_date} onChange={(e) => updateMeasurement('measurement_date', e.target.value)} />
+                  <Input label="Measurement Date" type="date" value={formData.measurement.measurement_date} error={fieldErrors['measurement.measurement_date']} onChange={(e) => updateMeasurement('measurement_date', e.target.value)} />
+                  <Input label="Measurement Notes (optional)" value={formData.measurement.notes} error={fieldErrors['measurement.notes']} onChange={(e) => updateMeasurement('notes', e.target.value)} placeholder="Optional notes" />
+                  <div className="flex justify-end border-t border-surface-200 pt-4 dark:border-surface-800"><Button type="button" variant="outline" onClick={skipMeasurements}>Skip measurements</Button></div>
+                  <p className="text-xs text-surface-500">You can add measurements later. Every value entered here is validated.</p>
                 </div>
               )}
 
