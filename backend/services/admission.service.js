@@ -88,9 +88,11 @@ function validateMeasurement(measurement) {
   if (typeof measurement !== 'object' || Array.isArray(measurement)) throw new ApiError(400, 'Measurement must be an object');
   const hasValue = Object.entries(measurement).some(([key, value]) => !['notes', 'measurement_date'].includes(key) && value !== '' && value !== null && value !== undefined);
   if (!hasValue) return null;
-  const date = measurement.measurement_date ? new Date(measurement.measurement_date) : new Date();
+  const dateValue = measurement.measurement_date ? String(measurement.measurement_date) : '';
+  const date = dateValue ? new Date(dateValue) : new Date();
   if (Number.isNaN(date.getTime())) throw new ApiError(400, 'Measurement date is invalid');
-  if (date > new Date(new Date().toDateString())) throw new ApiError(400, 'Measurement date cannot be in the future');
+  const todayInIndia = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  if (dateValue && dateValue.slice(0, 10) > todayInIndia) throw new ApiError(400, 'Measurement date cannot be in the future');
   return {
     age: measurementNumber(measurement.age, 'Age', 13, 100),
     height: measurementNumber(measurement.height, 'Height (cm)', 50, 250),
