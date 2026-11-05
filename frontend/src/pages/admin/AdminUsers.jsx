@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Users, UserCheck, UserX, CreditCard, AlertCircle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -126,7 +127,7 @@ export default function AdminUsers() {
             </div>
           )}
         </Card>
-      ) : !loading ? <EmptyState title="No users found" description="Try a different search or filter." /> : null}
+      ) : loading ? <AdminLoadingSkeleton variant="table" rows={5} /> : <EmptyState title="No users found" description="Try a different search or filter." />}
     </div>
   );
 }
