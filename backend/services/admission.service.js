@@ -92,7 +92,14 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
   ]);
 
   const userIds = users.map((user) => user._id);
-  const admissions = await GymAdmission.find({ user_id: { $in: userIds } }).lean();
+  const [admissions, totalCustomerUsers] = await Promise.all([
+    GymAdmission.find({ user_id: { $in: userIds } }).lean(),
+    User.countDocuments({ role: 'user' }),
+  ]);
+  const admittedCustomerCount = await User.countDocuments({
+    role: 'user',
+    _id: { $in: admittedUserIds },
+  });
   const admissionMap = new Map(admissions.map((admission) => [admission.user_id.toString(), admission]));
 
   const rows = users.map((user) => {
@@ -113,7 +120,7 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
     };
   });
 
-  return { rows, total, page: safePage, pages: Math.ceil(total / safeLimit) };
+  return {\n    rows,\n    total,\n    page: safePage,\n    pages: Math.ceil(total / safeLimit),\n    stats: { totalUsers: totalCustomerUsers, admitted: admittedCustomerCount, notAdmitted: totalCustomerUsers - admittedCustomerCount },\n  };
 }
 function requiredText(value, label, min, max) {
   const text = String(value ?? '').trim();
