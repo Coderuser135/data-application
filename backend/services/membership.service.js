@@ -43,15 +43,6 @@ export async function getAllMemberships({
     } else {
       filter.status = status;
     }
-  } else {
-    filter.$or = [
-      { status: { $nin: ['active', 'scheduled'] } },
-      { end_date: null },
-      { end_date: { $gte: now } },
-    ];
-    // Expired records remain in the list and are presented with their effective status.
-    filter.$or = undefined;
-    delete filter.$or;
   }
 
   if (paymentStatus !== 'all') filter.payment_status = paymentStatus;
