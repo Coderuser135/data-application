@@ -16,7 +16,7 @@ export async function getAllAdmissions() {
 }
 
 export async function getAdmissionDetails(admissionId) {
-  if (!/^[a-f\\d]{24}$/i.test(String(admissionId))) {
+  if (!/^[a-f\d]{24}$/i.test(String(admissionId))) {
     throw new ApiError(400, 'Invalid admission ID');
   }
 
