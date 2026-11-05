@@ -9,6 +9,15 @@ export const getAllAdmissions = async (req, res, next) => {
   }
 };
 
+export const getMemberOverview = async (req, res, next) => {
+  try {
+    const overview = await admissionService.getMemberOverview(req.params.userId);
+    res.json(overview);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAdmissionDetails = async (req, res, next) => {
   try {
     const details = await admissionService.getAdmissionDetails(req.params.id);
