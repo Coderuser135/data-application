@@ -48,3 +48,40 @@ button, input, select, textarea { font: inherit; }
 .dark .text-surface-500 { color: #aeb6c5 !important; }
 .dark .text-surface-400 { color: #98a2b3 !important; }
 .dark .text-surface-300 { color: #b9c1ce !important; }
+
+/* IRONFORGE admin visual system: graphite surfaces, crisp type and crimson accents. */
+.admin-shell{--admin-border:#e4e7ec;color:#20242d;background:#f4f6f8;font-family:'DM Sans',sans-serif}
+.dark .admin-shell{--admin-border:#252b36;color:#edf0f4;background:#0d1117}
+.admin-shell h1,.admin-shell h2,.admin-shell h3{letter-spacing:-.035em}
+.admin-shell h1{font-size:clamp(1.45rem,2vw,1.8rem);line-height:1.2}
+.admin-topbar{background:#11151c!important;border-color:#242a34!important;box-shadow:0 5px 22px rgba(16,24,40,.12)}
+.admin-sidebar{background:#fff!important;border-color:var(--admin-border)!important;box-shadow:8px 0 24px rgba(16,24,40,.025)}
+.dark .admin-sidebar{background:#11161e!important}
+.admin-nav a{min-height:42px;border:1px solid transparent;border-radius:10px;font-size:13px;letter-spacing:.005em}
+.admin-nav a[aria-current=page]{background:#fff1f2!important;border-color:#ffe0e3;color:#a71925!important;font-weight:700;box-shadow:inset 3px 0 0 #c51f2b}
+.dark .admin-nav a[aria-current=page]{background:rgba(197,31,43,.13)!important;border-color:rgba(197,31,43,.24);color:#ff858d!important}
+.admin-nav a:not([aria-current=page]):hover{background:#f4f5f7!important;color:#20242d!important}
+.dark .admin-nav a:not([aria-current=page]):hover{background:#1b222d!important;color:#fff!important}
+.admin-content{animation:admin-enter .28s ease-out both}
+@keyframes admin-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.admin-shell .rounded-2xl.border.bg-white,.admin-shell .rounded-2xl.border.border-surface-200.bg-white{border-color:var(--admin-border);box-shadow:0 2px 5px rgba(16,24,40,.025),0 12px 30px rgba(16,24,40,.035);transition:border-color .18s ease,box-shadow .18s ease}
+.dark .admin-shell .rounded-2xl.border.bg-white,.dark .admin-shell .rounded-2xl.border.border-surface-200.bg-white{border-color:#252b36;background:#151b24;box-shadow:0 8px 28px rgba(0,0,0,.16)}
+.admin-shell table{border-collapse:separate;border-spacing:0}
+.admin-shell thead tr{background:#f8f9fb}
+.dark .admin-shell thead tr{background:#1a202a}
+.admin-shell thead th{color:#667085;font-size:10px;font-weight:700;letter-spacing:.075em;text-transform:uppercase;white-space:nowrap}
+.dark .admin-shell thead th{color:#a5afbd}
+.admin-shell tbody tr{transition:background .15s ease}
+.admin-shell tbody tr:hover{background:#fafbfc}
+.dark .admin-shell tbody tr:hover{background:#1a202a}
+.admin-shell input:not([type=checkbox]):not([type=radio]),.admin-shell select,.admin-shell textarea{border-color:#d8dde5;border-radius:10px;background-color:#fff;transition:border-color .16s ease,box-shadow .16s ease}
+.dark .admin-shell input:not([type=checkbox]):not([type=radio]),.dark .admin-shell select,.dark .admin-shell textarea{border-color:#343d4a;background-color:#10151d;color:#f4f6f8}
+.admin-shell input:focus,.admin-shell select:focus,.admin-shell textarea:focus{border-color:#c51f2b!important;box-shadow:0 0 0 3px rgba(197,31,43,.12);outline:none}
+.admin-shell button{-webkit-tap-highlight-color:transparent}
+.admin-shell button:focus-visible,.admin-shell a:focus-visible{outline:3px solid rgba(197,31,43,.3);outline-offset:2px}
+.admin-skeleton{position:relative;overflow:hidden;border-radius:8px;background:#e9edf2}
+.dark .admin-skeleton{background:#252d39}
+.admin-skeleton:after{position:absolute;inset:0;content:'';transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.62),transparent);animation:admin-shimmer 1.35s infinite}
+.dark .admin-skeleton:after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+@keyframes admin-shimmer{100%{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.admin-content,.admin-skeleton:after{animation:none!important}.admin-shell *{transition-duration:.01ms!important}}
