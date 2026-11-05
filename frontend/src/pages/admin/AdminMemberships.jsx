@@ -13,12 +13,17 @@ export default function AdminMemberships() {
   const dispatch = useDispatch();
   const [memberships, setMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    membershipService.getAll().then((data) => { setMemberships(data || []); setLoading(false); });
+    membershipService.getAll()
+      .then((data) => setMemberships(data || []))
+      .catch(() => setLoadError('Membership records could not be loaded. Please refresh and try again.'))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <AdminLoadingSkeleton variant="table" rows={6} />;
+  if (loadError) return <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-surface-900 dark:text-red-300">{loadError}</div>;
 
   const active = memberships.filter((m) => m.status === 'active').length;
   const expired = memberships.filter((m) => m.status === 'expired').length;
