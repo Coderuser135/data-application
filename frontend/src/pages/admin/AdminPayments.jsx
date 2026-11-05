@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { IndianRupee, Dumbbell, Store, TrendingUp, RotateCcw } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -50,7 +51,7 @@ export default function AdminPayments() {
         <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800"><th className="px-5 py-4 font-medium">Transaction ID</th><th className="px-5 py-4 font-medium">Customer</th><th className="px-5 py-4 font-medium">Type</th><th className="px-5 py-4 font-medium">Method</th><th className="px-5 py-4 font-medium">Amount</th><th className="px-5 py-4 font-medium">Date</th><th className="px-5 py-4 font-medium">Status</th><th className="px-5 py-4 font-medium text-right">Action</th></tr></thead>
           <tbody>{payments.map((p) => <tr key={p.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800"><td className="px-5 py-4 font-mono text-xs">{p.transaction_id || p.razorpay_payment_id || '—'}</td><td className="px-5 py-4 text-surface-600 dark:text-surface-300">{p.user_id?.full_name || '—'}</td><td className="px-5 py-4 capitalize">{p.payment_type?.replace(/_/g, ' ') || '—'}</td><td className="px-5 py-4 capitalize">{p.payment_method || '—'}</td><td className="px-5 py-4 font-semibold">{formatCurrency(p.amount)}</td><td className="px-5 py-4 text-surface-500">{formatDate(p.payment_date || p.created_at)}</td><td className="px-5 py-4"><Badge tone={p.status === 'success' ? 'success' : p.status === 'pending' ? 'warning' : p.status === 'refunded' ? 'neutral' : 'danger'}>{p.status}</Badge></td><td className="px-5 py-4 text-right">{p.status === 'success' && p.payment_method === 'online' && p.razorpay_payment_id ? <Button size="sm" variant="outline" loading={refunding === p.id} onClick={() => handleRefund(p)}>Refund</Button> : '—'}</td></tr>)}</tbody>
         </table></div>
-      </Card> : !loading ? <EmptyState title="No payments yet" /> : null}
+      </Card> : loading ? <AdminLoadingSkeleton variant="table" rows={6} /> : <EmptyState title="No payments yet" />}
     </div>
   );
 }
