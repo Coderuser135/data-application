@@ -35,7 +35,16 @@ const admissionSlice = createSlice({
       .addCase(fetchAllAdmissions.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchAllAdmissions.fulfilled, (state, action) => { state.adminAdmissions = action.payload; state.loading = false; })
       .addCase(fetchAllAdmissions.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
-      .addCase(searchUsers.fulfilled, (state, action) => { state.searchResults = action.payload; })
+      .addCase(searchUsers.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(searchUsers.fulfilled, (state, action) => {
+        state.searchResults = action.payload;
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(searchUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to search users';
+      })
       .addCase(createAdmission.fulfilled, (state, action) => { state.adminAdmissions.unshift(action.payload.admission); });
   },
 });
