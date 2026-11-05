@@ -19,9 +19,10 @@ export async function getAdmissionByUserId(userId) {
     .populate({ path: 'selected_plan_id', select: 'name price duration_days' });
 }
 
-export async function searchUsers(query, page = 1, limit = 20, { excludeAdmins = false } = {}) {
+export async function searchUsers(query, page = 1, limit = 10, { excludeAdmins = false } = {}) {
   const safePage = Math.max(1, Number(page) || 1);
-  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+  const requestedLimit = Number(limit);
+  const safeLimit = [5, 10].includes(requestedLimit) ? requestedLimit : 10;
   const filter = excludeAdmins ? { role: 'user' } : {};
 
   if (query) {
@@ -52,6 +53,7 @@ export async function searchUsers(query, page = 1, limit = 20, { excludeAdmins =
       phone: user.phone,
       address: user.address,
       role: user.role,
+      email_verified: user.email_verified,
       member_id: admission?.member_id || null,
       is_admitted: Boolean(admission),
       admission_status: admission?.status || null,
