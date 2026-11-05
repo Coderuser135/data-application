@@ -376,7 +376,7 @@ export default function AdminAdmissions() {
             </div>
 
             {viewLoading ? (
-              <div className="p-10 text-center text-sm text-surface-500">Loading admission details...</div>
+              <AdminLoadingSkeleton variant="details" />
             ) : viewError ? (
               <div className="p-6"><div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{viewError}</div></div>
             ) : viewingAdmission && (
