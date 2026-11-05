@@ -2,6 +2,7 @@ import GymAdmission from '../models/gymAdmission.model.js';
 import BodyMeasurement from '../models/bodyMeasurement.model.js';
 import Payment from '../models/payment.model.js';
 import Membership from '../models/membership.model.js';
+import Order from '../models/order.model.js';
 import Notification from '../models/notification.model.js';
 import User from '../models/user.model.js';
 import MembershipPlan from '../models/membershipPlan.model.js';
@@ -56,28 +57,70 @@ export async function getAdmissionByUserId(userId) {
     .populate({ path: 'selected_plan_id', select: 'name price duration_days' });
 }
 
-export async function searchUsers(query, page = 1, limit = 10, { admissionFilter = 'all' } = {}) {
+export async function searchUsers(query, page = 1, limit = 10, {
+  admissionFilter = 'all',
+  paymentFilter = 'all',
+  membershipFilter = 'all',
+  registeredWithin = 'all',
+} = {}) {
   const safePage = Math.max(1, Number(page) || 1);
   const requestedLimit = Number(limit);
-  const safeLimit = [5, 10].includes(requestedLimit) ? requestedLimit : 10;
-
-  // The Members and Admissions screens both list customer accounts, never admin accounts.
+  const safeLimit = [5, 10, 20].includes(requestedLimit) ? requestedLimit : 10;
   const filter = { role: 'user' };
+  const now = new Date();
+
+  // Build filters from real related records, then intersect the matching customer IDs.
+  const idSets = [];
   const admittedUserIds = await GymAdmission.distinct('user_id');
 
-  if (admissionFilter === 'admitted') {
-    filter._id = { $in: admittedUserIds };
-  } else if (admissionFilter === 'not_admitted') {
-    filter._id = { $nin: admittedUserIds };
+  if (admissionFilter === 'admitted') idSets.push(admittedUserIds);
+  if (admissionFilter === 'not_admitted') idSets.push(await User.distinct('_id', { role: 'user', _id: { $nin: admittedUserIds } }));
+
+  if (paymentFilter !== 'all') {
+    const paymentUserIds = paymentFilter === 'none'
+      ? await User.distinct('_id', { role: 'user', _id: { $nin: await Payment.distinct('user_id') } })
+      : await Payment.distinct('user_id', { status: paymentFilter });
+    idSets.push(paymentUserIds);
+  }
+
+  if (membershipFilter !== 'all') {
+    let membershipUserIds = [];
+    if (membershipFilter === 'not_purchased') {
+      membershipUserIds = await User.distinct('_id', { role: 'user', _id: { $nin: await Membership.distinct('user_id') } });
+    } else if (membershipFilter === 'active') {
+      membershipUserIds = await Membership.distinct('user_id', {
+        status: 'active',
+        $or: [{ end_date: null }, { end_date: { $gte: now } }],
+      });
+    } else if (membershipFilter === 'expired') {
+      membershipUserIds = await Membership.distinct('user_id', {
+        $or: [{ status: 'expired' }, { end_date: { $lt: now } }],
+      });
+    } else if (['scheduled', 'pending', 'cancelled'].includes(membershipFilter)) {
+      membershipUserIds = await Membership.distinct('user_id', { status: membershipFilter });
+    }
+    idSets.push(membershipUserIds);
+  }
+
+  if (idSets.length) {
+    const allowedIds = idSets.reduce((current, next) => {
+      const nextSet = new Set(next.map((id) => id.toString()));
+      return current.filter((id) => nextSet.has(id.toString()));
+    }, idSets[0]);
+    filter._id = { $in: allowedIds };
+  }
+
+  if (registeredWithin !== 'all') {
+    const days = Number(registeredWithin);
+    if ([7, 30, 90].includes(days)) {
+      filter.createdAt = { $gte: new Date(now.getTime() - days * 24 * 60 * 60 * 1000) };
+    }
   }
 
   if (query) {
     const regexSpecialCharacters = new Set(['.', '*', '+', '?', '^', '$', '{', '}', '(', ')', '|', '[', ']', String.fromCharCode(92)]);
     const safeQuery = [...String(query).slice(0, 100)].map((character) => regexSpecialCharacters.has(character) ? String.fromCharCode(92) + character : character).join('');
-    const matchingAdmissionUsers = await GymAdmission.find({
-      member_id: { $regex: safeQuery, $options: 'i' },
-    }).distinct('user_id');
-
+    const matchingAdmissionUsers = await GymAdmission.find({ member_id: { $regex: safeQuery, $options: 'i' } }).distinct('user_id');
     filter.$or = [
       { full_name: { $regex: safeQuery, $options: 'i' } },
       { email: { $regex: safeQuery, $options: 'i' } },
@@ -87,24 +130,45 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
   }
 
   const skip = (safePage - 1) * safeLimit;
-  const [users, total] = await Promise.all([
+  const [users, total, totalCustomerUsers] = await Promise.all([
     User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).lean(),
     User.countDocuments(filter),
+    User.countDocuments({ role: 'user' }),
   ]);
 
   const userIds = users.map((user) => user._id);
-  const [admissions, totalCustomerUsers] = await Promise.all([
+  const [admissions, memberships, payments, admittedCustomerCount] = await Promise.all([
     GymAdmission.find({ user_id: { $in: userIds } }).lean(),
-    User.countDocuments({ role: 'user' }),
+    Membership.find({ user_id: { $in: userIds } }).sort({ createdAt: -1 }).lean(),
+    Payment.find({ user_id: { $in: userIds } }).sort({ payment_date: -1, createdAt: -1 }).lean(),
+    User.countDocuments({ role: 'user', _id: { $in: admittedUserIds } }),
   ]);
-  const admittedCustomerCount = await User.countDocuments({
-    role: 'user',
-    _id: { $in: admittedUserIds },
-  });
-  const admissionMap = new Map(admissions.map((admission) => [admission.user_id.toString(), admission]));
+  const admissionMap = new Map(admissions.map((item) => [item.user_id.toString(), item]));
+  const membershipMap = new Map();
+  for (const item of memberships) {
+    const key = item.user_id.toString();
+    if (!membershipMap.has(key)) membershipMap.set(key, []);
+    membershipMap.get(key).push(item);
+  }
+  const paymentMap = new Map();
+  for (const item of payments) {
+    const key = item.user_id.toString();
+    if (!paymentMap.has(key)) paymentMap.set(key, []);
+    paymentMap.get(key).push(item);
+  }
 
   const rows = users.map((user) => {
     const admission = admissionMap.get(user._id.toString());
+    const userMemberships = membershipMap.get(user._id.toString()) || [];
+    const currentMembership = userMemberships.find((item) => item.status === 'active' && (!item.end_date || new Date(item.end_date) >= now))
+      || userMemberships.find((item) => item.status === 'scheduled')
+      || userMemberships[0]
+      || null;
+    const userPayments = paymentMap.get(user._id.toString()) || [];
+    const latestPayment = userPayments[0] || null;
+    let effectiveMembershipStatus = currentMembership?.status || 'not_purchased';
+    if (currentMembership?.end_date && new Date(currentMembership.end_date) < now) effectiveMembershipStatus = 'expired';
+
     return {
       _id: user._id,
       full_name: user.full_name,
@@ -118,6 +182,12 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
       admission_id: admission?._id || null,
       is_admitted: Boolean(admission),
       admission_status: admission?.status || null,
+      membership_status: effectiveMembershipStatus,
+      membership_plan: currentMembership?.plan_name_snapshot || null,
+      membership_end_date: currentMembership?.end_date || null,
+      payment_status: latestPayment?.status || 'none',
+      latest_payment_amount: latestPayment?.amount ?? null,
+      latest_payment_date: latestPayment?.payment_date || latestPayment?.createdAt || null,
     };
   });
 
@@ -130,6 +200,48 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
       totalUsers: totalCustomerUsers,
       admitted: admittedCustomerCount,
       notAdmitted: totalCustomerUsers - admittedCustomerCount,
+    },
+  };
+}
+
+export async function getMemberOverview(userId) {
+  if (!/^[a-f\\d]{24}$/i.test(String(userId))) throw new ApiError(400, 'Invalid user ID');
+  const user = await User.findOne({ _id: userId, role: 'user' })
+    .select('full_name email phone address email_verified createdAt')
+    .lean();
+  if (!user) throw new ApiError(404, 'Customer not found');
+
+  const [admission, memberships, payments, orders, measurements] = await Promise.all([
+    GymAdmission.findOne({ user_id: user._id }).lean(),
+    Membership.find({ user_id: user._id }).sort({ createdAt: -1 }).lean(),
+    Payment.find({ user_id: user._id }).select('-razorpay_signature').sort({ payment_date: -1, createdAt: -1 }).lean(),
+    Order.find({ user_id: user._id }).sort({ createdAt: -1 }).lean(),
+    BodyMeasurement.find({ user_id: user._id }).sort({ measurement_date: -1 }).lean(),
+  ]);
+
+  const now = new Date();
+  const membershipHistory = memberships.map((item) => ({
+    ...item,
+    effective_status: item.end_date && new Date(item.end_date) < now ? 'expired' : item.status,
+  }));
+  const successfulPayments = payments.filter((item) => item.status === 'success');
+  const totalSuccessfulPayments = successfulPayments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  return {
+    user,
+    admission,
+    memberships: membershipHistory,
+    payments,
+    orders,
+    measurements,
+    summary: {
+      totalMemberships: memberships.length,
+      activeMemberships: membershipHistory.filter((item) => item.effective_status === 'active').length,
+      expiredMemberships: membershipHistory.filter((item) => item.effective_status === 'expired').length,
+      successfulPayments: successfulPayments.length,
+      totalSuccessfulPayments,
+      pendingPayments: payments.filter((item) => item.status === 'pending').length,
+      failedPayments: payments.filter((item) => item.status === 'failed').length,
     },
   };
 }
