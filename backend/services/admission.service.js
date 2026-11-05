@@ -29,6 +29,7 @@ export async function getAdmissionDetails(admissionId) {
     .lean();
 
   if (!admission) throw new ApiError(404, 'Admission not found');
+  if (!admission.user_id || admission.user_id.role !== 'user') throw new ApiError(404, 'Admission not found');
 
   // Read the original account registration timestamp directly from the User document.
   const registeredUser = await User.findById(admission.user_id?._id || admission.user_id)
