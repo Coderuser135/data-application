@@ -87,7 +87,7 @@ function validateMeasurement(measurement) {
   if (measurement === undefined || measurement === null) return null;
   if (typeof measurement !== 'object' || Array.isArray(measurement)) throw new ApiError(400, 'Measurement must be an object');
   const hasValue = Object.entries(measurement).some(([key, value]) => !['notes', 'measurement_date'].includes(key) && value !== '' && value !== null && value !== undefined);
-  if (!hasValue && !String(measurement.notes || '').trim() && !measurement.measurement_date) return null;
+  if (!hasValue) return null;
   const date = measurement.measurement_date ? new Date(measurement.measurement_date) : new Date();
   if (Number.isNaN(date.getTime())) throw new ApiError(400, 'Measurement date is invalid');
   if (date > new Date(new Date().toDateString())) throw new ApiError(400, 'Measurement date cannot be in the future');
