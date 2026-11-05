@@ -63,15 +63,49 @@ export async function searchUsers(query, page = 1, limit = 10, { excludeAdmins =
   return { rows, total, page: safePage, pages: Math.ceil(total / safeLimit) };
 }
 
-function measurementNumber(value, label, max = Number.POSITIVE_INFINITY) {
+function requiredText(value, label, min, max) {
+  const text = String(value ?? '').trim();
+  if (text.length < min || text.length > max) throw new ApiError(400, `${label} must be between ${min} and ${max} characters`);
+  return text;
+}
+
+function validIndianPhone(value, label, required = false) {
+  const phone = String(value ?? '').replace(/[\\s-]/g, '');
+  if (!phone && !required) return '';
+  if (!/^(?:\\+91)?[6-9]\\d{9}$/.test(phone)) throw new ApiError(400, `${label} must be a valid Indian mobile number`);
+  return phone;
+}
+
+function measurementNumber(value, label, min, max) {
   if (value === undefined || value === null || value === '') return 0;
   const number = Number(value);
-  if (!Number.isFinite(number) || number < 0 || number > max) {
-    throw new ApiError(400, `Invalid ${label}`);
-  }
+  if (!Number.isFinite(number) || number < min || number > max) throw new ApiError(400, `${label} must be between ${min} and ${max}`);
   return number;
 }
 
+function validateMeasurement(measurement) {
+  if (measurement === undefined || measurement === null) return null;
+  if (typeof measurement !== 'object' || Array.isArray(measurement)) throw new ApiError(400, 'Measurement must be an object');
+  const hasValue = Object.entries(measurement).some(([key, value]) => !['notes', 'measurement_date'].includes(key) && value !== '' && value !== null && value !== undefined);
+  if (!hasValue && !String(measurement.notes || '').trim() && !measurement.measurement_date) return null;
+  const date = measurement.measurement_date ? new Date(measurement.measurement_date) : new Date();
+  if (Number.isNaN(date.getTime())) throw new ApiError(400, 'Measurement date is invalid');
+  if (date > new Date(new Date().toDateString())) throw new ApiError(400, 'Measurement date cannot be in the future');
+  return {
+    age: measurementNumber(measurement.age, 'Age', 13, 100),
+    height: measurementNumber(measurement.height, 'Height (cm)', 50, 250),
+    weight: measurementNumber(measurement.weight, 'Weight (kg)', 20, 300),
+    stomach: measurementNumber(measurement.stomach, 'Stomach (inches)', 1, 300),
+    chest: measurementNumber(measurement.chest, 'Chest (inches)', 1, 300),
+    biceps: measurementNumber(measurement.biceps, 'Biceps (inches)', 1, 100),
+    back: measurementNumber(measurement.back, 'Back (inches)', 1, 300),
+    legs: measurementNumber(measurement.legs, 'Legs (inches)', 1, 300),
+    body_fat: measurementNumber(measurement.body_fat, 'Body fat (%)', 1, 75),
+    muscle_mass: measurementNumber(measurement.muscle_mass, 'Muscle mass (kg)', 1, 300),
+    notes: String(measurement.notes || '').trim(),
+    measurement_date: date,
+  };
+}
 export async function createAdmission(data) {
   const {
     user_id,
@@ -87,7 +121,13 @@ export async function createAdmission(data) {
     address,
   } = data || {};
 
-  if (!user_id) throw new ApiError(400, 'User is required');
+  if (!user_id || !/^[a-f\\d]{24}$/i.test(String(user_id))) throw new ApiError(400, 'A valid user is required');
+  const emergencyName = String(emergency_contact_name || '').trim();
+  const emergencyPhone = validIndianPhone(emergency_contact_phone, 'Emergency contact phone');
+  if (emergencyName && (emergencyName.length < 2 || emergencyName.length > 100 || !/^[\\p{L}][\\p{L} .'-]*$/u.test(emergencyName))) throw new ApiError(400, 'Emergency contact name is invalid');
+  if (Boolean(emergencyName) !== Boolean(emergencyPhone)) throw new ApiError(400, 'Provide both emergency contact name and phone, or leave both empty');
+  const admissionNotes = String(notes || '').trim();
+  if (admissionNotes.length > 2000) throw new ApiError(400, 'Admission notes cannot exceed 2000 characters');
 
   const amount = payment_amount === undefined || payment_amount === null || payment_amount === ''
     ? 0
@@ -119,7 +159,11 @@ export async function createAdmission(data) {
     throw new ApiError(400, 'Select a valid payment method for the advance received');
   }
 
-  const details = personal_details && typeof personal_details === 'object' ? personal_details : {};
+  const details = personal_details && typeof personal_details === 'object' && !Array.isArray(personal_details) ? personal_details : {};
+  const memberName = requiredText(details.full_name ?? full_name ?? '', 'Full name', 2, 100);
+  if (!/^[\\p{L}][\\p{L} .'-]*$/u.test(memberName)) throw new ApiError(400, 'Full name contains invalid characters');
+  const memberPhone = validIndianPhone(details.phone ?? phone, 'Phone number', true);
+  const memberAddress = requiredText(details.address ?? address ?? '', 'Address', 5, 1000);
   const user = await User.findById(user_id);
 
   if (!user) throw new ApiError(404, 'User not found');
@@ -129,30 +173,9 @@ export async function createAdmission(data) {
   const existing = await GymAdmission.findOne({ user_id });
   if (existing) throw new ApiError(409, 'User already has a gym admission');
 
-  // Validate optional measurements before writing any records.
-  let measurementDoc = null;
-
-  if (measurement && typeof measurement === 'object') {
-    measurementDoc = new BodyMeasurement({
-      user_id,
-      age: measurementNumber(measurement.age, 'age', 120),
-      height: measurementNumber(measurement.height, 'height', 300),
-      weight: measurementNumber(measurement.weight, 'weight', 500),
-      stomach: measurementNumber(measurement.stomach, 'stomach', 300),
-      chest: measurementNumber(measurement.chest, 'chest', 300),
-      biceps: measurementNumber(measurement.biceps, 'biceps', 150),
-      back: measurementNumber(measurement.back, 'back', 300),
-      legs: measurementNumber(measurement.legs, 'legs', 300),
-      body_fat: measurementNumber(measurement.body_fat, 'body fat', 100),
-      muscle_mass: measurementNumber(measurement.muscle_mass, 'muscle mass', 500),
-      notes: String(measurement.notes || '').slice(0, 2000),
-      measurement_date: measurement.measurement_date ? new Date(measurement.measurement_date) : new Date(),
-    });
-
-    if (Number.isNaN(measurementDoc.measurement_date.getTime())) {
-      throw new ApiError(400, 'Invalid measurement date');
-    }
-  }
+  // Measurements are optional; every supplied value is validated before database writes.
+  const validatedMeasurement = validateMeasurement(measurement);
+  let measurementDoc = validatedMeasurement ? new BodyMeasurement({ user_id, ...validatedMeasurement }) : null;
 
   let member_id;
 
@@ -170,9 +193,9 @@ export async function createAdmission(data) {
     user_id,
     member_id,
     status: 'active',
-    emergency_contact_name: String(emergency_contact_name || '').trim().slice(0, 100),
-    emergency_contact_phone: String(emergency_contact_phone || '').trim().slice(0, 30),
-    notes: String(notes || '').slice(0, 2000),
+    emergency_contact_name: emergencyName,
+    emergency_contact_phone: emergencyPhone,
+    notes: admissionNotes,
     selected_plan_id: null,
   });
 
@@ -224,9 +247,9 @@ export async function createAdmission(data) {
     await notification.save();
     notificationSaved = true;
 
-    user.full_name = String(details.full_name ?? full_name ?? user.full_name).trim().slice(0, 100);
-    user.phone = String(details.phone ?? phone ?? user.phone).trim().slice(0, 30);
-    user.address = String(details.address ?? address ?? user.address).trim().slice(0, 1000);
+    user.full_name = memberName;
+    user.phone = memberPhone;
+    user.address = memberAddress;
     await user.save();
 
     return { admission, membership: null, payment: advancePayment, member_id };
