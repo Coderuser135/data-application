@@ -124,7 +124,7 @@ export async function createAdmission(data) {
   if (!user_id || !/^[a-f\d]{24}$/i.test(String(user_id))) throw new ApiError(400, 'A valid user is required');
   const emergencyName = String(emergency_contact_name || '').trim();
   const emergencyPhone = validIndianPhone(emergency_contact_phone, 'Emergency contact phone');
-  if (emergencyName && (emergencyName.length < 2 || emergencyName.length > 100 || !/^[\p{L}][\\p{L} .'-]*$/u.test(emergencyName))) throw new ApiError(400, 'Emergency contact name is invalid');
+  if (emergencyName && (emergencyName.length < 2 || emergencyName.length > 100 || !/^[\p{L}][\p{L} .'-]*$/u.test(emergencyName))) throw new ApiError(400, 'Emergency contact name is invalid');
   if (Boolean(emergencyName) !== Boolean(emergencyPhone)) throw new ApiError(400, 'Provide both emergency contact name and phone, or leave both empty');
   const admissionNotes = String(notes || '').trim();
   if (admissionNotes.length > 2000) throw new ApiError(400, 'Admission notes cannot exceed 2000 characters');
