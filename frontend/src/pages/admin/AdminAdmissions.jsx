@@ -20,7 +20,7 @@ function validateAdmissionDetails(data) {
   const name = String(data.full_name ?? '').trim();
   const phone = String(data.phone ?? '').replace(/[\s-]/g, '');
   const address = String(data.address ?? '').trim();
-  if (name.length < 2 || name.length > 100 || !/^[\p{L}][\p{L} .'-]*$/u.test(name)) errors.full_name = 'Enter a valid full name (2–100 characters).';
+  if (name.length < 2 || name.length > 100 || !/^[\p{L}][\p{L}\p{N} .'-]*$/u.test(name)) errors.full_name = 'Enter a valid full name (2–100 characters).';
   if (!/^(?:\+91)?[6-9]\d{9}$/.test(phone)) errors.phone = 'Enter a valid 10-digit Indian mobile number.';
   if (address.length < 5 || address.length > 1000) errors.address = 'Address is required (5–1000 characters).';
   const emergencyName = String(data.emergency_contact_name || '').trim();
@@ -28,7 +28,7 @@ function validateAdmissionDetails(data) {
   if (Boolean(emergencyName) !== Boolean(emergencyPhone)) {
     errors.emergency_contact_name = 'Enter both emergency contact name and phone, or leave both empty.';
     errors.emergency_contact_phone = 'Enter both emergency contact name and phone, or leave both empty.';
-  } else if (emergencyName && (emergencyName.length < 2 || emergencyName.length > 100 || !/^[\p{L}][\p{L} .'-]*$/u.test(emergencyName))) errors.emergency_contact_name = 'Enter a valid contact name.';
+  } else if (emergencyName && (emergencyName.length < 2 || emergencyName.length > 100 || !/^[\p{L}][\p{L}\p{N} .'-]*$/u.test(emergencyName))) errors.emergency_contact_name = 'Enter a valid contact name.';
   if (emergencyPhone && !/^(?:\+91)?[6-9]\d{9}$/.test(emergencyPhone)) errors.emergency_contact_phone = 'Enter a valid 10-digit Indian mobile number.';
   if (String(data.notes || '').length > 2000) errors.notes = 'Notes cannot exceed 2000 characters.';
   return errors;
