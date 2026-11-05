@@ -3,6 +3,7 @@ import api from './apiClient';
 export const admissionService = {
   getAll: () => api.get('/admissions').then((response) => response.data),
   getMine: () => api.get('/admissions/mine').then((response) => response.data),
+  getById: (id) => api.get(`/admissions/${id}`).then((response) => response.data),
   create: (data) => api.post('/admissions', data).then((response) => response.data),
   searchUsers: (q, page = 1, limit = 20, { excludeAdmins = false } = {}) => {
     const params = new URLSearchParams({
