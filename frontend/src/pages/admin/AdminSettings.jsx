@@ -28,7 +28,7 @@ export default function AdminSettings() {
     setSaving(false);
   }
 
-  if (loading) return <AdminLoadingSkeleton variant="dashboard" />;
+  if (loading) return <AdminLoadingSkeleton variant="form" />;
 
   return (
     <div className="space-y-6">
