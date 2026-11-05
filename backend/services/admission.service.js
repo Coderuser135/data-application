@@ -87,6 +87,7 @@ export async function searchUsers(query, page = 1, limit = 10, { excludeAdmins =
       address: user.address,
       role: user.role,
       email_verified: user.email_verified,
+      created_at: user.createdAt || null,
       member_id: admission?.member_id || null,
       admission_id: admission?._id || null,
       is_admitted: Boolean(admission),
