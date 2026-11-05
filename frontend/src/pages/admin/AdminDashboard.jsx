@@ -123,7 +123,7 @@ export default function AdminDashboard() {
         <StatCard icon={TrendingUp} label="This Month" value={formatCurrency(s.monthRevenue)} tone="success" sublabel={`Today: ${formatCurrency(s.todayRevenue)}`} />
       </div>
 
-      <RevenueChart analytics={analytics} period={period} onPeriodChange={setPeriod} />
+      {loading && !analytics ? <AdminLoadingSkeleton variant="chart" /> : <RevenueChart analytics={analytics} period={period} onPeriodChange={setPeriod} />}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card padding={false}>
