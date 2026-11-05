@@ -27,6 +27,11 @@ export async function getAdmissionDetails(admissionId) {
 
   if (!admission) throw new ApiError(404, 'Admission not found');
 
+  // Read the original account registration timestamp directly from the User document.
+  const registeredUser = await User.findById(admission.user_id?._id || admission.user_id)
+    .select('createdAt')
+    .lean();
+
   const [measurements, payments, memberships] = await Promise.all([
     BodyMeasurement.find({ gym_admission_id: admission._id }).sort({ measurement_date: -1 }).lean(),
     Payment.find({ gym_admission_id: admission._id })
@@ -39,7 +44,7 @@ export async function getAdmissionDetails(admissionId) {
       .lean(),
   ]);
 
-  return { admission, measurements, payments, memberships };
+  return { admission: { ...admission, user_id: { ...(admission.user_id || {}), registered_at: registeredUser?.createdAt || null } }, measurements, payments, memberships };
 }
 
 export async function getAdmissionByUserId(userId) {
