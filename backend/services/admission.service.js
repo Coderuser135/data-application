@@ -120,7 +120,17 @@ export async function searchUsers(query, page = 1, limit = 10, { admissionFilter
     };
   });
 
-  return {\n    rows,\n    total,\n    page: safePage,\n    pages: Math.ceil(total / safeLimit),\n    stats: { totalUsers: totalCustomerUsers, admitted: admittedCustomerCount, notAdmitted: totalCustomerUsers - admittedCustomerCount },\n  };
+  return {
+    rows,
+    total,
+    page: safePage,
+    pages: Math.ceil(total / safeLimit),
+    stats: {
+      totalUsers: totalCustomerUsers,
+      admitted: admittedCustomerCount,
+      notAdmitted: totalCustomerUsers - admittedCustomerCount,
+    },
+  };
 }
 function requiredText(value, label, min, max) {
   const text = String(value ?? '').trim();
