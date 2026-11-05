@@ -15,9 +15,11 @@ const STEPS = ['User', 'Personal Details', 'Measurement', 'Advance Payment', 'Co
 const MEASUREMENT_RULES = {"age":[13,100],"height":[50,250],"weight":[20,300],"stomach":[1,300],"chest":[1,300],"biceps":[1,100],"back":[1,300],"legs":[1,300],"body_fat":[0,75],"muscle_mass":[1,300]};
 function validateAdmissionDetails(data, user) {
   const errors = {};
-  const name = String(data.full_name || user?.full_name || '').trim();
-  const phone = String(data.phone || user?.phone || '').replace(/[\s-]/g, '');
-  const address = String(data.address || user?.address || '').trim();
+  // Validate exactly what is currently shown in the form. Never fall back to the
+  // selected user's old values: an emptied required input must remain invalid.
+  const name = String(data.full_name ?? '').trim();
+  const phone = String(data.phone ?? '').replace(/[\s-]/g, '');
+  const address = String(data.address ?? '').trim();
   if (name.length < 2 || name.length > 100 || !/^[\p{L}][\p{L} .'-]*$/u.test(name)) errors.full_name = 'Enter a valid full name (2–100 characters).';
   if (!/^(?:\+91)?[6-9]\d{9}$/.test(phone)) errors.phone = 'Enter a valid 10-digit Indian mobile number.';
   if (address.length < 5 || address.length > 1000) errors.address = 'Address is required (5–1000 characters).';
