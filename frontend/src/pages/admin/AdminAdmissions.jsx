@@ -145,12 +145,17 @@ export default function AdminAdmissions() {
   const lowestPricedPlan = activePlans.reduce((lowest, plan) => (
     !lowest || Number(plan.price) < Number(lowest.price) ? plan : lowest
   ), null);
-  const advanceAmount = Number(formData.payment_amount) || 0;
-  const advanceError = advanceAmount > 0 && !lowestPricedPlan
-    ? 'No active membership plan is available. Activate a plan before receiving an advance.'
-    : advanceAmount > Number(lowestPricedPlan?.price ?? 0)
-      ? `Advance amount cannot exceed the lowest active membership plan price (${lowestPricedPlan.name}: ${formatCurrency(Number(lowestPricedPlan.price))}).`
-      : '';
+  const rawAdvanceAmount = String(formData.payment_amount ?? '').trim();
+  const advanceAmount = rawAdvanceAmount === '' ? 0 : Number(rawAdvanceAmount);
+  const paymentAmountError = rawAdvanceAmount !== '' && (!Number.isFinite(advanceAmount) || advanceAmount < 0)
+    ? 'Enter a valid amount of ₹0 or more.'
+    : '';
+  const advanceError = paymentAmountError
+    || (advanceAmount > 0 && !lowestPricedPlan
+      ? 'No active membership plan is available. Activate a plan before receiving an advance.'
+      : advanceAmount > Number(lowestPricedPlan?.price ?? 0)
+        ? `Advance amount cannot exceed the lowest active membership plan price (${lowestPricedPlan.name}: ${formatCurrency(Number(lowestPricedPlan.price))}).`
+        : '');
 
   function nextStep() {
     let errors = {};
@@ -404,7 +409,7 @@ export default function AdminAdmissions() {
                     <p className="font-semibold text-ink-900 dark:text-white">Membership advance payment (optional)</p>
                     <p className="mt-1 text-sm text-surface-500">This is not a membership purchase. Any amount received now will be credited and adjusted against the plan the member chooses later.</p>
                   </div>
-                  <Input label="Advance Amount (₹)" type="number" min="0" value={formData.payment_amount} onChange={(e) => { updateField('payment_amount', e.target.value); setError(''); }} placeholder="Enter 0 if no advance is received" />
+                  <Input label="Advance Amount (₹)" type="number" min="0" step="0.01" value={formData.payment_amount} error={advanceError || fieldErrors.payment_amount} aria-invalid={Boolean(advanceError || fieldErrors.payment_amount)} onChange={(e) => { updateField('payment_amount', e.target.value); setError(''); }} placeholder="Enter 0 if no advance is received" />
                   {lowestPricedPlan && <p className="text-xs text-surface-500">Maximum allowed advance: {formatCurrency(Number(lowestPricedPlan.price))} (lowest active plan: {lowestPricedPlan.name})</p>}
                   {advanceError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{advanceError}</p>}
                   {Number(formData.payment_amount) > 0 && (
