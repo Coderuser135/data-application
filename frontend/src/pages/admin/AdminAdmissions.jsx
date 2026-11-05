@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft, User, Phone, Mail, CreditCard, Ruler, IndianRupee } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -361,7 +362,7 @@ export default function AdminAdmissions() {
             </div>
           )}
         </Card>
-      ) : !loading ? <EmptyState title="No users found" description="Try a different search term." /> : null}
+      ) : loading ? <AdminLoadingSkeleton variant="table" rows={5} /> : <EmptyState title="No users found" description="Try a different search term." />}
 
       {(viewLoading || viewError || viewingAdmission) && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={() => { if (!viewLoading) { setViewingAdmission(null); setViewError(''); } }}>
