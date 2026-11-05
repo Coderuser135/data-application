@@ -285,7 +285,7 @@ export default function AdminAdmissions() {
         </div>
       </Card>
 
-      {rows.length > 0 ? (
+      {!loading && rows.length > 0 ? (
         <Card padding={false}>
           <div className="overflow-x-auto">
             <table className="admin-mobile-cards w-full text-sm">
