@@ -12,11 +12,15 @@ export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', price: '', sale_price: '', stock_quantity: '0', category_id: '', is_active: true });
 
   useEffect(() => {
-    productService.getAll().then((data) => { setProducts(data || []); setLoading(false); });
+    productService.getAll()
+      .then((data) => setProducts(data || []))
+      .catch(() => setLoadError('Products could not be loaded. Please refresh and try again.'))
+      .finally(() => setLoading(false));
     categoryService.getAll().then((data) => setCategories(data || []));
   }, []);
 
@@ -34,6 +38,7 @@ export default function AdminProducts() {
   async function remove(id) { if (confirm('Delete this product?')) { await productService.delete(id); productService.getAll().then((data) => setProducts(data || [])); } }
 
   if (loading) return <AdminLoadingSkeleton variant="cards" />;
+  if (loadError) return <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 dark:border-red-900/50 dark:bg-surface-900 dark:text-red-300">{loadError}</div>;
 
   return (
     <div className="space-y-6">
