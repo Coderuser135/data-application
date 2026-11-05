@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input';
 import { searchUsers, createAdmission } from '@/redux/slices/admissionSlice';
 import { fetchMembershipPlans } from '@/redux/slices/membershipPlanSlice';
 import { formatCurrency } from '@/utils/formatters';
+import { admissionService } from '@/services/admissionService';
 
 const STEPS = ['User', 'Personal Details', 'Measurement', 'Advance Payment', 'Confirm'];
 
@@ -85,6 +86,9 @@ export default function AdminAdmissions() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [measurementSkipped, setMeasurementSkipped] = useState(false);
+  const [viewingAdmission, setViewingAdmission] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState('');
   const [formData, setFormData] = useState({
     emergency_contact_name: '',
     emergency_contact_phone: '',
@@ -103,6 +107,24 @@ export default function AdminAdmissions() {
   }, [dispatch, query, page, limit]);
 
   useEffect(() => { dispatch(fetchMembershipPlans()); }, [dispatch]);
+
+  async function viewAdmission(user) {
+    setViewingAdmission(null);
+    setViewError('');
+    setViewLoading(true);
+    try {
+      const admissionId = user.admission_id;
+      if (!admissionId) {
+        throw new Error('Admission record ID was not found. Refresh the page and try again.');
+      }
+      const details = await admissionService.getById(admissionId);
+      setViewingAdmission(details);
+    } catch (viewErr) {
+      setViewError(viewErr?.response?.data?.error || viewErr?.message || 'Unable to load admission details.');
+    } finally {
+      setViewLoading(false);
+    }
+  }
 
   function openAdmission(user) {
     setSelectedUser(user);
@@ -299,7 +321,7 @@ export default function AdminAdmissions() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       {u.is_admitted ? (
-                        <Button variant="ghost" size="sm">View</Button>
+                        <Button variant="ghost" size="sm" onClick={() => viewAdmission(u)}>View</Button>
                       ) : !u.email_verified ? (
                         <Badge tone="warning">Verify email first</Badge>
                       ) : (
@@ -340,6 +362,113 @@ export default function AdminAdmissions() {
           )}
         </Card>
       ) : !loading ? <EmptyState title="No users found" description="Try a different search term." /> : null}
+
+      {(viewLoading || viewError || viewingAdmission) && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={() => { if (!viewLoading) { setViewingAdmission(null); setViewError(''); } }}>
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-surface-200 bg-white px-6 py-4 dark:border-surface-800 dark:bg-surface-900">
+              <div>
+                <h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">Admission Details</h2>
+                {viewingAdmission?.admission?.member_id && <p className="mt-1 text-xs text-surface-500">Member ID: {viewingAdmission.admission.member_id}</p>}
+              </div>
+              <button type="button" onClick={() => { setViewingAdmission(null); setViewError(''); }} className="rounded-lg p-2 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18} /></button>
+            </div>
+
+            {viewLoading ? (
+              <div className="p-10 text-center text-sm text-surface-500">Loading admission details...</div>
+            ) : viewError ? (
+              <div className="p-6"><div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{viewError}</div></div>
+            ) : viewingAdmission && (
+              <div className="space-y-6 p-6">
+                {(() => {
+                  const { admission, measurements = [], payments = [], memberships = [] } = viewingAdmission;
+                  const user = admission.user_id || {};
+                  const Info = ({ label, value }) => (
+                    <div className="min-w-0">
+                      <p className="text-xs text-surface-500">{label}</p>
+                      <p className="mt-1 break-words text-sm font-medium text-ink-900 dark:text-white">{value === null || value === undefined || value === '' ? '—' : value}</p>
+                    </div>
+                  );
+                  const dateText = (value) => value ? new Date(value).toLocaleString('en-IN', { dateStyle: 'medium' }) : '—';
+                  return (
+                    <>
+                      <section>
+                        <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Member Information</h3>
+                        <div className="grid grid-cols-1 gap-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800 sm:grid-cols-2">
+                          <Info label="Full Name" value={user.full_name} />
+                          <Info label="Email" value={user.email} />
+                          <Info label="Phone" value={user.phone} />
+                          <Info label="Address" value={user.address} />
+                          <Info label="Email Verified" value={user.email_verified ? 'Yes' : 'No'} />
+                          <Info label="Account Created" value={dateText(user.createdAt)} />
+                        </div>
+                      </section>
+                      <section>
+                        <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Admission Information</h3>
+                        <div className="grid grid-cols-1 gap-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800 sm:grid-cols-2">
+                          <Info label="Member ID" value={admission.member_id} />
+                          <Info label="Admission Status" value={admission.status} />
+                          <Info label="Admission Date" value={dateText(admission.admission_date || admission.createdAt)} />
+                          <Info label="Emergency Contact" value={admission.emergency_contact_name} />
+                          <Info label="Emergency Phone" value={admission.emergency_contact_phone} />
+                          <Info label="Admission Notes" value={admission.notes} />
+                          <Info label="Selected Plan" value={admission.selected_plan_id?.name || 'Not selected yet'} />
+                        </div>
+                      </section>
+                      <section>
+                        <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Body Measurements ({measurements.length})</h3>
+                        {measurements.length ? measurements.map((item) => (
+                          <div key={item._id} className="mb-3 rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
+                            <div className="mb-3 flex justify-between gap-3 text-xs text-surface-500"><span>{dateText(item.measurement_date)}</span><span>{item.notes || ''}</span></div>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                              <Info label="Age" value={item.age ? `${item.age} years` : '—'} />
+                              <Info label="Height" value={item.height ? `${item.height} cm` : '—'} />
+                              <Info label="Weight" value={item.weight ? `${item.weight} kg` : '—'} />
+                              <Info label="Stomach" value={item.stomach ? `${item.stomach} in` : '—'} />
+                              <Info label="Chest" value={item.chest ? `${item.chest} in` : '—'} />
+                              <Info label="Biceps" value={item.biceps ? `${item.biceps} in` : '—'} />
+                              <Info label="Back" value={item.back ? `${item.back} in` : '—'} />
+                              <Info label="Legs" value={item.legs ? `${item.legs} in` : '—'} />
+                              <Info label="Body Fat" value={item.body_fat ? `${item.body_fat}%` : '—'} />
+                              <Info label="Muscle Mass" value={item.muscle_mass ? `${item.muscle_mass} kg` : '—'} />
+                            </div>
+                          </div>
+                        )) : <p className="rounded-xl bg-surface-50 p-4 text-sm text-surface-500 dark:bg-surface-800">No measurements were added during admission.</p>}
+                      </section>
+                      <section>
+                        <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Membership History ({memberships.length})</h3>
+                        {memberships.length ? <div className="space-y-2">{memberships.map((item) => (
+                          <div key={item._id} className="grid grid-cols-2 gap-3 rounded-xl bg-surface-50 p-4 text-sm dark:bg-surface-800 sm:grid-cols-3">
+                            <Info label="Plan" value={item.plan_name_snapshot || item.plan_id?.name} />
+                            <Info label="Plan Price" value={formatCurrency(item.plan_price_snapshot || 0)} />
+                            <Info label="Status" value={item.status} />
+                            <Info label="Payment Status" value={item.payment_status} />
+                            <Info label="Start Date" value={dateText(item.start_date)} />
+                            <Info label="End Date" value={dateText(item.end_date)} />
+                          </div>
+                        ))}</div> : <p className="rounded-xl bg-surface-50 p-4 text-sm text-surface-500 dark:bg-surface-800">No membership plan selected yet.</p>}
+                      </section>
+                      <section>
+                        <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Payment History ({payments.length})</h3>
+                        {payments.length ? <div className="space-y-2">{payments.map((item) => (
+                          <div key={item._id} className="grid grid-cols-2 gap-3 rounded-xl bg-surface-50 p-4 text-sm dark:bg-surface-800 sm:grid-cols-3">
+                            <Info label="Amount" value={formatCurrency(item.amount)} />
+                            <Info label="Type" value={item.payment_type} />
+                            <Info label="Method" value={item.payment_method} />
+                            <Info label="Status" value={item.status} />
+                            <Info label="Payment Date" value={dateText(item.payment_date)} />
+                            <Info label="Reference" value={item.transaction_id || item.reference_note} />
+                          </div>
+                        ))}</div> : <p className="rounded-xl bg-surface-50 p-4 text-sm text-surface-500 dark:bg-surface-800">No payments recorded for this admission.</p>}
+                      </section>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowModal(false)}>
