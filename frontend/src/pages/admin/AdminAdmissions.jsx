@@ -365,8 +365,8 @@ export default function AdminAdmissions() {
       ) : loading ? <AdminLoadingSkeleton variant="table" rows={5} /> : <EmptyState title="No users found" description="Try a different search term." />}
 
       {(viewLoading || viewError || viewingAdmission) && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={() => { if (!viewLoading) { setViewingAdmission(null); setViewError(''); } }}>
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
+        <div className="admin-admission-details-backdrop fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-black/65 p-3 sm:p-5" onClick={() => { if (!viewLoading) { setViewingAdmission(null); setViewError(''); } }}>
+          <div className="admin-admission-details-modal my-auto max-h-[min(90dvh,900px)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-surface-200 bg-white px-6 py-4 dark:border-surface-800 dark:bg-surface-900">
               <div>
                 <h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">Admission Details</h2>
@@ -380,7 +380,7 @@ export default function AdminAdmissions() {
             ) : viewError ? (
               <div className="p-6"><div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{viewError}</div></div>
             ) : viewingAdmission && (
-              <div className="space-y-6 p-6">
+              <div className="admin-admission-details-content mx-auto w-full max-w-2xl space-y-6 p-4 sm:p-6">
                 {(() => {
                   const { admission, measurements = [], payments = [], memberships = [] } = viewingAdmission;
                   const user = admission.user_id || {};
@@ -393,9 +393,9 @@ export default function AdminAdmissions() {
                   const dateText = (value) => value ? new Date(value).toLocaleString('en-IN', { dateStyle: 'medium' }) : '—';
                   return (
                     <>
-                      <section>
+                      <section className="admin-detail-section">
                         <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Member Information</h3>
-                        <div className="grid grid-cols-1 gap-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800 sm:grid-cols-2">
+                        <div className="admin-detail-grid grid grid-cols-1 gap-3 rounded-xl bg-surface-50 p-4 dark:bg-surface-800 sm:grid-cols-2">
                           <Info label="Full Name" value={user.full_name} />
                           <Info label="Email" value={user.email} />
                           <Info label="Phone" value={user.phone} />
@@ -404,9 +404,9 @@ export default function AdminAdmissions() {
                           <Info label="Account Created" value={(user.registered_at || user.createdAt) ? new Date(user.registered_at || user.createdAt).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' }) : 'Registration date unavailable'} />
                         </div>
                       </section>
-                      <section>
+                      <section className="admin-detail-section">
                         <h3 className="mb-3 font-semibold text-ink-900 dark:text-white">Admission Information</h3>
-                        <div className="grid grid-cols-1 gap-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800 sm:grid-cols-2">
+                        <div className="admin-detail-grid grid grid-cols-1 gap-3 rounded-xl bg-surface-50 p-4 dark:bg-surface-800 sm:grid-cols-2">
                           <Info label="Member ID" value={admission.member_id} />
                           <Info label="Admission Status" value={admission.status} />
                           <Info label="Admission Date" value={dateText(admission.admission_date || admission.createdAt)} />
