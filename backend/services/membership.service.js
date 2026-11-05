@@ -3,6 +3,7 @@ import Membership from '../models/membership.model.js';
 import MembershipPlan from '../models/membershipPlan.model.js';
 import Payment from '../models/payment.model.js';
 import GymAdmission from '../models/gymAdmission.model.js';
+import User from '../models/user.model.js';
 import Notification from '../models/notification.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 
@@ -31,7 +32,8 @@ export async function getAllMemberships({
   limit = 10,
 } = {}) {
   const now = new Date();
-  const filter = {};
+  const customerIds = await User.distinct('_id', { role: 'user' });
+  const filter = { user_id: { $in: customerIds } };
   if (status !== 'all') {
     if (status === 'expired') {
       filter.$or = [{ status: 'expired' }, { end_date: { $lt: now }, status: { $in: ['active', 'scheduled'] } }];
@@ -66,7 +68,7 @@ export async function getAllMemberships({
   }
 
   if (search.trim()) {
-    const users = await mongoose.model('User').find({
+    const users = await User.find({
       role: 'user',
       $or: [
         { full_name: { $regex: search.trim(), $options: 'i' } },
@@ -89,11 +91,11 @@ export async function getAllMemberships({
     Membership.countDocuments(filter),
     MembershipPlan.find().select('_id name').sort({ display_order: 1 }).lean(),
     Promise.all([
-      Membership.countDocuments({ status: 'active', $or: [{ end_date: null }, { end_date: { $gte: now } }] }),
-      Membership.countDocuments({ status: 'pending' }),
-      Membership.countDocuments({ $or: [{ status: 'expired' }, { end_date: { $lt: now }, status: { $in: ['active', 'scheduled'] } }] }),
-      Membership.countDocuments({ end_date: { $gte: now, $lte: new Date(now.getTime() + 7 * 86400000) }, status: { $in: ['active', 'scheduled'] } }),
-      Membership.countDocuments({}),
+      Membership.countDocuments({ user_id: { $in: customerIds }, status: 'active', $or: [{ end_date: null }, { end_date: { $gte: now } }] }),
+      Membership.countDocuments({ user_id: { $in: customerIds }, status: 'pending' }),
+      Membership.countDocuments({ user_id: { $in: customerIds }, $or: [{ status: 'expired' }, { end_date: { $lt: now }, status: { $in: ['active', 'scheduled'] } }] }),
+      Membership.countDocuments({ user_id: { $in: customerIds }, end_date: { $gte: now, $lte: new Date(now.getTime() + 7 * 86400000) }, status: { $in: ['active', 'scheduled'] } }),
+      Membership.countDocuments({ user_id: { $in: customerIds } }),
     ]),
   ]);
 
