@@ -400,7 +400,7 @@ export default function AdminAdmissions() {
                           <Info label="Phone" value={user.phone} />
                           <Info label="Address" value={user.address} />
                           <Info label="Email Verified" value={user.email_verified ? 'Yes' : 'No'} />
-                          <Info label="Account Created" value={dateText(user.createdAt)} />
+                          <Info label="Registered On" value={user.registered_at ? new Date(user.registered_at).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' }) : 'Registration date unavailable'} />
                         </div>
                       </section>
                       <section>
