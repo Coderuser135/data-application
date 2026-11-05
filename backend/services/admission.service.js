@@ -9,7 +9,10 @@ import { generateMemberId } from '../utils/generators.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
 
 export async function getAllAdmissions() {
-  return GymAdmission.find()
+  // Admissions belong to customer accounts only. Never expose an admin as a gym member.
+  const customerIds = await User.distinct('_id', { role: 'user' });
+
+  return GymAdmission.find({ user_id: { $in: customerIds } })
     .populate({ path: 'user_id', select: 'full_name email phone address role' })
     .populate({ path: 'selected_plan_id', select: 'name' })
     .sort({ createdAt: -1 });
@@ -52,18 +55,32 @@ export async function getAdmissionByUserId(userId) {
     .populate({ path: 'selected_plan_id', select: 'name price duration_days' });
 }
 
-export async function searchUsers(query, page = 1, limit = 10, { excludeAdmins = false } = {}) {
+export async function searchUsers(query, page = 1, limit = 10, { admissionFilter = 'all' } = {}) {
   const safePage = Math.max(1, Number(page) || 1);
   const requestedLimit = Number(limit);
   const safeLimit = [5, 10].includes(requestedLimit) ? requestedLimit : 10;
-  const filter = excludeAdmins ? { role: 'user' } : {};
+
+  // The Members and Admissions screens both list customer accounts, never admin accounts.
+  const filter = { role: 'user' };
+  const admittedUserIds = await GymAdmission.distinct('user_id');
+
+  if (admissionFilter === 'admitted') {
+    filter._id = { $in: admittedUserIds };
+  } else if (admissionFilter === 'not_admitted') {
+    filter._id = { $nin: admittedUserIds };
+  }
 
   if (query) {
-    const safeQuery = String(query).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const safeQuery = String(query).slice(0, 100).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+    const matchingAdmissionUsers = await GymAdmission.find({
+      member_id: { $regex: safeQuery, $options: 'i' },
+    }).distinct('user_id');
+
     filter.$or = [
       { full_name: { $regex: safeQuery, $options: 'i' } },
       { email: { $regex: safeQuery, $options: 'i' } },
       { phone: { $regex: safeQuery, $options: 'i' } },
+      { _id: { $in: matchingAdmissionUsers } },
     ];
   }
 
@@ -97,7 +114,6 @@ export async function searchUsers(query, page = 1, limit = 10, { excludeAdmins =
 
   return { rows, total, page: safePage, pages: Math.ceil(total / safeLimit) };
 }
-
 function requiredText(value, label, min, max) {
   const text = String(value ?? '').trim();
   if (text.length < min || text.length > max) throw new ApiError(400, `${label} must be between ${min} and ${max} characters`);
