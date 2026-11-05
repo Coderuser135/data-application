@@ -11,9 +11,9 @@ export const fetchAllAdmissions = createAsyncThunk('admissions/fetchAll', async 
   try { return await admissionService.getAll(); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to fetch admissions')); }
 });
 
-export const searchUsers = createAsyncThunk('admissions/searchUsers', async ({ q, page, limit, excludeAdmins = false }, { rejectWithValue }) => {
+export const searchUsers = createAsyncThunk('admissions/searchUsers', async ({ q, page, limit, admissionFilter = 'all' }, { rejectWithValue }) => {
   try {
-    return await admissionService.searchUsers(q, page, limit, { excludeAdmins });
+    return await admissionService.searchUsers(q, page, limit, { admissionFilter });
   } catch (error) {
     return rejectWithValue(errorMessage(error, 'Failed to search users'));
   }
