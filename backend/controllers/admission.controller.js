@@ -47,12 +47,12 @@ export const updateAdmission = async (req, res, next) => {
 
 export const searchUsers = async (req, res, next) => {
   try {
-    const { q, page, limit, exclude_admins } = req.query;
+    const { q, page, limit, admission_filter } = req.query;
     const result = await admissionService.searchUsers(
       q,
       Number(page) || 1,
       Number(limit) || 10,
-      { excludeAdmins: exclude_admins === 'true' },
+      { admissionFilter: admission_filter || 'all' },
     );
 
     res.json(result);
