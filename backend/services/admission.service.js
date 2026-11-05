@@ -77,28 +77,36 @@ export async function searchUsers(query, page = 1, limit = 10, {
   if (admissionFilter === 'not_admitted') idSets.push(await User.distinct('_id', { role: 'user', _id: { $nin: admittedUserIds } }));
 
   if (paymentFilter !== 'all') {
+    const latestPayments = await Payment.aggregate([
+      { $sort: { payment_date: -1, createdAt: -1 } },
+      { $group: { _id: '$user_id', status: { $first: '$status' } } },
+    ]);
+    const matchingPaymentIds = latestPayments
+      .filter((item) => item.status === paymentFilter)
+      .map((item) => item._id);
+    const usersWithPayments = latestPayments.map((item) => item._id);
     const paymentUserIds = paymentFilter === 'none'
-      ? await User.distinct('_id', { role: 'user', _id: { $nin: await Payment.distinct('user_id') } })
-      : await Payment.distinct('user_id', { status: paymentFilter });
+      ? await User.distinct('_id', { role: 'user', _id: { $nin: usersWithPayments } })
+      : matchingPaymentIds;
     idSets.push(paymentUserIds);
   }
 
   if (membershipFilter !== 'all') {
-    let membershipUserIds = [];
-    if (membershipFilter === 'not_purchased') {
-      membershipUserIds = await User.distinct('_id', { role: 'user', _id: { $nin: await Membership.distinct('user_id') } });
-    } else if (membershipFilter === 'active') {
-      membershipUserIds = await Membership.distinct('user_id', {
-        status: 'active',
-        $or: [{ end_date: null }, { end_date: { $gte: now } }],
-      });
-    } else if (membershipFilter === 'expired') {
-      membershipUserIds = await Membership.distinct('user_id', {
-        $or: [{ status: 'expired' }, { end_date: { $lt: now } }],
-      });
-    } else if (['scheduled', 'pending', 'cancelled'].includes(membershipFilter)) {
-      membershipUserIds = await Membership.distinct('user_id', { status: membershipFilter });
-    }
+    const latestMemberships = await Membership.aggregate([
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: '$user_id', status: { $first: '$status' }, end_date: { $first: '$end_date' } } },
+    ]);
+    const usersWithMemberships = latestMemberships.map((item) => item._id);
+    const matchingMembershipIds = latestMemberships
+      .filter((item) => {
+        const expired = item.status === 'expired' || (item.end_date && new Date(item.end_date) < now);
+        const effectiveStatus = expired ? 'expired' : item.status;
+        return effectiveStatus === membershipFilter;
+      })
+      .map((item) => item._id);
+    const membershipUserIds = membershipFilter === 'not_purchased'
+      ? await User.distinct('_id', { role: 'user', _id: { $nin: usersWithMemberships } })
+      : matchingMembershipIds;
     idSets.push(membershipUserIds);
   }
 
