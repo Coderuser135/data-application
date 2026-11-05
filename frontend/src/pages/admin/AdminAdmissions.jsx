@@ -13,7 +13,7 @@ import { formatCurrency } from '@/utils/formatters';
 const STEPS = ['User', 'Personal Details', 'Measurement', 'Advance Payment', 'Confirm'];
 
 const MEASUREMENT_RULES = {"age":[13,100],"height":[50,250],"weight":[20,300],"stomach":[1,300],"chest":[1,300],"biceps":[1,100],"back":[1,300],"legs":[1,300],"body_fat":[0,75],"muscle_mass":[1,300]};
-function validateAdmissionDetails(data, user) {
+function validateAdmissionDetails(data) {
   const errors = {};
   // Validate exactly what is currently shown in the form. Never fall back to the
   // selected user's old values: an emptied required input must remain invalid.
