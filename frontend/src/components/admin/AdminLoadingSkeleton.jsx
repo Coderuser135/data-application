@@ -38,6 +38,28 @@ export default function AdminLoadingSkeleton({ variant = 'dashboard', rows = 5 }
     );
   }
 
+  if (variant === 'form') {
+    return (
+      <div className="space-y-6" aria-label="Loading form">
+        <div>
+          <div className="admin-skeleton h-7 w-40" />
+          <div className="admin-skeleton mt-2 h-4 w-64" />
+        </div>
+        <div className="rounded-2xl border border-surface-200 bg-white p-6 dark:border-surface-800 dark:bg-surface-900">
+          <div className="admin-skeleton mb-6 h-5 w-44" />
+          <div className="space-y-5">
+            <div className="admin-skeleton h-11 w-full rounded-lg" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="admin-skeleton h-11 rounded-lg" />
+              <div className="admin-skeleton h-11 rounded-lg" />
+            </div>
+            <div className="admin-skeleton h-11 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" aria-label="Loading dashboard">
       <div>
