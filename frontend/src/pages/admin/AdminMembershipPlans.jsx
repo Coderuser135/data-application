@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, X, Tag, Pencil, Trash2, Check } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -173,7 +174,7 @@ export default function AdminMembershipPlans() {
             </Card>
           ))}
         </div>
-      ) : !loading ? <EmptyState title="No plans yet" description="Create your first membership plan." /> : null}
+      ) : loading ? <AdminLoadingSkeleton variant="cards" /> : <EmptyState title="No plans yet" description="Create your first membership plan." />}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowForm(false)}>
