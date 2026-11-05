@@ -42,7 +42,7 @@ export const searchUsers = async (req, res, next) => {
     const result = await admissionService.searchUsers(
       q,
       Number(page) || 1,
-      Number(limit) || 20,
+      Number(limit) || 10,
       { excludeAdmins: exclude_admins === 'true' },
     );
 
