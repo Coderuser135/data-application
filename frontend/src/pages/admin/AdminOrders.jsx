@@ -49,7 +49,7 @@ export default function AdminOrders() {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by order number or customer..." className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm text-ink-900 outline-none focus:border-brand-500 dark:border-surface-700 dark:bg-surface-950 dark:text-white" />
         </div>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {['all', ...ORDER_STATUSES].map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition ${statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 dark:bg-surface-800'}`}>{s}</button>
           ))}
@@ -59,7 +59,7 @@ export default function AdminOrders() {
       {filtered.length > 0 ? (
         <Card padding={false}>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="admin-mobile-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-4 font-medium">Order #</th>
@@ -74,13 +74,13 @@ export default function AdminOrders() {
               <tbody>
                 {filtered.map((o) => (
                   <tr key={o.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                    <td className="px-5 py-4 font-medium text-ink-900 dark:text-white">{o.order_number}</td>
-                    <td className="px-5 py-4 text-surface-600 dark:text-surface-300">{o.user_id?.full_name || '—'}</td>
-                    <td className="px-5 py-4 text-surface-500">{formatDate(o.created_at)}</td>
-                    <td className="px-5 py-4 font-semibold">{formatCurrency(o.total_amount)}</td>
-                    <td className="px-5 py-4"><Badge tone={o.payment_status === 'success' ? 'success' : 'warning'}>{o.payment_status}</Badge></td>
-                    <td className="px-5 py-4"><Badge tone={o.status === 'delivered' ? 'success' : o.status === 'cancelled' ? 'danger' : 'info'}>{o.status}</Badge></td>
-                    <td className="px-5 py-4 text-right"><Button variant="ghost" size="sm" onClick={() => setSelectedOrder(o)}>View</Button></td>
+                    <td data-label="Order" className="px-5 py-4 font-medium text-ink-900 dark:text-white">{o.order_number}</td>
+                    <td data-label="Customer" className="px-5 py-4 text-surface-600 dark:text-surface-300">{o.user_id?.full_name || '—'}</td>
+                    <td data-label="Date" className="px-5 py-4 text-surface-500">{formatDate(o.created_at)}</td>
+                    <td data-label="Amount" className="px-5 py-4 font-semibold">{formatCurrency(o.total_amount)}</td>
+                    <td data-label="Payment" className="px-5 py-4"><Badge tone={o.payment_status === 'success' ? 'success' : 'warning'}>{o.payment_status}</Badge></td>
+                    <td data-label="Status" className="px-5 py-4"><Badge tone={o.status === 'delivered' ? 'success' : o.status === 'cancelled' ? 'danger' : 'info'}>{o.status}</Badge></td>
+                    <td data-label="Action" className="px-5 py-4 text-right"><Button variant="ghost" size="sm" onClick={() => setSelectedOrder(o)}>View</Button></td>
                   </tr>
                 ))}
               </tbody>
