@@ -69,15 +69,19 @@ export default function AdminProducts() {
   function openEdit(product) {
     setEditing(product.id || product._id);
     setForm({
-      ...EMPTY_FORM, ...product,
-      category_id: product.category_id?.id || product.category_id?._id || '',
-      manufacturing_date: product.manufacturing_date ? String(product.manufacturing_date).slice(0, 10) : '',
+      name: product.name || '',
+      brand: product.brand || '',
+      category_id: product.category_id?.id || product.category_id?._id || product.category_id || '',
+      description: product.description || '',
+      net_quantity: product.net_quantity || '',
       expiry_date: product.expiry_date ? String(product.expiry_date).slice(0, 10) : '',
       price: String(product.price ?? ''),
       mrp: product.mrp == null ? '' : String(product.mrp),
       cost_price: product.cost_price == null ? '' : String(product.cost_price),
       stock_quantity: '0',
-      low_stock_threshold: String(product.low_stock_threshold ?? 5), image: null,
+      low_stock_threshold: String(product.low_stock_threshold ?? 5),
+      is_active: product.is_active !== false,
+      image: null,
     });
     setImagePreview(product.image_url || product.images?.[0]?.url || '');
     setSelectedImageName(''); setError('');
@@ -99,13 +103,26 @@ export default function AdminProducts() {
   }
 
   async function saveSupplement() {
-    if (!form.name.trim() || !form.brand.trim() || !form.price) { setError('Supplement name, brand and selling price are required.'); return; }
+    const sellingPrice = Number(form.price);
+    const mrp = form.mrp === '' ? null : Number(form.mrp);
+    if (!form.name.trim() || !form.brand.trim() || form.price.trim() === '' || !Number.isFinite(sellingPrice) || sellingPrice < 0) {
+      setError('Supplement name, brand and a valid selling price are required.');
+      return;
+    }
+    if (mrp !== null && (!Number.isFinite(mrp) || mrp < sellingPrice)) {
+      setError('MRP must be equal to or higher than the selling price.');
+      return;
+    }
+    if (form.expiry_date && new Date(form.expiry_date) < new Date(new Date().toDateString())) {
+      setError('Expiry date cannot be in the past.');
+      return;
+    }
     if (editing === 'new' && !form.image) { setError('Please upload a product photo.'); return; }
     setSaving(true); setError('');
     try {
       const payload = {
         ...form,
-        sale_price: null,
+        sale_price: '',
         stock_quantity: editing === 'new' ? Number(form.stock_quantity) : undefined,
       };
       if (editing === 'new') await productService.create(payload);
@@ -145,7 +162,7 @@ export default function AdminProducts() {
     <div className="fixed inset-0 z-[10000] grid place-items-center overflow-y-auto bg-black/60 p-3 sm:p-5" onClick={closeEditor}>
       <div className="my-auto max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-surface-900" onClick={(event) => event.stopPropagation()}>
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-surface-200 bg-white px-5 py-4 dark:border-surface-800 dark:bg-surface-900 sm:px-7">
-          <div><h2 className="font-display text-xl font-bold text-ink-950 dark:text-white">{editing === 'new' ? 'Add supplement' : 'Edit supplement'}</h2><p className="mt-1 text-xs text-surface-500">Product information, label details and pricing</p></div>
+          <div><h2 className="font-display text-xl font-bold text-ink-950 dark:text-white">{editing === 'new' ? 'Add supplement' : 'Edit supplement'}</h2><p className="mt-1 text-xs text-surface-500">Basic product information, pricing and stock</p></div>
           <button onClick={closeEditor} className="rounded-lg p-2 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={20} /></button>
         </div>
         <div className="space-y-7 p-5 sm:p-7">
@@ -167,7 +184,7 @@ export default function AdminProducts() {
           </section>
 
           <section>
-            <h3 className="mb-4 text-sm font-bold text-ink-900 dark:text-white">Description and label information</h3>
+            <h3 className="mb-4 text-sm font-bold text-ink-900 dark:text-white">Description and pack details</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2"><label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Description</span><textarea rows={3} value={form.description} onChange={(e) => updateField('description', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></label></div>
               <Field label="Net quantity / pack size" value={form.net_quantity} onChange={(e) => updateField('net_quantity', e.target.value)} placeholder="e.g. 1 kg" />
@@ -176,7 +193,7 @@ export default function AdminProducts() {
           </section>
 
           <section>
-            <h3 className="mb-4 text-sm font-bold text-ink-900 dark:text-white">Pricing and tax</h3>
+            <h3 className="mb-4 text-sm font-bold text-ink-900 dark:text-white">Pricing</h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Selling price (₹) *" type="number" min="0" step="0.01" value={form.price} onChange={(e) => updateField('price', e.target.value)} />
               <Field label="MRP (₹)" type="number" min="0" step="0.01" value={form.mrp} onChange={(e) => updateField('mrp', e.target.value)} />
