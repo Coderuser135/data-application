@@ -101,7 +101,6 @@ export default function AdminProducts() {
   async function saveSupplement() {
     if (!form.name.trim() || !form.brand.trim() || !form.price) { setError('Supplement name, brand and selling price are required.'); return; }
     if (editing === 'new' && !form.image) { setError('Please upload a product photo.'); return; }
-    if (form.expiry_date && form.manufacturing_date && form.expiry_date <= form.manufacturing_date) { setError('Expiry date must be after manufacturing date.'); return; }
     setSaving(true); setError('');
     try {
       const payload = {
