@@ -39,7 +39,8 @@ productSchema.virtual('stock_status').get(function() {
   if (available <= this.low_stock_threshold) return 'low_stock';
   return 'in_stock';
 });
-productSchema.pre('validate', function(next) {\n  if (!this.sku && this._id) this.sku = `SUP-${String(this._id).slice(-8).toUpperCase()}`;
+productSchema.pre('validate', function(next) {
+  if (!this.sku && this._id) this.sku = `SUP-${String(this._id).slice(-8).toUpperCase()}`;
   if (this.sale_price != null && this.sale_price > this.price) return next(new Error('Sale price cannot be greater than selling price'));
   if (this.mrp != null && this.price > this.mrp) return next(new Error('Selling price cannot be greater than MRP'));
   if (this.reserved_quantity > this.stock_quantity) return next(new Error('Reserved stock cannot exceed physical stock'));
