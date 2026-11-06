@@ -9,9 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { fetchAllOrders, updateOrderStatus } from '@/redux/slices/orderSlice';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
-const ORDER_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
-
-const TIMELINE_STEPS = ['pending', 'confirmed', 'shipped', 'delivered'];
+const STATUS_LABELS = { processing: 'Processing', ready_for_pickup: 'Ready for pickup', out_for_delivery: 'Out for delivery', collected: 'Collected', delivered: 'Delivered' };
 
 export default function AdminOrders() {
   const dispatch = useDispatch();
@@ -35,7 +33,7 @@ export default function AdminOrders() {
     } catch (err) { console.error(err); }
   }
 
-  function getTimelineIndex(status) { return TIMELINE_STEPS.indexOf(status); }
+  function getTimelineIndex(status) { return (selectedOrder?.fulfillment_method === 'store_pickup' ? ['processing', 'ready_for_pickup', 'collected'] : ['processing', 'out_for_delivery', 'delivered']).indexOf(status); }
 
   return (
     <div className="space-y-6">
@@ -51,7 +49,7 @@ export default function AdminOrders() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {['all', ...ORDER_STATUSES].map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition ${statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 dark:bg-surface-800'}`}>{s}</button>
+            <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition ${statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 dark:bg-surface-800'}`}>{STATUS_LABELS[s]}</button>
           ))}
         </div>
       </Card>
@@ -75,7 +73,7 @@ export default function AdminOrders() {
                 {filtered.map((o) => (
                   <tr key={o.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
                     <td data-label="Order" className="px-5 py-4 font-medium text-ink-900 dark:text-white">{o.order_number}</td>
-                    <td data-label="Customer" className="px-5 py-4 text-surface-600 dark:text-surface-300">{o.user_id?.full_name || '—'}</td>
+                    <td data-label="Customer" className="px-5 py-4 text-surface-600 dark:text-surface-300">{o.customer_name || o.user_id?.full_name || '—'}<div className="text-xs text-surface-500">{o.fulfillment_method === 'store_pickup' ? 'Store pickup' : 'Admin delivery'}</div></td>
                     <td data-label="Date" className="px-5 py-4 text-surface-500">{formatDate(o.created_at)}</td>
                     <td data-label="Amount" className="px-5 py-4 font-semibold">{formatCurrency(o.total_amount)}</td>
                     <td data-label="Payment" className="px-5 py-4"><Badge tone={o.payment_status === 'success' ? 'success' : 'warning'}>{o.payment_status}</Badge></td>
@@ -100,7 +98,7 @@ export default function AdminOrders() {
               <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
                 <p className="text-sm font-medium text-ink-900 dark:text-white">{selectedOrder.user_id?.full_name || '—'}</p>
                 <p className="text-xs text-surface-500">{selectedOrder.user_id?.email || ''}</p>
-                <p className="mt-2 text-xs text-surface-500">{selectedOrder.shipping_address || 'No address'}</p>
+                <p className="mt-2 text-xs text-surface-500">Phone: {selectedOrder.customer_phone || '—'}</p><p className="mt-1 text-xs text-surface-500">{selectedOrder.fulfillment_method === 'store_pickup' ? 'Store Pickup' : 'Delivery Address: ' + (selectedOrder.shipping_address || 'No address')}</p>
               </div>
 
               <div>
@@ -121,13 +119,13 @@ export default function AdminOrders() {
               <div>
                 <h4 className="mb-3 text-sm font-semibold text-ink-900 dark:text-white">Tracking Timeline</h4>
                 <div className="flex items-center justify-between">
-                  {TIMELINE_STEPS.map((status, i) => {
+                  {(selectedOrder.fulfillment_method === 'store_pickup' ? ['processing', 'ready_for_pickup', 'collected'] : ['processing', 'out_for_delivery', 'delivered']).map((status, i) => {
                     const currentIdx = getTimelineIndex(selectedOrder.status);
                     const isDone = i <= currentIdx && selectedOrder.status !== 'cancelled';
                     return (
                       <div key={status} className="flex flex-1 flex-col items-center">
                         <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${isDone ? 'bg-brand-600 text-white' : 'bg-surface-200 text-surface-500 dark:bg-surface-800'}`}>{i + 1}</div>
-                        <span className="mt-1 text-[10px] capitalize text-surface-500">{status}</span>
+                        <span className="mt-1 text-[10px] capitalize text-surface-500">{STATUS_LABELS[status]}</span>
                       </div>
                     );
                   })}
@@ -137,7 +135,7 @@ export default function AdminOrders() {
               <div>
                 <h4 className="mb-2 text-sm font-semibold text-ink-900 dark:text-white">Update Status</h4>
                 <div className="flex flex-wrap gap-2">
-                  {ORDER_STATUSES.map((s) => (
+                  {(selectedOrder.status === 'processing' ? (selectedOrder.fulfillment_method === 'store_pickup' ? ['ready_for_pickup'] : ['out_for_delivery']) : selectedOrder.status === 'ready_for_pickup' ? ['collected'] : selectedOrder.status === 'out_for_delivery' ? ['delivered'] : []).map((s) => (
                     <button key={s} onClick={() => handleStatusChange(selectedOrder.id, s)} className={`rounded-lg px-3 py-2 text-xs font-semibold capitalize transition ${selectedOrder.status === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 hover:bg-surface-200 dark:bg-surface-800'}`}>{s}</button>
                   ))}
                 </div>
