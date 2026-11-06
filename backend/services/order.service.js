@@ -18,32 +18,6 @@ export async function getAllOrders() {
   return Order.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
 }
 
-async function releaseExpiredReservations(session) {
-  const expiredOrders = await Order.find({
-    status: 'pending', payment_status: { $in: ['pending', 'failed'] },
-    inventory_status: 'reserved', reservation_expires_at: { $lte: new Date() },
-  }).session(session);
-  for (const order of expiredOrders) {
-    for (const item of order.order_items) {
-      if (!item.product_id) continue;
-      const product = await Product.findById(item.product_id).session(session);
-      if (!product) continue;
-      const beforeReserved = product.reserved_quantity;
-      product.reserved_quantity = Math.max(0, beforeReserved - item.quantity);
-      await product.save({ session });
-      await InventoryMovement.create([{
-        product_id: product._id, movement_type: 'order_release', quantity: item.quantity,
-        stock_before: product.stock_quantity, stock_after: product.stock_quantity,
-        reserved_before: beforeReserved, reserved_after: product.reserved_quantity,
-        reason: `Expired reservation for order ${order.order_number}`, reference_id: order._id,
-      }], { session });
-    }
-    order.inventory_status = 'released';
-    order.status = 'cancelled';
-    await order.save({ session });
-  }
-}
-
 export async function createOrder(userId, items, shippingAddress) {
   if (!Array.isArray(items) || items.length === 0) throw new ApiError(400, 'Cart cannot be empty');
   if (!String(shippingAddress || '').trim()) throw new ApiError(400, 'Shipping address is required');
@@ -59,7 +33,6 @@ export async function createOrder(userId, items, shippingAddress) {
   let createdOrder;
   try {
     await session.withTransaction(async () => {
-      await releaseExpiredReservations(session);
       const orderItems = [];
       let totalAmount = 0;
       for (const [productId, quantity] of quantities) {
@@ -78,7 +51,7 @@ export async function createOrder(userId, items, shippingAddress) {
         user_id: userId, order_number: generateOrderNumber(), total_amount: totalAmount,
         status: 'pending', shipping_address: String(shippingAddress).trim(),
         payment_status: 'pending', inventory_status: 'reserved',
-        reservation_expires_at: new Date(Date.now() + 30 * 60 * 1000), order_items: orderItems,
+        order_items: orderItems,
       }], { session });
       createdOrder = order;
       for (const item of orderItems) {
