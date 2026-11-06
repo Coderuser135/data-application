@@ -10,19 +10,11 @@ import { productService, categoryService } from '@/services/productService';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
 const EMPTY_FORM = {
-  name: '', brand: '', sku: '', barcode: '', product_type: 'other', category_id: '',
-  description: '', key_features: '', net_quantity: '', serving_information: '',
-  ingredients: '', allergen_information: '', manufacturer: '', country_of_origin: 'India',
-  fssai_license_number: '', batch_number: '', manufacturing_date: '', expiry_date: '',
-  storage_instructions: '', price: '', sale_price: '', mrp: '', cost_price: '',
-  tax_rate: '0', stock_quantity: '0', low_stock_threshold: '5',
-  is_active: true, is_featured: false, image: null,
+  name: '', brand: '', category_id: '', description: '', net_quantity: '',
+  expiry_date: '', price: '', mrp: '', cost_price: '',
+  stock_quantity: '0', low_stock_threshold: '5',
+  is_active: true, image: null,
 };
-
-const TYPES = [
-  ['protein', 'Protein'], ['vitamin', 'Vitamin'], ['mineral', 'Mineral'],
-  ['hydration', 'Hydration'], ['nutrition_bar', 'Nutrition bar'], ['other', 'Other'],
-];
 
 function Field({ label, value, onChange, ...props }) {
   return <Input label={label} value={value ?? ''} onChange={onChange} {...props} />;
@@ -81,10 +73,10 @@ export default function AdminProducts() {
       category_id: product.category_id?.id || product.category_id?._id || '',
       manufacturing_date: product.manufacturing_date ? String(product.manufacturing_date).slice(0, 10) : '',
       expiry_date: product.expiry_date ? String(product.expiry_date).slice(0, 10) : '',
-      key_features: Array.isArray(product.key_features) ? product.key_features.join('\n') : '',
-      price: String(product.price ?? ''), sale_price: product.sale_price == null ? '' : String(product.sale_price),
-      mrp: product.mrp == null ? '' : String(product.mrp), cost_price: product.cost_price == null ? '' : String(product.cost_price),
-      tax_rate: String(product.tax_rate ?? 0), stock_quantity: '0',
+      price: String(product.price ?? ''),
+      mrp: product.mrp == null ? '' : String(product.mrp),
+      cost_price: product.cost_price == null ? '' : String(product.cost_price),
+      stock_quantity: '0',
       low_stock_threshold: String(product.low_stock_threshold ?? 5), image: null,
     });
     setImagePreview(product.image_url || product.images?.[0]?.url || '');
@@ -114,7 +106,7 @@ export default function AdminProducts() {
     try {
       const payload = {
         ...form,
-        key_features: form.key_features.split('\n').map((item) => item.trim()).filter(Boolean),
+        sale_price: null,
         stock_quantity: editing === 'new' ? Number(form.stock_quantity) : undefined,
       };
       if (editing === 'new') await productService.create(payload);
@@ -163,9 +155,6 @@ export default function AdminProducts() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Supplement name *" value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="e.g. Whey Protein" />
               <Field label="Brand *" value={form.brand} onChange={(e) => updateField('brand', e.target.value)} placeholder="Brand name" />
-              <Field label="SKU * (auto-generated if blank)" value={form.sku} onChange={(e) => updateField('sku', e.target.value)} placeholder="SUP-..." />
-              <Field label="Barcode / EAN" value={form.barcode} onChange={(e) => updateField('barcode', e.target.value)} />
-              <label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Product type</span><select value={form.product_type} onChange={(e) => updateField('product_type', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white">{TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
               <label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Category</span><select value={form.category_id} onChange={(e) => updateField('category_id', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="">Uncategorized</option>{categories.map((c) => <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>)}</select></label>
             </div>
           </section>
@@ -182,18 +171,8 @@ export default function AdminProducts() {
             <h3 className="mb-4 text-sm font-bold text-ink-900 dark:text-white">Description and label information</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2"><label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Description</span><textarea rows={3} value={form.description} onChange={(e) => updateField('description', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></label></div>
-              <div className="sm:col-span-2"><label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Key features (one per line)</span><textarea rows={3} value={form.key_features} onChange={(e) => updateField('key_features', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></label></div>
               <Field label="Net quantity / pack size" value={form.net_quantity} onChange={(e) => updateField('net_quantity', e.target.value)} placeholder="e.g. 1 kg" />
-              <Field label="Serving information (label text)" value={form.serving_information} onChange={(e) => updateField('serving_information', e.target.value)} />
-              <Field label="Ingredients" value={form.ingredients} onChange={(e) => updateField('ingredients', e.target.value)} />
-              <Field label="Allergen information" value={form.allergen_information} onChange={(e) => updateField('allergen_information', e.target.value)} />
-              <Field label="Manufacturer" value={form.manufacturer} onChange={(e) => updateField('manufacturer', e.target.value)} />
-              <Field label="Country of origin" value={form.country_of_origin} onChange={(e) => updateField('country_of_origin', e.target.value)} />
-              <Field label="FSSAI license number (if applicable)" value={form.fssai_license_number} onChange={(e) => updateField('fssai_license_number', e.target.value)} />
-              <Field label="Batch number" value={form.batch_number} onChange={(e) => updateField('batch_number', e.target.value)} />
-              <Field label="Manufacturing date" type="date" value={form.manufacturing_date} onChange={(e) => updateField('manufacturing_date', e.target.value)} />
               <Field label="Expiry date" type="date" value={form.expiry_date} onChange={(e) => updateField('expiry_date', e.target.value)} />
-              <div className="sm:col-span-2"><Field label="Storage instructions" value={form.storage_instructions} onChange={(e) => updateField('storage_instructions', e.target.value)} /></div>
             </div>
           </section>
 
@@ -201,10 +180,8 @@ export default function AdminProducts() {
             <h3 className="mb-4 text-sm font-bold text-ink-900 dark:text-white">Pricing and tax</h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Selling price (₹) *" type="number" min="0" step="0.01" value={form.price} onChange={(e) => updateField('price', e.target.value)} />
-              <Field label="Offer / sale price (₹)" type="number" min="0" step="0.01" value={form.sale_price} onChange={(e) => updateField('sale_price', e.target.value)} />
               <Field label="MRP (₹)" type="number" min="0" step="0.01" value={form.mrp} onChange={(e) => updateField('mrp', e.target.value)} />
               <Field label="Purchase cost (₹) · admin only" type="number" min="0" step="0.01" value={form.cost_price} onChange={(e) => updateField('cost_price', e.target.value)} />
-              <Field label="Tax rate (%)" type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={(e) => updateField('tax_rate', e.target.value)} />
             </div>
           </section>
 
@@ -215,7 +192,7 @@ export default function AdminProducts() {
               <Field label="Low-stock alert threshold" type="number" min="0" step="1" value={form.low_stock_threshold} onChange={(e) => updateField('low_stock_threshold', e.target.value)} />
             </div>
           </section>
-          <div className="flex flex-wrap gap-5 border-t border-surface-200 pt-4 dark:border-surface-800"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_active} onChange={(e) => updateField('is_active', e.target.checked)} /> Active / visible in store</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_featured} onChange={(e) => updateField('is_featured', e.target.checked)} /> Featured supplement</label></div>
+          <div className="flex flex-wrap gap-5 border-t border-surface-200 pt-4 dark:border-surface-800"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_active} onChange={(e) => updateField('is_active', e.target.checked)} /> Active / visible in store</label></div>
           {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
           <div className="flex justify-end gap-3"><Button variant="secondary" onClick={closeEditor}>Cancel</Button><Button onClick={saveSupplement} loading={saving} disabled={saving}>{editing === 'new' ? 'Create supplement' : 'Save changes'}</Button></div>
         </div>
