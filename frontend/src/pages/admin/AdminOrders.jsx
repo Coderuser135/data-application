@@ -59,7 +59,7 @@ export default function AdminOrders() {
       {filtered.length > 0 ? (
         <Card padding={false}>
           <div className="overflow-x-auto">
-            <table className="admin-mobile-cards w-full text-sm">
+            <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-4 font-medium">Order #</th>
