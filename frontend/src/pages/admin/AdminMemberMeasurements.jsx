@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, CalendarDays, Ruler, X } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, CalendarDays, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
@@ -31,6 +31,7 @@ export default function AdminMemberMeasurements() {
   const { userId } = useParams();
   const dispatch = useDispatch();
   const { members, selectedUserMeasurements, loading } = useSelector((state) => state.measurements);
+  const [membersLoading, setMembersLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -38,7 +39,11 @@ export default function AdminMemberMeasurements() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  useEffect(() => { dispatch(fetchAdmittedMembers()); }, [dispatch]);
+  useEffect(() => {
+    let active = true;
+    dispatch(fetchAdmittedMembers()).finally(() => { if (active) setMembersLoading(false); });
+    return () => { active = false; };
+  }, [dispatch]);
   useEffect(() => { if (userId) dispatch(fetchMeasurementsByUser(userId)); }, [dispatch, userId]);
 
   const member = members.find((item) => String(item.user_id) === String(userId));
@@ -97,7 +102,7 @@ export default function AdminMemberMeasurements() {
     }
   }
 
-  if (loading && !selectedUserMeasurements.length) return <AdminLoadingSkeleton variant="details" />;
+  if (membersLoading || (loading && !selectedUserMeasurements.length)) return <AdminLoadingSkeleton variant="details" />;
   if (!member) return (
     <div className="space-y-4">
       <Link to="/admin/body-measurements" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600"><ArrowLeft size={16}/> Back to members</Link>
