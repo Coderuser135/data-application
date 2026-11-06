@@ -80,6 +80,21 @@ export async function deleteMeasurement(measurementId) {
 }
 
 export async function getAdmittedUsers() {
-  const admissions = await GymAdmission.find({ status: 'active' }).populate({ path: 'user_id', select: 'full_name' });
-  return admissions.filter((a) => a.user_id).map((a) => ({ user_id: a.user_id._id, full_name: a.user_id.full_name }));
+  const admissions = await GymAdmission.find({ status: 'active' })
+    .populate({ path: 'user_id', select: 'full_name email phone' })
+    .select('user_id member_id createdAt status')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return admissions
+    .filter((admission) => admission.user_id && admission.user_id.role !== 'admin')
+    .map((admission) => ({
+      user_id: admission.user_id._id,
+      full_name: admission.user_id.full_name || '',
+      email: admission.user_id.email || '',
+      phone: admission.user_id.phone || '',
+      member_id: admission.member_id || '',
+      admission_date: admission.createdAt || null,
+      admission_status: admission.status,
+    }));
 }
