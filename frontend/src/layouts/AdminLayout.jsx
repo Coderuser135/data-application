@@ -46,7 +46,7 @@ export default function AdminLayout() {
           </div>
         </div>
       </header>
-      <div className="mx-auto flex max-w-7xl">
+      <div className="mx-auto flex w-full max-w-7xl min-w-0">
         <aside className={`admin-sidebar fixed inset-y-0 left-0 z-30 mt-14 w-64 transform border-r border-surface-200 bg-white transition-transform dark:border-surface-800 dark:bg-surface-900 lg:sticky lg:top-14 lg:mt-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="admin-nav space-y-1 overflow-y-auto p-4" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
             {navItems.map((item) => (
@@ -57,7 +57,7 @@ export default function AdminLayout() {
           </nav>
         </aside>
         {open && <div onClick={() => setOpen(false)} className="fixed inset-0 z-20 bg-black/30 lg:hidden" />}
-        <main className="admin-content min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-8"><Outlet /></main>
+        <main className="admin-content w-full min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-8"><Outlet /></main>
       </div>
     </div>
   );
