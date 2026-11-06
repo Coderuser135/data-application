@@ -67,16 +67,28 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   if (payment.membership_id) {
     const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending', payment_status: 'pending' }).session(session);
     if (!membership) throw new ApiError(409, 'Pending membership not found');
-    await allocateMembershipAdvance(payment.user_id, membership, session);
-    const startDate = membership.start_date ? new Date(membership.start_date) : new Date();
-    const endDate = membership.end_date ? new Date(membership.end_date) : new Date(startDate);
-    if (!membership.end_date) endDate.setDate(endDate.getDate() + membership.duration_days);
-    const now = new Date();
-    membership.start_date = startDate;
-    membership.end_date = endDate;
-    membership.payment_status = 'paid';
-    membership.amount_due = 0;
-    membership.status = startDate > now ? 'scheduled' : 'active';
+    // Settle only the amount actually received. A successful partial payment
+    // must not mark the entire membership as paid.
+    const currentDue = Number(membership.amount_due ?? Math.max(
+      0,
+      Number(membership.plan_price_snapshot || 0) - Number(membership.advance_paid || 0),
+    ));
+    membership.amount_due = Math.max(0, Number((currentDue - Number(payment.amount || 0)).toFixed(2)));
+
+    if (membership.amount_due === 0) {
+      await allocateMembershipAdvance(payment.user_id, membership, session);
+      const startDate = membership.start_date ? new Date(membership.start_date) : new Date();
+      const endDate = membership.end_date ? new Date(membership.end_date) : new Date(startDate);
+      if (!membership.end_date) endDate.setDate(endDate.getDate() + membership.duration_days);
+      const now = new Date();
+      membership.start_date = startDate;
+      membership.end_date = endDate;
+      membership.payment_status = 'paid';
+      membership.status = startDate > now ? 'scheduled' : 'active';
+    } else {
+      membership.payment_status = 'pending';
+      membership.status = 'pending';
+    }
     await membership.save({ session });
   }
   if (payment.order_id) {
