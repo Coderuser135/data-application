@@ -51,7 +51,7 @@ export async function getProductById(id) {
 
 export async function createProduct(data, image) {
   const values = validateProductInput(data);
-  const sku = String(data.sku || `SUP-${Date.now().toString(36).toUpperCase()}`).trim().toUpperCase();
+  const sku = `SUP-${Date.now().toString(36).toUpperCase()}`;
   if (data.category_id) {
     const category = await ProductCategory.findOne({ _id: data.category_id, is_active: true });
     if (!category) throw new ApiError(400, 'Category not found or inactive');
