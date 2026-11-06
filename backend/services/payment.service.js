@@ -155,6 +155,10 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
     throw new ApiError(409, 'This advance has already been applied to a membership. Reverse the membership adjustment before refunding it.');
   }
   if (payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
+  if (payment.order_id) {
+    const linkedOrder = await Order.findOne({ _id: payment.order_id, payment_id: payment._id });
+    if (linkedOrder && ['delivered', 'collected'].includes(linkedOrder.status)) throw new ApiError(409, 'This order has already been handed over. Handle the refund manually.');
+  }
   if (payment.payment_method !== 'online' || !payment.razorpay_payment_id) throw new ApiError(400, 'Only Razorpay payments can be refunded automatically');
 
   const refund = await gateway().payments.refund(payment.razorpay_payment_id, { amount: Math.round(payment.amount * 100) });
