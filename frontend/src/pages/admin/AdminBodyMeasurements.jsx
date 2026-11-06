@@ -151,29 +151,40 @@ export default function AdminBodyMeasurements() {
         </div>
         {visibleMembers.length ? (
           <>
-            <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table className="admin-data-table text-sm" style={{ width: '760px', minWidth: '760px', tableLayout: 'auto' }}>
-                <thead>
-                  <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
-                    <th className="px-5 py-3 font-medium">Member</th>
-                    <th className="px-5 py-3 font-medium">Contact</th>
-                    <th className="px-5 py-3 font-medium">Member ID</th>
-                    <th className="px-5 py-3 font-medium">Admission date</th>
-                    <th className="px-5 py-3 font-medium">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleMembers.map((member) => (
-                    <tr key={member.user_id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                      <td className="px-5 py-3 font-semibold text-ink-900 dark:text-white">{member.full_name || 'Unnamed member'}</td>
-                      <td className="px-5 py-3 text-surface-600 dark:text-surface-300"><div>{member.email || '—'}</div><div className="text-xs">{member.phone || '—'}</div></td>
-                      <td className="px-5 py-3 text-surface-600 dark:text-surface-300">{member.member_id || '—'}</td>
-                      <td className="px-5 py-3 text-surface-600 dark:text-surface-300">{formatDate(member.admission_date)}</td>
-                      <td className="px-5 py-3"><Button size="sm" variant={selectedMember?.user_id === member.user_id ? 'primary' : 'outline'} onClick={() => selectMember(member)}>{selectedMember?.user_id === member.user_id ? 'Selected' : 'View history'}</Button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3 sm:p-5">
+              {visibleMembers.map((member) => {
+                const isSelected = selectedMember?.user_id === member.user_id;
+                return (
+                  <button
+                    key={member.user_id}
+                    type="button"
+                    onClick={() => selectMember(member)}
+                    className={`min-w-0 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500/40 ${isSelected ? 'border-brand-500 bg-brand-50/70 shadow-sm dark:bg-brand-500/10' : 'border-surface-200 bg-white hover:border-brand-300 dark:border-surface-800 dark:bg-surface-900 dark:hover:border-brand-700'}`}
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-lg font-bold text-brand-600 dark:text-brand-400">
+                        {(member.full_name || 'M').charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="truncate font-semibold text-ink-950 dark:text-white">{member.full_name || 'Unnamed member'}</p>
+                          <Badge color={member.admission_status === 'active' ? 'success' : 'secondary'}>{member.admission_status || 'Admitted'}</Badge>
+                        </div>
+                        <p className="mt-1 break-all text-xs text-surface-500">{member.email || 'Email unavailable'}</p>
+                        <p className="mt-1 text-xs text-surface-500">{member.phone || 'Phone unavailable'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-surface-200 pt-3 text-xs dark:border-surface-800">
+                      <div><p className="text-surface-500">Member ID</p><p className="mt-1 font-semibold text-ink-800 dark:text-surface-100">{member.member_id || '—'}</p></div>
+                      <div><p className="text-surface-500">Admission date</p><p className="mt-1 font-semibold text-ink-800 dark:text-surface-100">{formatDate(member.admission_date)}</p></div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">{isSelected ? 'Profile selected' : 'Open member profile'}</span>
+                      <Ruler size={16} className="text-brand-500" />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <div className="flex flex-col gap-3 border-t border-surface-200 px-4 py-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex flex-wrap items-center gap-3">
@@ -226,62 +237,42 @@ export default function AdminBodyMeasurements() {
         </div>
       )}
 
-      <Card padding={false}>
-        <div className="border-b border-surface-200 px-5 py-4 dark:border-surface-800">
-          <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">
-            {selectedMember ? `${selectedMember.full_name}'s History` : 'All Measurements'}
-          </h3>
-        </div>
-        {measurements.length > 0 ? (
-          <>
-          <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-            <table className="admin-data-table text-sm" style={{ width: '980px', minWidth: '980px', maxWidth: 'none', tableLayout: 'auto' }}>
-              <thead>
-                <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Member</th>
-                  <th className="px-5 py-3 font-medium">Weight</th>
-                  <th className="px-5 py-3 font-medium">Chest</th>
-                  <th className="px-5 py-3 font-medium">Waist</th>
-                  <th className="px-5 py-3 font-medium">Biceps</th>
-                  <th className="px-5 py-3 font-medium">Body Fat</th>{selectedMember && <th className="px-5 py-3 font-medium">Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleMeasurements.map((m) => (
-                  <tr key={m.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                    <td data-label="Date" className="px-5 py-3 font-medium">{formatDate(m.measurement_date)}</td>
-                    <td data-label="Member" className="px-5 py-3 text-surface-600 dark:text-surface-300">{m.user_id?.full_name || '—'}</td>
-                    <td data-label="Weight" className="px-5 py-3">{m.weight || '—'}</td>
-                    <td data-label="Chest" className="px-5 py-3">{m.chest || '—'}</td>
-                    <td data-label="Waist" className="px-5 py-3">{m.stomach || '—'}</td>
-                    <td data-label="Biceps" className="px-5 py-3">{m.biceps || '—'}</td>
-                    <td data-label="Body Fat" className="px-5 py-3">{m.body_fat || '—'}</td>{selectedMember && <td data-label="Actions" className="px-5 py-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => openEditForm(m)}><Pencil size={13} /> Edit</Button><Button size="sm" variant="danger" onClick={() => handleDelete(m)}><Trash2 size={13} /> Delete</Button></div></td>}
+      {selectedMember && (
+        <Card padding={false}>
+          <div className="flex flex-col gap-3 border-b border-surface-200 px-4 py-4 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">{selectedMember.full_name}'s Measurement History</h3>
+              <p className="mt-1 text-xs text-surface-500">Only this member's recorded body measurements appear here</p>
+            </div>
+            <Button onClick={openCreateForm} disabled={selectedMember.admission_status !== 'active'}><Plus size={16}/> Add Measurement</Button>
+          </div>
+          {loading ? <div className="p-5"><AdminLoadingSkeleton variant="table" rows={4}/></div> : measurements.length ? (
+            <div className="admin-table-scroll w-full min-w-0" style={{display:'block',width:'100%',maxWidth:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
+              <table className="admin-data-table text-sm" style={{width:'980px',minWidth:'980px',maxWidth:'none',tableLayout:'auto'}}>
+                <thead><tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
+                  <th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3 font-medium">Weight</th><th className="px-5 py-3 font-medium">Height</th><th className="px-5 py-3 font-medium">Chest</th><th className="px-5 py-3 font-medium">Waist</th><th className="px-5 py-3 font-medium">Biceps</th><th className="px-5 py-3 font-medium">Body Fat</th><th className="px-5 py-3 font-medium">Actions</th>
+                </tr></thead>
+                <tbody>{visibleMeasurements.map((m) => (
+                  <tr key={m._id || m.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
+                    <td className="px-5 py-3 font-medium">{formatDate(m.measurement_date)}</td><td className="px-5 py-3">{m.weight || '—'}</td><td className="px-5 py-3">{m.height || '—'}</td><td className="px-5 py-3">{m.chest || '—'}</td><td className="px-5 py-3">{m.stomach || '—'}</td><td className="px-5 py-3">{m.biceps || '—'}</td><td className="px-5 py-3">{m.body_fat || '—'}</td>
+                    <td className="px-5 py-3"><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => openEditForm(m)}><Pencil size={13}/> Edit</Button><Button size="sm" variant="danger" onClick={() => handleDelete(m)}><Trash2 size={13}/> Delete</Button></div></td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-col gap-3 border-t border-surface-200 px-4 py-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+                ))}</tbody>
+              </table>
+            </div>
+          ) : <div className="p-5"><EmptyState title="No measurements recorded" description="Add the first body measurement for this member." /></div>}
+          {measurements.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-surface-200 px-4 py-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <span className="text-xs font-medium text-surface-500">Showing {startItem}–{endItem} of {totalRecords} measurements</span>
-              <label className="flex items-center gap-2 text-xs font-medium text-surface-600 dark:text-surface-300">
-                Rows per page
-                <select value={limit} onChange={(event) => { setLimit(Number(event.target.value)); setPage(1); }} className="min-h-9 rounded-lg border border-surface-300 bg-white px-2 text-sm text-ink-900 dark:border-surface-700 dark:bg-surface-950 dark:text-white">
-                  <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
-                </select>
-              </label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((current) => Math.max(1,current-1))}><ChevronLeft size={14}/> Prev</Button>
+                {visiblePages.map((pageNumber)=><button key={pageNumber} type="button" onClick={()=>setPage(pageNumber)} className={`h-8 min-w-8 rounded-lg px-2 text-sm font-bold ${pageNumber===currentPage?'bg-brand-600 text-white':'border border-surface-300 dark:border-surface-700'}`}>{pageNumber}</button>)}
+                <Button variant="outline" size="sm" disabled={currentPage >= pageCount} onClick={()=>setPage((current)=>Math.min(pageCount,current+1))}>Next <ChevronRight size={14}/></Button>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}><ChevronLeft size={14}/> Prev</Button>
-              {visiblePages.map((pageNumber) => <button key={pageNumber} type="button" aria-current={pageNumber === currentPage ? 'page' : undefined} onClick={() => setPage(pageNumber)} className={`h-8 min-w-8 rounded-lg px-2 text-sm font-bold transition ${pageNumber === currentPage ? 'bg-brand-600 text-white shadow-sm' : 'border border-surface-300 bg-white text-surface-700 hover:bg-surface-50 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-300 dark:hover:bg-surface-800'}`}>{pageNumber}</button>)}
-              <Button variant="outline" size="sm" disabled={currentPage >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Next <ChevronRight size={14}/></Button>
-            </div>
-          </div>
-          </>
-        ) : <div className="p-5"><EmptyState title="No measurements yet" description={selectedMember ? "Add this member's first measurement." : 'Select a member to view their history.'} /></div>}
-      </Card>
-
+          )}
+        </Card>
+      )}
       {showForm && selectedMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowForm(false)}>
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
