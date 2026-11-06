@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, CalendarDays, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import { createPortal } from 'react-dom';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -147,8 +148,8 @@ export default function AdminMemberMeasurements() {
         </Card>
       )) : <EmptyState title="No measurements recorded yet" description="Add the first measurement for this member. You can choose the actual date when the measurement was taken." />}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowForm(false); }}>
+      {showForm && createPortal(
+        <div className="fixed inset-0 z-[10000] grid place-items-center overflow-y-auto bg-black/60 p-3 sm:p-5" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowForm(false); }}>
           <section role="dialog" aria-modal="true" className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900">
             <header className="sticky top-0 flex items-center justify-between border-b border-surface-200 bg-white px-5 py-4 dark:border-surface-800 dark:bg-surface-900"><div><h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">{editing ? 'Update Measurement' : 'Add New Measurement'}</h2><p className="mt-1 text-xs text-surface-500">{member.full_name}</p></div><button onClick={() => setShowForm(false)} aria-label="Close form" className="rounded-lg p-2 text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18}/></button></header>
             <div className="space-y-4 p-5">
@@ -159,7 +160,8 @@ export default function AdminMemberMeasurements() {
             </div>
             <footer className="flex justify-end gap-2 border-t border-surface-200 px-5 py-4 dark:border-surface-800"><Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button><Button onClick={saveMeasurement} loading={saving}>{editing ? 'Save Changes' : 'Save Measurement'}</Button></footer>
           </section>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
