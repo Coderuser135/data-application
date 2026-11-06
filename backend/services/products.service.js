@@ -32,14 +32,14 @@ function validateProductInput(data) {
 const cleanProduct = (product) => product;
 
 export async function getProducts() {
-  return Product.find({ is_deleted: false }).populate('category_id').sort({ createdAt: -1 });
+  return Product.find({ is_deleted: { $ne: true } }).populate('category_id').sort({ createdAt: -1 });
 }
 export async function getActiveProducts() {
-  return Product.find({ is_active: true, is_deleted: false, $or: [{ expiry_date: null }, { expiry_date: { $gt: new Date() } }] })
+  return Product.find({ is_active: true, is_deleted: { $ne: true }, $or: [{ expiry_date: null }, { expiry_date: { $gt: new Date() } }] })
     .populate({ path: 'category_id', match: { is_active: true } }).sort({ is_featured: -1, createdAt: -1 });
 }
 export async function getProductById(id) {
-  return Product.findOne({ _id: id, is_active: true, is_deleted: false }).populate('category_id');
+  return Product.findOne({ _id: id, is_active: true, is_deleted: { $ne: true } }).populate('category_id');
 }
 
 export async function createProduct(data, image) {
@@ -74,7 +74,7 @@ export async function createProduct(data, image) {
 }
 
 export async function updateProduct(id, data, image) {
-  const product = await Product.findOne({ _id: id, is_deleted: false });
+  const product = await Product.findOne({ _id: id, is_deleted: { $ne: true } });
   if (!product) throw new ApiError(404, 'Supplement not found');
   const merged = {
     name: data.name ?? product.name, brand: data.brand ?? product.brand,
@@ -115,7 +115,7 @@ export async function updateProduct(id, data, image) {
 }
 
 export async function deleteProduct(id) {
-  const product = await Product.findOne({ _id: id, is_deleted: false });
+  const product = await Product.findOne({ _id: id, is_deleted: { $ne: true } });
   if (!product) throw new ApiError(404, 'Supplement not found');
   const linkedOrders = await (await import('../models/order.model.js')).default.exists({ 'order_items.product_id': id, inventory_status: 'reserved' });
   if (linkedOrders) throw new ApiError(409, 'This supplement is linked to an active order and cannot be deleted');
