@@ -69,10 +69,12 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
     if (!membership) throw new ApiError(409, 'Pending membership not found');
     // Settle only the amount actually received. A successful partial payment
     // must not mark the entire membership as paid.
-    const currentDue = Number(membership.amount_due ?? Math.max(
+    const storedDue = Number(membership.amount_due);
+    const expectedDue = Math.max(
       0,
       Number(membership.plan_price_snapshot || 0) - Number(membership.advance_paid || 0),
-    ));
+    );
+    const currentDue = Number.isFinite(storedDue) && storedDue > 0 ? storedDue : expectedDue;
     membership.amount_due = Math.max(0, Number((currentDue - Number(payment.amount || 0)).toFixed(2)));
 
     if (membership.amount_due === 0) {
