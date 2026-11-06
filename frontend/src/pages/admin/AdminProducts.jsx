@@ -191,7 +191,7 @@ export default function AdminProducts() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2"><label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Description</span><textarea rows={3} value={form.description} onChange={(e) => updateField('description', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></label></div>
               <Field label="Net quantity / pack size" value={form.net_quantity} onChange={(e) => updateField('net_quantity', e.target.value)} placeholder="e.g. 1 kg" />
-              <Field label="Expiry date" type="date" min={new Date().toISOString().slice(0, 10)} value={form.expiry_date} onChange={(e) => updateField('expiry_date', e.target.value)} />
+              <Field label="Expiry date" type="date" value={form.expiry_date} onChange={(e) => updateField('expiry_date', e.target.value)} />
             </div>
           </section>
 
