@@ -14,7 +14,7 @@ function toSupplementFormData(data) {
 }
 
 export const productService = {
-  getAll: () => api.get('/products').then((r) => r.data),
+  getAll: (params = {}) => api.get('/products', { params }).then((r) => r.data),
   getActive: () => api.get('/products/active').then((r) => r.data),
   create: (data) => api.post('/products', toSupplementFormData(data)).then((r) => r.data),
   update: (id, data) => api.put(`/products/${id}`, toSupplementFormData(data)).then((r) => r.data),
