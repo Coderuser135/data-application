@@ -413,6 +413,9 @@ export async function adminRenewMembership(membershipId) {
   if (!mongoose.isValidObjectId(membershipId)) throw new ApiError(400, 'Invalid membership ID');
   const oldMembership = await Membership.findById(membershipId).populate('user_id');
   if (!oldMembership || oldMembership.user_id?.role !== 'user') throw new ApiError(404, 'Membership not found');
+  if (oldMembership.payment_status !== 'paid' || oldMembership.status === 'frozen') {
+    throw new ApiError(409, 'Only a fully paid, non-frozen membership can be renewed.');
+  }
   const admission = await GymAdmission.findOne({ user_id: oldMembership.user_id._id, status: 'active' });
   if (!admission) throw new ApiError(400, 'An active gym admission is required to renew membership.');
   const plan = await MembershipPlan.findOne({ _id: oldMembership.plan_id, is_active: true });
