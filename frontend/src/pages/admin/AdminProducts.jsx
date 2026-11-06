@@ -23,6 +23,10 @@ function Field({ label, value, onChange, ...props }) {
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -134,6 +138,45 @@ export default function AdminProducts() {
 
   function updateField(key, value) { setForm((previous) => ({ ...previous, [key]: value })); }
 
+  async function addCategory(event) {
+    event.preventDefault();
+    const name = newCategoryName.trim();
+    if (!name) {
+      setCategoryError('Enter a category name.');
+      return;
+    }
+
+    setCategorySaving(true);
+    setCategoryError('');
+    try {
+      const created = await categoryService.create({ name });
+      const categoryId = created.id || created._id;
+      setCategories((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setForm((current) => ({ ...current, category_id: categoryId }));
+      setNewCategoryName('');
+      setCategoryModalOpen(false);
+    } catch (requestError) {
+      setCategoryError(requestError.response?.data?.error || 'Could not create category. Check whether this category already exists.');
+    } finally {
+      setCategorySaving(false);
+    }
+  }
+
+  async function removeCategory(category) {
+    const categoryId = category.id || category._id;
+    if (!confirm(`Delete category "${category.name}"? Products using it must be moved first.`)) return;
+
+    setCategoryError('');
+    try {
+      await categoryService.delete(categoryId);
+      setCategories((current) => current.filter((item) => (item.id || item._id) !== categoryId));
+      setForm((current) => current.category_id === categoryId ? { ...current, category_id: '' } : current);
+      if (categoryFilter === categoryId) updateFilter(setCategoryFilter, 'all');
+    } catch (requestError) {
+      setCategoryError(requestError.response?.data?.error || 'Category could not be deleted.');
+    }
+  }
+
   function handleImageChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -217,7 +260,7 @@ export default function AdminProducts() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Supplement name *" value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="e.g. Whey Protein" />
               <Field label="Brand *" value={form.brand} onChange={(e) => updateField('brand', e.target.value)} placeholder="Brand name" />
-              <label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Category</span><select value={form.category_id} onChange={(e) => updateField('category_id', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="">Uncategorized</option>{categories.map((c) => <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>)}</select></label>
+              <div className="space-y-2"><label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Category</span><select value={form.category_id} onChange={(e) => updateField('category_id', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="">Uncategorized</option>{categories.map((c) => <option key={c.id || c._id} value={c.id || c._id}>{c.name}</option>)}</select></label><button type="button" onClick={() => { setCategoryError(''); setCategoryModalOpen(true); }} className="text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">+ Add or manage categories</button></div>
             </div>
           </section>
 
@@ -262,6 +305,27 @@ export default function AdminProducts() {
     </div>, document.body,
   );
 
+  const categoryModal = categoryModalOpen && createPortal(
+    <div className="fixed inset-0 z-[10010] grid place-items-center overflow-y-auto bg-black/60 p-3 sm:p-5" onClick={() => { setCategoryModalOpen(false); setCategoryError(''); }}>
+      <div className="my-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl dark:bg-surface-900 sm:p-6" onClick={(event) => event.stopPropagation()}>
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div><h2 className="font-display text-xl font-bold text-ink-950 dark:text-white">Manage categories</h2><p className="mt-1 text-xs text-surface-500">Create and organize supplement categories</p></div>
+          <button onClick={() => { setCategoryModalOpen(false); setCategoryError(''); }} className="rounded-lg p-2 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={20} /></button>
+        </div>
+        <form onSubmit={addCategory} className="flex flex-col gap-2 sm:flex-row">
+          <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="e.g. Shakers & Bottles" maxLength={60} className="min-h-11 min-w-0 flex-1 rounded-xl border border-surface-300 bg-white px-4 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" />
+          <Button type="submit" loading={categorySaving} disabled={categorySaving}>Add category</Button>
+        </form>
+        {categoryError && <p className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-300">{categoryError}</p>}
+        <div className="mt-5">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-surface-500">Available categories ({categories.length})</h3>
+          {categories.length ? <div className="space-y-2">{categories.map((category) => <div key={category.id || category._id} className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 px-3 py-2.5 dark:border-surface-800"><span className="min-w-0 break-words text-sm font-medium text-ink-900 dark:text-white">{category.name}</span><button onClick={() => removeCategory(category)} className="shrink-0 rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" aria-label={`Delete ${category.name}`}><Trash2 size={15} /></button></div>)}</div> : <p className="rounded-xl bg-surface-50 p-4 text-sm text-surface-500 dark:bg-surface-800">No categories yet. Add your first category above.</p>}
+        </div>
+        <p className="mt-4 text-xs text-surface-500">A category that is already assigned to a supplement cannot be deleted.</p>
+      </div>
+    </div>, document.body,
+  );
+
   const stockModal = stockTarget && createPortal(
     <div className="fixed inset-0 z-[10000] grid place-items-center bg-black/60 p-4" onClick={() => setStockTarget(null)}>
       <div className="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
@@ -286,7 +350,7 @@ export default function AdminProducts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Supplements</h1><p className="mt-1 text-sm text-surface-500">Catalogue, pricing and inventory control</p></div><Button onClick={openCreate}><Plus size={16} /> Add supplement</Button></div>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Supplements</h1><p className="mt-1 text-sm text-surface-500">Catalogue, pricing and inventory control</p></div><div className="flex flex-col gap-2 sm:flex-row"><Button variant="secondary" onClick={() => { setCategoryError(''); setCategoryModalOpen(true); }}>Manage categories</Button><Button onClick={openCreate}><Plus size={16} /> Add supplement</Button></div></div>
       <div className="grid gap-3 sm:grid-cols-3"><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Catalogue items</p><Package className="text-brand-600" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.total}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Low stock</p><AlertTriangle className="text-amber-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.low}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Out of stock</p><Boxes className="text-red-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.out}</p></Card></div>
       <Card>
         <div className="space-y-3">
@@ -324,7 +388,7 @@ export default function AdminProducts() {
           <button disabled={pageNumber >= totalPages} onClick={() => setPageNumber((current) => current + 1)} className="flex min-h-9 items-center gap-1 rounded-lg border border-surface-300 px-2.5 text-xs font-semibold text-surface-700 disabled:opacity-40 dark:border-surface-700 dark:text-surface-200">Next <span>›</span></button>
         </div>
       </div>}
-      {editor}{stockModal}{historyModal}
+      {editor}{categoryModal}{stockModal}{historyModal}
     </div>
   );
 }
