@@ -158,7 +158,7 @@ function MembershipDetails({ membership, loading, error, onClose, onAction, acti
                   {membership.payment_status === 'paid' && membership.status !== 'frozen'
                     ? <Button size="sm" variant="outline" onClick={() => onAction('extend', membership)} disabled={actionBusy}><CalendarPlus size={14}/> Extend days</Button>
                     : null}
-                  {membership.membership_type !== 'renewal' && membership.status !== 'pending'
+                  {membership.status !== 'pending' && membership.status !== 'frozen'
                     ? <Button size="sm" variant="outline" onClick={() => onAction('renew', membership)} disabled={actionBusy}><RotateCcw size={14}/> Create renewal</Button>
                     : null}
                 </div>
@@ -293,7 +293,7 @@ export default function AdminMemberships() {
         <div className="space-y-3">
           <div className="relative"><Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"/><input value={search} onChange={(event) => changeFilter(setSearch, event.target.value)} placeholder="Search member name, email or phone..." className="min-h-12 w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-400"/></div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Filter label="Membership status" value={status} onChange={(value) => changeFilter(setStatus, value)} options={[{value:'all',label:'All statuses'},{value:'active',label:'Active'},{value:'scheduled',label:'Scheduled'},{value:'pending',label:'Pending'},{value:'expired',label:'Expired'},{value:'cancelled',label:'Cancelled'}]}/>
+            <Filter label="Membership status" value={status} onChange={(value) => changeFilter(setStatus, value)} options={[{value:'all',label:'All statuses'},{value:'active',label:'Active'},{value:'scheduled',label:'Scheduled'},{value:'pending',label:'Pending'},{value:'expired',label:'Expired'},{value:'cancelled',label:'Cancelled'},{value:'frozen',label:'Frozen'}]}/>
             <Filter label="Payment status" value={paymentStatus} onChange={(value) => changeFilter(setPaymentStatus, value)} options={[{value:'all',label:'All payment states'},{value:'paid',label:'Paid'},{value:'pending',label:'Pending'},{value:'refunded',label:'Refunded'}]}/>
             <Filter label="Expiry" value={expiry} onChange={(value) => changeFilter(setExpiry, value)} options={[{value:'all',label:'Any expiry date'},{value:'today',label:'Expires today'},{value:'7',label:'Next 7 days'},{value:'30',label:'Next 30 days'},{value:'expired',label:'Already expired'}]}/>
             <Filter label="Plan" value={plan} onChange={(value) => changeFilter(setPlan, value)} options={[{value:'all',label:'All plans'},...(data.plans || []).map((item) => ({value:item._id,label:item.name}))]}/>
