@@ -176,7 +176,7 @@ export default function AdminBodyMeasurements() {
         </div>
         {measurements.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="admin-mobile-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-3 font-medium">Date</th>
@@ -191,13 +191,13 @@ export default function AdminBodyMeasurements() {
               <tbody>
                 {measurements.map((m) => (
                   <tr key={m.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                    <td className="px-5 py-3 font-medium">{formatDate(m.measurement_date)}</td>
-                    <td className="px-5 py-3 text-surface-600 dark:text-surface-300">{m.user_id?.full_name || '—'}</td>
-                    <td className="px-5 py-3">{m.weight || '—'}</td>
-                    <td className="px-5 py-3">{m.chest || '—'}</td>
-                    <td className="px-5 py-3">{m.stomach || '—'}</td>
-                    <td className="px-5 py-3">{m.biceps || '—'}</td>
-                    <td className="px-5 py-3">{m.body_fat || '—'}</td>{selectedMember && <td className="px-5 py-3"><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => openEditForm(m)}><Pencil size={13} /> Edit</Button><Button size="sm" variant="danger" onClick={() => handleDelete(m)}><Trash2 size={13} /> Delete</Button></div></td>}
+                    <td data-label="Date" className="px-5 py-3 font-medium">{formatDate(m.measurement_date)}</td>
+                    <td data-label="Member" className="px-5 py-3 text-surface-600 dark:text-surface-300">{m.user_id?.full_name || '—'}</td>
+                    <td data-label="Weight" className="px-5 py-3">{m.weight || '—'}</td>
+                    <td data-label="Chest" className="px-5 py-3">{m.chest || '—'}</td>
+                    <td data-label="Waist" className="px-5 py-3">{m.stomach || '—'}</td>
+                    <td data-label="Biceps" className="px-5 py-3">{m.biceps || '—'}</td>
+                    <td data-label="Body Fat" className="px-5 py-3">{m.body_fat || '—'}</td>{selectedMember && <td data-label="Actions" className="px-5 py-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => openEditForm(m)}><Pencil size={13} /> Edit</Button><Button size="sm" variant="danger" onClick={() => handleDelete(m)}><Trash2 size={13} /> Delete</Button></div></td>}
                   </tr>
                 ))}
               </tbody>
