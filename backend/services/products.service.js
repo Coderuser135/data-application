@@ -140,7 +140,7 @@ export async function adjustStock(id, data, performedBy) {
   if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity === 0) throw new ApiError(400, 'Stock adjustment must be a non-zero whole number');
   const reason = String(data.reason || '').trim();
   if (!reason) throw new ApiError(400, 'A reason is required for every stock adjustment');
-  const product = await Product.findOne({ _id: id, is_deleted: false });
+  const product = await Product.findOne({ _id: id, is_deleted: { $ne: true } });
   if (!product) throw new ApiError(404, 'Supplement not found');
   const before = product.stock_quantity;
   const after = before + quantity;
@@ -177,6 +177,6 @@ export async function updateCategory(id, data) {
 export async function deleteCategory(id) {
   const category = await ProductCategory.findById(id);
   if (!category) throw new ApiError(404, 'Category not found');
-  if (await Product.countDocuments({ category_id: id, is_deleted: false })) throw new ApiError(409, 'Category is in use by supplements');
+  if (await Product.countDocuments({ category_id: id, is_deleted: { $ne: true } })) throw new ApiError(409, 'Category is in use by supplements');
   category.is_active = false; await category.save(); return category;
 }
