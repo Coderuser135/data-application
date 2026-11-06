@@ -90,12 +90,52 @@ export async function getAllMemberships({
     ]),
   ]);
 
-  const safeRows = rows.filter((item) => item.user_id?.role === 'user').map((item) => ({
-    ...item,
-    effective_status: (item.end_date && new Date(item.end_date) < now && ['active', 'scheduled'].includes(item.status))
-      ? 'expired'
-      : item.status,
-  }));
+  const visibleRows = rows.filter((item) => item.user_id?.role === 'user');
+  const membershipIds = visibleRows.map((item) => item._id);
+  const admissionIds = visibleRows.map((item) => item.gym_admission_id).filter(Boolean);
+  const ledgerPayments = membershipIds.length
+    ? await Payment.find({
+      $or: [
+        { membership_id: { $in: membershipIds } },
+        ...(admissionIds.length
+          ? [{ gym_admission_id: { $in: admissionIds }, payment_type: 'membership_advance' }]
+          : []),
+      ],
+    }).select('membership_id gym_admission_id amount allocated_amount payment_type status').lean()
+    : [];
+
+  const safeRows = visibleRows.map((item) => {
+    const relatedPayments = ledgerPayments.filter((payment) =>
+      String(payment.membership_id || '') === String(item._id)
+      || (payment.payment_type === 'membership_advance'
+        && String(payment.gym_admission_id || '') === String(item.gym_admission_id || ''))
+    );
+    const allocatedAdvance = relatedPayments
+      .filter((payment) => payment.payment_type === 'membership_advance'
+        && String(payment.membership_id || '') === String(item._id))
+      .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
+    const advancePaid = Math.max(Number(item.advance_paid || 0), allocatedAdvance);
+    const membershipPayments = relatedPayments.filter((payment) =>
+      payment.payment_type !== 'membership_advance' && payment.status === 'success'
+    );
+    const amountReceived = membershipPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const amountDue = Math.max(0, Number((
+      Number(item.plan_price_snapshot || 0) - advancePaid - amountReceived
+    ).toFixed(2)));
+    const paymentStatus = relatedPayments.some((payment) => payment.status === 'refunded')
+      ? 'refunded'
+      : amountDue === 0 ? 'paid' : 'pending';
+
+    return {
+      ...item,
+      advance_paid: advancePaid,
+      amount_due: amountDue,
+      payment_status: paymentStatus,
+      effective_status: (item.end_date && new Date(item.end_date) < now && ['active', 'scheduled'].includes(item.status))
+        ? 'expired'
+        : item.status,
+    };
+  });
 
   return {
     rows: safeRows,
