@@ -171,7 +171,8 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
 
       if (payment.order_id) {
         const order = await Order.findOne({ _id: payment.order_id, payment_id: payment._id }).session(session);
-        if (order && order.status !== 'delivered') {
+        if (order && ['delivered', 'collected'].includes(order.status)) throw new ApiError(409, 'This order has already been handed over. Handle the refund manually.');
+        if (order) {
           for (const item of order.order_items) await Product.updateOne({ _id: item.product_id }, { $inc: { stock_quantity: item.quantity } }, { session });
           order.payment_status = 'refunded'; order.status = 'cancelled'; await order.save({ session });
         }
