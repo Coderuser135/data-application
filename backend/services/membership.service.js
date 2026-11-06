@@ -115,12 +115,45 @@ export async function getMembershipDetails(membershipId) {
     .populate({ path: 'gym_admission_id', select: 'member_id admission_date status' })
     .lean();
   if (!membership || membership.user_id?.role !== 'user') throw new ApiError(404, 'Membership not found');
-  const payments = await Payment.find({ user_id: membership.user_id._id, membership_id: membership._id })
+  const paymentFilter = {
+    user_id: membership.user_id._id,
+    $or: [
+      { membership_id: membership._id },
+      ...(membership.gym_admission_id
+        ? [{ gym_admission_id: membership.gym_admission_id, payment_type: 'membership_advance' }]
+        : []),
+    ],
+  };
+  const payments = await Payment.find(paymentFilter)
     .select('-razorpay_signature')
     .sort({ payment_date: -1, createdAt: -1 })
     .lean();
+
+  // Keep the membership balance tied to real successful payment records.
+  // Admission advances are shown in the history but counted only up to the
+  // amount reserved for this membership, preventing double counting.
+  const allocatedAdvance = payments
+    .filter((payment) => payment.payment_type === 'membership_advance'
+      && (String(payment.membership_id || '') === String(membership._id)))
+    .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
+  const advancePaid = Math.max(Number(membership.advance_paid || 0), allocatedAdvance);
+  const membershipPayments = payments.filter((payment) =>
+    payment.payment_type !== 'membership_advance' && payment.status === 'success'
+  );
+  const amountReceived = membershipPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const calculatedDue = Math.max(0, Number((
+    Number(membership.plan_price_snapshot || 0) - advancePaid - amountReceived
+  ).toFixed(2)));
+  const hasRefund = payments.some((payment) => payment.status === 'refunded');
+  const calculatedPaymentStatus = hasRefund
+    ? 'refunded'
+    : calculatedDue === 0 ? 'paid' : 'pending';
+
   return {
     ...membership,
+    advance_paid: advancePaid,
+    amount_due: calculatedDue,
+    payment_status: calculatedPaymentStatus,
     effective_status: membership.end_date && new Date(membership.end_date) < new Date()
       && ['active', 'scheduled'].includes(membership.status) ? 'expired' : membership.status,
     payments,
