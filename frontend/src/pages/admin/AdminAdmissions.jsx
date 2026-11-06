@@ -300,8 +300,8 @@ export default function AdminAdmissions() {
 
       {!loading && rows.length > 0 ? (
         <Card padding={false}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+          <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+            <table className="admin-data-table text-sm" style={{ width: '860px', minWidth: '860px', maxWidth: 'none', tableLayout: 'auto' }}>
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-4 font-medium">User</th>
