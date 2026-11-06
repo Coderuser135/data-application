@@ -28,8 +28,123 @@ function validateProductInput(data) {
 
 const cleanProduct = (product) => product;
 
-export async function getProducts() {
-  return Product.find({ is_deleted: { $ne: true } }).populate('category_id').sort({ createdAt: -1 });
+export async function getProducts({
+  search = '',
+  category = 'all',
+  status = 'all',
+  stock = 'all',
+  expiry = 'all',
+  sort = 'newest',
+  page = 1,
+  limit = 10,
+} = {}) {
+  const now = new Date();
+  const filter = { is_deleted: { $ne: true } };
+
+  if (search.trim()) {
+    const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.$or = [
+      { name: { $regex: safeSearch, $options: 'i' } },
+      { brand: { $regex: safeSearch, $options: 'i' } },
+      { sku: { $regex: safeSearch, $options: 'i' } },
+    ];
+  }
+
+  if (category !== 'all') filter.category_id = category;
+  if (status === 'active') filter.is_active = true;
+  if (status === 'inactive') filter.is_active = false;
+
+  if (stock === 'out') {
+    filter.$expr = { $lte: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] };
+  } else if (stock === 'low') {
+    filter.$expr = {
+      $and: [
+        { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] },
+        { $lte: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, '$low_stock_threshold'] },
+      ],
+    };
+  } else if (stock === 'in') {
+    filter.$expr = { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, '$low_stock_threshold'] };
+  }
+
+  if (expiry === 'expired') {
+    filter.expiry_date = { $lt: now };
+  } else if (expiry === '30') {
+    filter.expiry_date = { $gte: now, $lte: new Date(now.getTime() + 30 * 86400000) };
+  } else if (expiry === 'no_date') {
+    filter.$and = [...(filter.$and || []), { $or: [{ expiry_date: null }, { expiry_date: { $exists: false } }] }];
+  }
+
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
+  const sortOptions = {
+    newest: { createdAt: -1 },
+    name_asc: { name: 1 },
+    price_low: { price: 1 },
+    price_high: { price: -1 },
+    stock_low: { stock_quantity: 1 },
+  };
+  const [products, total, stats] = await Promise.all([
+    Product.find(filter)
+      .populate('category_id')
+      .sort(sortOptions[sort] || sortOptions.newest)
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .lean(),
+    Product.countDocuments(filter),
+    Product.aggregate([
+      { $match: { is_deleted: { $ne: true } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          low: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] },
+                    { $lte: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, '$low_stock_threshold'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          out: {
+            $sum: {
+              $cond: [
+                { $lte: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]),
+  ]);
+
+  const rows = products.map((product) => {
+    const available = Math.max(0, Number(product.stock_quantity || 0) - Number(product.reserved_quantity || 0));
+    return {
+      ...product,
+      available_quantity: available,
+      stock_status: available === 0
+        ? 'out_of_stock'
+        : available <= Number(product.low_stock_threshold || 0) ? 'low_stock' : 'in_stock',
+    };
+  });
+
+  return {
+    rows,
+    total,
+    page: safePage,
+    pages: Math.max(1, Math.ceil(total / safeLimit)),
+    limit: safeLimit,
+    stats: stats[0] || { total: 0, low: 0, out: 0 },
+  };
 }
 export async function getActiveProducts() {
   const products = await Product.find({ is_active: true, is_deleted: { $ne: true }, $or: [{ expiry_date: null }, { expiry_date: { $gt: new Date() } }] })
