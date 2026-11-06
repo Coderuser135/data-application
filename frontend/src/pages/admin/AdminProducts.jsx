@@ -5,6 +5,7 @@ import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import EmptyState from '@/components/ui/EmptyState';
 import { productService, categoryService } from '@/services/productService';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
