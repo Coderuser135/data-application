@@ -208,14 +208,24 @@ export default function AdminBodyMeasurements() {
       </Card>
 
       {selectedMember && (
-        <div className="flex items-center gap-3 rounded-xl bg-brand-50 px-4 py-3 dark:bg-brand-500/10">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-white">{selectedMember.full_name?.charAt(0)?.toUpperCase()}</span>
-          <div className="flex-1">
-            <p className="font-semibold text-ink-900 dark:text-white">{selectedMember.full_name}</p>
-            <p className="text-xs text-surface-500">{selectedMember.email}</p>
+        <Card>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-500/10 text-xl font-bold text-brand-600 dark:text-brand-400">{(selectedMember.full_name || 'M').charAt(0).toUpperCase()}</span>
+              <div className="min-w-0">
+                <p className="font-display text-lg font-bold text-ink-950 dark:text-white">{selectedMember.full_name || 'Unnamed member'}</p>
+                <p className="break-all text-sm text-surface-500">{selectedMember.email || 'Email unavailable'}</p>
+                <Badge color={selectedMember.admission_status === 'active' ? 'success' : 'secondary'}>{selectedMember.admission_status || 'Admitted'}</Badge>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:min-w-[360px]">
+              <div className="rounded-xl bg-surface-50 p-3 dark:bg-surface-800/70"><p className="text-xs text-surface-500">Phone</p><p className="mt-1 break-words text-sm font-semibold text-ink-900 dark:text-white">{selectedMember.phone || '—'}</p></div>
+              <div className="rounded-xl bg-surface-50 p-3 dark:bg-surface-800/70"><p className="text-xs text-surface-500">Member ID</p><p className="mt-1 break-words text-sm font-semibold text-ink-900 dark:text-white">{selectedMember.member_id || '—'}</p></div>
+              <div className="col-span-2 rounded-xl bg-surface-50 p-3 dark:bg-surface-800/70"><p className="text-xs text-surface-500">Admission date</p><p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{formatDate(selectedMember.admission_date)}</p></div>
+            </div>
+            <button onClick={() => setSelectedMember(null)} aria-label="Close member profile" className="self-end rounded-lg p-2 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 sm:self-start"><X size={16}/></button>
           </div>
-          <button onClick={() => setSelectedMember(null)} className="rounded-lg p-2 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={16} /></button>
-        </div>
+        </Card>
       )}
 
       {selectedMember && latest && (
