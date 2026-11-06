@@ -114,7 +114,14 @@ export async function getAllMemberships({
       .filter((payment) => payment.payment_type === 'membership_advance'
         && String(payment.membership_id || '') === String(item._id))
       .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-    const advancePaid = Math.max(Number(item.advance_paid || 0), allocatedAdvance);
+    const unallocatedAdmissionAdvance = relatedPayments
+      .filter((payment) => payment.payment_type === 'membership_advance'
+        && !payment.membership_id && payment.status === 'success')
+      .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
+    const advancePaid = Math.max(
+      Number(item.advance_paid || 0),
+      allocatedAdvance + unallocatedAdmissionAdvance,
+    );
     const membershipPayments = relatedPayments.filter((payment) =>
       payment.payment_type !== 'membership_advance' && payment.status === 'success'
     );
@@ -176,7 +183,14 @@ export async function getMembershipDetails(membershipId) {
     .filter((payment) => payment.payment_type === 'membership_advance'
       && (String(payment.membership_id || '') === String(membership._id)))
     .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-  const advancePaid = Math.max(Number(membership.advance_paid || 0), allocatedAdvance);
+  const unallocatedAdmissionAdvance = payments
+    .filter((payment) => payment.payment_type === 'membership_advance'
+      && !payment.membership_id && payment.status === 'success')
+    .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
+  const advancePaid = Math.max(
+    Number(membership.advance_paid || 0),
+    allocatedAdvance + unallocatedAdmissionAdvance,
+  );
   const membershipPayments = payments.filter((payment) =>
     payment.payment_type !== 'membership_advance' && payment.status === 'success'
   );
