@@ -90,7 +90,7 @@ export default function AdminOrders() {
       ) : loading ? <AdminLoadingSkeleton variant="table" rows={6} /> : <EmptyState title="No orders found" />}
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedOrder(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedOrder(null)}>
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4 dark:border-surface-800">
               <h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">{selectedOrder.order_number}</h2>
