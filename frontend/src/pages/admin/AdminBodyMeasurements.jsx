@@ -186,6 +186,7 @@ export default function AdminBodyMeasurements() {
           </h3>
         </div>
         {measurements.length > 0 ? (
+          <>
           <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
             <table className="admin-data-table text-sm" style={{ width: '980px', minWidth: '980px', maxWidth: 'none', tableLayout: 'auto' }}>
               <thead>
@@ -230,6 +231,7 @@ export default function AdminBodyMeasurements() {
               <Button variant="outline" size="sm" disabled={currentPage >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Next <ChevronRight size={14}/></Button>
             </div>
           </div>
+          </>
         ) : <div className="p-5"><EmptyState title="No measurements yet" description={selectedMember ? "Add this member's first measurement." : 'Select a member to view their history.'} /></div>}
       </Card>
 
