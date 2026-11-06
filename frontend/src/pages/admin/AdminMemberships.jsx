@@ -146,7 +146,7 @@ function printPaymentReceipt(payment, membership) {
 function MembershipDetails({ membership, loading, error, onClose }) {
   if (!membership && !loading) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/60 p-0 backdrop-blur-sm p-3 sm:p-5" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="membership-detail-title" className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl dark:border-slate-700 dark:bg-slate-950 sm:max-h-[90vh] sm:max-w-3xl sm:rounded-2xl">
         <header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
           <div><h2 id="membership-detail-title" className="font-display text-lg font-bold text-slate-950 dark:text-white">Membership Details</h2><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Membership record and linked payment transactions</p></div>
