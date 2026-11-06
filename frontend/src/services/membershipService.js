@@ -9,8 +9,4 @@ export const membershipService = {
   purchase: (planId) => api.post('/memberships/purchase', { planId }).then((r) => r.data),
   payAdvance: (membershipId) => api.post('/memberships/advance', { membershipId }).then((r) => r.data),
   renew: (id) => api.post(`/memberships/${id}/renew`).then((r) => r.data),
-  adminRenew: (id) => api.post(`/memberships/${id}/admin-renew`).then((r) => r.data),
-  extend: (id, days) => api.post(`/memberships/${id}/extend`, { days }).then((r) => r.data),
-  freeze: (id) => api.post(`/memberships/${id}/freeze`).then((r) => r.data),
-  resume: (id) => api.post(`/memberships/${id}/resume`).then((r) => r.data),
 };
