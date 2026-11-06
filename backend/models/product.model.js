@@ -7,9 +7,9 @@ const productSchema = new mongoose.Schema({
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductCategory', default: null },
   name: { type: String, required: true, trim: true, maxlength: 200 },
   slug: { type: String, required: true, unique: true, trim: true },
-  sku: { type: String, required: true, unique: true, uppercase: true, trim: true, maxlength: 60 },
+  sku: { type: String, unique: true, uppercase: true, trim: true, maxlength: 60 },
   barcode: { type: String, trim: true, default: '', maxlength: 80 },
-  brand: { type: String, required: true, trim: true, maxlength: 120 },
+  brand: { type: String, required: true, trim: true, maxlength: 120, default: 'Unbranded' },
   product_type: { type: String, enum: ['protein', 'vitamin', 'mineral', 'hydration', 'nutrition_bar', 'other'], default: 'other' },
   description: { type: String, default: '', maxlength: 5000 },
   key_features: [{ type: String, trim: true, maxlength: 180 }],
@@ -39,7 +39,7 @@ productSchema.virtual('stock_status').get(function() {
   if (available <= this.low_stock_threshold) return 'low_stock';
   return 'in_stock';
 });
-productSchema.pre('validate', function(next) {
+productSchema.pre('validate', function(next) {\n  if (!this.sku && this._id) this.sku = `SUP-${String(this._id).slice(-8).toUpperCase()}`;
   if (this.sale_price != null && this.sale_price > this.price) return next(new Error('Sale price cannot be greater than selling price'));
   if (this.mrp != null && this.price > this.mrp) return next(new Error('Selling price cannot be greater than MRP'));
   if (this.reserved_quantity > this.stock_quantity) return next(new Error('Reserved stock cannot exceed physical stock'));
