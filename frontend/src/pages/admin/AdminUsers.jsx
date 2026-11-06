@@ -97,7 +97,7 @@ function MemberProfileDrawer({ member, overview, loading, error, onClose }) {
   const money = (value) => formatCurrency(Number(value || 0));
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-950/60 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/60 backdrop-blur-[2px] p-3 sm:p-5" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="member-profile-title" className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-slate-50 shadow-2xl dark:border-slate-700 dark:bg-slate-950 sm:max-h-[90vh] sm:max-w-4xl sm:rounded-2xl">
         <header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
           <div className="min-w-0">
