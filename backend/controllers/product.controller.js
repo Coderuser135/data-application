@@ -10,7 +10,7 @@ const parseProductBody = (body) => {
 };
 
 export const getProducts = async (req, res, next) => {
-  try { res.json(await productService.getProducts()); } catch (err) { next(err); }
+  try { res.json(await productService.getProducts(req.query)); } catch (err) { next(err); }
 };
 export const getActiveProducts = async (req, res, next) => {
   try { res.json(await productService.getActiveProducts()); } catch (err) { next(err); }

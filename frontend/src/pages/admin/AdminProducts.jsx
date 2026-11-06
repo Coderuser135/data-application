@@ -31,6 +31,14 @@ export default function AdminProducts() {
   const [imagePreview, setImagePreview] = useState('');
   const [selectedImageName, setSelectedImageName] = useState('');
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState('all');
+  const [expiryFilter, setExpiryFilter] = useState('all');
+  const [sort, setSort] = useState('newest');
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [productData, setProductData] = useState({ rows: [], total: 0, pages: 1, stats: { total: 0, low: 0, out: 0 } });
   const [stockTarget, setStockTarget] = useState(null);
   const [stockForm, setStockForm] = useState({ quantity: '', reason: '' });
   const [stockHistory, setStockHistory] = useState([]);
@@ -40,27 +48,62 @@ export default function AdminProducts() {
   async function loadData() {
     setLoadError('');
     try {
-      const [productData, categoryData] = await Promise.all([productService.getAll(), categoryService.getAll()]);
-      setProducts(productData || []);
-      setCategories(categoryData || []);
-    } catch {
-      setLoadError('Supplements could not be loaded. Please refresh and try again.');
-    } finally { setLoading(false); }
+      const result = await productService.getAll({
+        search: query,
+        category: categoryFilter,
+        status: statusFilter,
+        stock: stockFilter,
+        expiry: expiryFilter,
+        sort,
+        page: pageNumber,
+        limit: pageSize,
+      });
+      if (pageNumber > result.pages) {
+        setPageNumber(result.pages || 1);
+        return;
+      }
+      setProductData(result);
+      setProducts(result.rows || []);
+    } catch (requestError) {
+      setLoadError(requestError.response?.data?.error || 'Supplements could not be loaded. Please refresh and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    categoryService.getAll().then((result) => setCategories(result || [])).catch(() => setCategories([]));
+  }, []);
 
-  const filteredProducts = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return products;
-    return products.filter((item) => [item.name, item.brand, item.sku].some((value) => String(value || '').toLowerCase().includes(term)));
-  }, [products, query]);
+  useEffect(() => {
+    const timer = setTimeout(loadData, 300);
+    return () => clearTimeout(timer);
+  }, [query, categoryFilter, statusFilter, stockFilter, expiryFilter, sort, pageNumber, pageSize]);
 
-  const stockStats = useMemo(() => ({
-    total: products.length,
-    low: products.filter((p) => p.stock_status === 'low_stock').length,
-    out: products.filter((p) => p.stock_status === 'out_of_stock').length,
-  }), [products]);
+  const stockStats = productData.stats || { total: 0, low: 0, out: 0 };
+  const totalPages = Math.max(1, Number(productData.pages) || 1);
+  const firstItem = productData.total ? ((pageNumber - 1) * pageSize) + 1 : 0;
+  const lastItem = Math.min(pageNumber * pageSize, productData.total || 0);
+  const pageNumbers = useMemo(() => {
+    const first = Math.max(1, Math.min(pageNumber - 2, totalPages - 4));
+    return Array.from({ length: Math.min(5, totalPages) }, (_, index) => first + index);
+  }, [pageNumber, totalPages]);
+
+  function updateFilter(setter, value) {
+    setter(value);
+    setPageNumber(1);
+  }
+
+  function clearFilters() {
+    setQuery('');
+    setCategoryFilter('all');
+    setStatusFilter('all');
+    setStockFilter('all');
+    setExpiryFilter('all');
+    setSort('newest');
+    setPageNumber(1);
+    setPageSize(10);
+  }
 
   function openCreate() {
     setEditing('new'); setForm({ ...EMPTY_FORM }); setImagePreview(''); setSelectedImageName(''); setError('');
@@ -245,8 +288,22 @@ export default function AdminProducts() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Supplements</h1><p className="mt-1 text-sm text-surface-500">Catalogue, pricing and inventory control</p></div><Button onClick={openCreate}><Plus size={16} /> Add supplement</Button></div>
       <div className="grid gap-3 sm:grid-cols-3"><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Catalogue items</p><Package className="text-brand-600" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.total}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Low stock</p><AlertTriangle className="text-amber-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.low}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Out of stock</p><Boxes className="text-red-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.out}</p></Card></div>
-      <Card><div className="relative"><Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by supplement, brand or SKU..." className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></div></Card>
-      {filteredProducts.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((p) => {
+      <Card>
+        <div className="space-y-3">
+          <div className="relative"><Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" /><input value={query} onChange={(e) => updateFilter(setQuery, e.target.value)} placeholder="Search supplement, brand or SKU..." className="min-h-11 w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <label className="block space-y-1"><span className="text-xs font-semibold text-surface-500">Category</span><select value={categoryFilter} onChange={(e) => updateFilter(setCategoryFilter, e.target.value)} className="min-h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="all">All categories</option>{categories.map((category) => <option key={category.id || category._id} value={category.id || category._id}>{category.name}</option>)}</select></label>
+            <label className="block space-y-1"><span className="text-xs font-semibold text-surface-500">Product status</span><select value={statusFilter} onChange={(e) => updateFilter(setStatusFilter, e.target.value)} className="min-h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="all">All products</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            <label className="block space-y-1"><span className="text-xs font-semibold text-surface-500">Stock status</span><select value={stockFilter} onChange={(e) => updateFilter(setStockFilter, e.target.value)} className="min-h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="all">All stock</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></label>
+            <label className="block space-y-1"><span className="text-xs font-semibold text-surface-500">Expiry</span><select value={expiryFilter} onChange={(e) => updateFilter(setExpiryFilter, e.target.value)} className="min-h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="all">Any expiry</option><option value="30">Expiring in 30 days</option><option value="expired">Expired</option><option value="no_date">No expiry date</option></select></label>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-surface-100 pt-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-surface-500">{productData.total || 0} matching supplements</p>
+            <div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 text-xs font-medium text-surface-600 dark:text-surface-300">Sort <select value={sort} onChange={(e) => updateFilter(setSort, e.target.value)} className="min-h-9 rounded-lg border border-surface-300 bg-white px-2 text-xs dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value="newest">Newest first</option><option value="name_asc">Name A–Z</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option><option value="stock_low">Lowest stock</option></select></label><label className="flex items-center gap-2 text-xs font-medium text-surface-600 dark:text-surface-300">Rows <select value={pageSize} onChange={(e) => {setPageSize(Number(e.target.value));setPageNumber(1);}} className="min-h-9 rounded-lg border border-surface-300 bg-white px-2 text-xs dark:border-surface-700 dark:bg-surface-950 dark:text-white"><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option></select></label><button onClick={clearFilters} className="text-xs font-bold text-brand-700 hover:underline dark:text-brand-300">Clear filters</button></div>
+          </div>
+        </div>
+      </Card>
+      {products.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{products.map((p) => {
         const available = p.available_quantity ?? Math.max(0, (p.stock_quantity || 0) - (p.reserved_quantity || 0));
         const status = p.stock_status || (available === 0 ? 'out_of_stock' : available <= (p.low_stock_threshold || 5) ? 'low_stock' : 'in_stock');
         return <Card key={p.id || p._id} padding={false} className="overflow-hidden">
@@ -258,7 +315,15 @@ export default function AdminProducts() {
             <div className="flex flex-wrap gap-2"><button onClick={() => openEdit(p)} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-100 py-2 text-xs font-semibold hover:bg-surface-200 dark:bg-surface-800"><Pencil size={14} /> Edit</button><button onClick={() => { setStockTarget(p); setStockForm({ quantity: '', reason: '' }); setError(''); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-50 py-2 text-xs font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300"><ArrowDownUp size={14} /> Adjust stock</button><button onClick={() => openHistory(p)} className="rounded-lg bg-surface-100 px-3 py-2 text-surface-600 dark:bg-surface-800"><History size={14} /></button><button onClick={() => removeSupplement(p)} className="rounded-lg bg-red-50 px-3 py-2 text-red-600 dark:bg-red-500/10"><Trash2 size={14} /></button></div>
           </div>
         </Card>;
-      })}</div> : <EmptyState title={query ? 'No matching supplements' : 'No supplements yet'} description={query ? 'Try another name, brand or SKU.' : 'Add your first supplement to start managing the store inventory.'} />}
+      })}</div> : <EmptyState title={productData.total === 0 && !query && categoryFilter === 'all' && statusFilter === 'all' && stockFilter === 'all' && expiryFilter === 'all' ? 'No supplements yet' : 'No matching supplements'} description={productData.total === 0 ? 'Try changing your search or filters, or add a new supplement.' : 'Add your first supplement to start managing the store inventory.'} />}
+      {productData.total > 0 && <div className="flex flex-col gap-3 rounded-xl border border-surface-200 bg-white p-3 dark:border-surface-800 dark:bg-surface-900 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-surface-500">Showing <strong className="text-ink-900 dark:text-white">{firstItem}–{lastItem}</strong> of <strong className="text-ink-900 dark:text-white">{productData.total}</strong> supplements</p>
+        <div className="flex items-center justify-between gap-1 sm:justify-end">
+          <button disabled={pageNumber <= 1} onClick={() => setPageNumber((current) => current - 1)} className="flex min-h-9 items-center gap-1 rounded-lg border border-surface-300 px-2.5 text-xs font-semibold text-surface-700 disabled:opacity-40 dark:border-surface-700 dark:text-surface-200"><span>‹</span> Previous</button>
+          {pageNumbers.map((number) => <button key={number} onClick={() => setPageNumber(number)} className={`h-9 min-w-9 rounded-lg px-2 text-xs font-bold ${pageNumber === number ? 'bg-brand-600 text-white' : 'border border-surface-300 text-surface-700 dark:border-surface-700 dark:text-surface-200'}`}>{number}</button>)}
+          <button disabled={pageNumber >= totalPages} onClick={() => setPageNumber((current) => current + 1)} className="flex min-h-9 items-center gap-1 rounded-lg border border-surface-300 px-2.5 text-xs font-semibold text-surface-700 disabled:opacity-40 dark:border-surface-700 dark:text-surface-200">Next <span>›</span></button>
+        </div>
+      </div>}
       {editor}{stockModal}{historyModal}
     </div>
   );
