@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { CreditCard, Check, AlertCircle, Tag, ArrowRight } from 'lucide-react';
+import { CreditCard, Check, AlertCircle, Tag, ArrowRight, Crown, Dumbbell, Sparkles, Zap } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -103,104 +103,67 @@ export default function Membership() {
         <section>
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <CreditCard size={20} className="text-brand-600" />
-                <h3 className="font-display text-xl font-bold tracking-tight text-ink-950 dark:text-white">Choose your membership</h3>
-              </div>
-              <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">Compare the benefits and choose the plan that works for your fitness routine.</p>
+              <div className="flex items-center gap-2"><CreditCard size={19} className="text-brand-600" /><h3 className="font-display text-xl font-bold tracking-tight text-ink-950 dark:text-white">Choose your membership</h3></div>
+              <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">Compare the plans, benefits and pricing before you join.</p>
             </div>
-            <span className="text-xs font-medium text-surface-500 dark:text-surface-400">{plans.length} {plans.length === 1 ? 'plan' : 'plans'} available</span>
+            <span className="text-xs font-medium text-surface-500 dark:text-surface-400">{plans.length} plans available</span>
           </div>
 
-          <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {plans.map((plan) => {
               const isCurrent = activeMembership?.plan_id === plan.id;
+              const premium = /premium|elite|pro|gold|platinum|vip/i.test(plan.name || '');
+              const offer = Boolean(plan.is_offer);
               const planPrice = Number(plan.price || 0);
               const advanceCredit = Number(plan.advance_credit || 0);
               const payablePrice = Number(plan.payable_price ?? planPrice);
               const originalPrice = Number(plan.original_price || 0);
               const duration = Math.max(1, Number(plan.duration_days || 30));
-              const discount = plan.is_offer && originalPrice > planPrice
-                ? Math.round((1 - planPrice / originalPrice) * 100)
-                : 0;
+              const discount = offer && originalPrice > planPrice ? Math.round((1 - planPrice / originalPrice) * 100) : 0;
+              const palette = offer
+                ? { card: 'border-amber-300 dark:border-amber-700', strip: 'from-amber-400 via-orange-500 to-rose-500', icon: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300', panel: 'bg-amber-50 border-amber-100 dark:bg-amber-500/5 dark:border-amber-500/15', badge: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300', button: 'primary' }
+                : premium
+                  ? { card: 'border-violet-300 dark:border-violet-700', strip: 'from-violet-500 via-indigo-500 to-blue-500', icon: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', panel: 'bg-violet-50 border-violet-100 dark:bg-violet-500/5 dark:border-violet-500/15', badge: 'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300', button: 'primary' }
+                  : { card: 'border-sky-200 dark:border-sky-800', strip: 'from-sky-400 via-cyan-500 to-teal-400', icon: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300', panel: 'bg-sky-50 border-sky-100 dark:bg-sky-500/5 dark:border-sky-500/15', badge: 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300', button: 'secondary' };
+              const PlanIcon = offer ? Sparkles : premium ? Crown : Dumbbell;
 
               return (
-                <article
-                  key={plan.id}
-                  className={`relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-surface-900 ${
-                    plan.is_offer
-                      ? 'border-brand-300 ring-1 ring-brand-100 dark:border-brand-700 dark:ring-brand-500/20'
-                      : 'border-surface-200 hover:border-surface-300 dark:border-surface-700 dark:hover:border-surface-600'
-                  }`}
-                >
-                  <div className={`h-1.5 w-full ${plan.is_offer ? 'bg-gradient-to-r from-brand-500 via-rose-500 to-amber-400' : 'bg-gradient-to-r from-surface-300 to-surface-200 dark:from-surface-700 dark:to-surface-800'}`} />
-                  <div className="flex flex-1 flex-col p-5 sm:p-6">
-                    <div className="flex min-h-8 flex-wrap items-center gap-2">
-                      {plan.is_offer && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                          <Tag size={12} /> {plan.offer_label || 'Limited offer'}
-                        </span>
-                      )}
-                      {isCurrent && <Badge tone="success">Current plan</Badge>}
+                <article key={plan.id} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-surface-900 ${palette.card}`}>
+                  <div className={`h-1.5 bg-gradient-to-r ${palette.strip}`} />
+                  <div className="flex flex-1 flex-col p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${palette.icon}`}><PlanIcon size={21} /></div>
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {offer && <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold tracking-wide ${palette.badge}`}>SPECIAL OFFER</span>}
+                        {premium && !offer && <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold tracking-wide ${palette.badge}`}>PREMIUM</span>}
+                        {isCurrent && <Badge tone="success">CURRENT</Badge>}
+                      </div>
                     </div>
 
-                    <div className="mt-3">
-                      <h4 className="break-words font-display text-xl font-bold tracking-tight text-ink-950 dark:text-white">{plan.name}</h4>
-                      <p className="mt-1 text-sm font-medium text-surface-500 dark:text-surface-400">{duration} {duration === 1 ? 'day' : 'days'} of gym access</p>
-                    </div>
+                    <h4 className="mt-4 break-words font-display text-xl font-extrabold tracking-tight text-ink-950 dark:text-white">{plan.name}</h4>
+                    <p className="mt-1 text-xs font-medium text-surface-500 dark:text-surface-400"><Zap size={12} className="mr-1 inline" />{duration} days gym access</p>
 
-                    <div className="mt-5 rounded-2xl border border-surface-100 bg-surface-50/80 p-4 dark:border-surface-800 dark:bg-surface-950/70">
-                      <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
-                        {discount > 0 && <span className="mb-1 text-sm font-medium text-surface-400 line-through">{formatCurrency(originalPrice)}</span>}
-                        {advanceCredit > 0 && <span className="mb-1 text-sm font-medium text-surface-400 line-through">{formatCurrency(planPrice)}</span>}
+                    <div className={`mt-4 rounded-xl border p-4 ${palette.panel}`}>
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        {(discount > 0 || advanceCredit > 0) && <span className="text-sm text-surface-400 line-through">{formatCurrency(discount > 0 ? originalPrice : planPrice)}</span>}
                         <span className="font-display text-3xl font-extrabold tracking-tight text-ink-950 dark:text-white">{formatCurrency(payablePrice)}</span>
-                        {discount > 0 && <Badge tone="success">{discount}% OFF</Badge>}
+                        {discount > 0 && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{discount}% OFF</span>}
                       </div>
-                      <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">
-                        {advanceCredit > 0 ? 'Remaining amount after admission advance' : 'Plan price'}
-                      </p>
-                      {advanceCredit > 0 && (
-                        <div className="mt-3 space-y-2 border-t border-surface-200 pt-3 text-xs dark:border-surface-800">
-                          <div className="flex items-center justify-between gap-3 text-surface-600 dark:text-surface-300"><span>Membership price</span><span className="font-semibold">{formatCurrency(planPrice)}</span></div>
-                          <div className="flex items-center justify-between gap-3 text-emerald-700 dark:text-emerald-400"><span>Admission advance applied</span><span className="font-semibold">− {formatCurrency(advanceCredit)}</span></div>
-                          <div className="flex items-center justify-between gap-3 border-t border-surface-200 pt-2 font-bold text-ink-950 dark:border-surface-800 dark:text-white"><span>Payable now</span><span>{formatCurrency(payablePrice)}</span></div>
-                        </div>
-                      )}
-                      <p className="mt-3 text-[11px] text-surface-500 dark:text-surface-400">Approx. {formatCurrency(planPrice / duration)} per day</p>
+                      <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{advanceCredit > 0 ? 'Payable after admission advance' : 'Total membership price'}</p>
+                      {advanceCredit > 0 && <div className="mt-3 space-y-2 border-t border-surface-200 pt-3 text-xs dark:border-surface-700"><div className="flex justify-between gap-2 text-surface-600 dark:text-surface-300"><span>Plan price</span><strong>{formatCurrency(planPrice)}</strong></div><div className="flex justify-between gap-2 text-emerald-700 dark:text-emerald-400"><span>Admission advance</span><strong>− {formatCurrency(advanceCredit)}</strong></div><div className="flex justify-between gap-2 border-t border-surface-200 pt-2 font-bold text-ink-950 dark:border-surface-700 dark:text-white"><span>Payable now</span><strong>{formatCurrency(payablePrice)}</strong></div></div>}
+                      <p className="mt-2 text-[11px] text-surface-500 dark:text-surface-400">Approx. {formatCurrency(planPrice / duration)} per day</p>
                     </div>
 
-                    <p className="mt-4 min-h-[3rem] text-sm leading-6 text-surface-600 dark:text-surface-300">
-                      {plan.description || 'A membership plan designed to support your fitness journey.'}
-                    </p>
+                    <p className="mt-3 min-h-10 text-sm leading-5 text-surface-600 dark:text-surface-300">{plan.description || 'A membership option designed to support your fitness journey.'}</p>
 
-                    <div className="mt-5 flex-1 border-t border-surface-100 pt-4 dark:border-surface-800">
-                      <div className="mb-3 flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-surface-500 dark:text-surface-400">Plan benefits</p>
-                        <span className="rounded-full bg-surface-100 px-2.5 py-1 text-[11px] font-semibold text-surface-600 dark:bg-surface-800 dark:text-surface-300">{(plan.features || []).length} included</span>
-                      </div>
-                      {(plan.features || []).length > 0 ? (
-                        <ul className="space-y-3">
-                          {plan.features.map((feature, index) => (
-                            <li key={index} className="flex items-start gap-2.5 text-sm leading-5 text-surface-700 dark:text-surface-300">
-                              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"><Check size={12} strokeWidth={3} /></span>
-                              <span className="min-w-0 break-words">{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : <p className="text-sm text-surface-400">Plan benefits will be updated soon.</p>}
+                    <div className="mt-4 flex-1 border-t border-surface-100 pt-3 dark:border-surface-800">
+                      <div className="mb-3 flex items-center justify-between"><p className="text-xs font-extrabold uppercase tracking-wider text-surface-500 dark:text-surface-400">Plan benefits</p><span className="text-[10px] font-semibold text-surface-400">{(plan.features || []).length} included</span></div>
+                      {(plan.features || []).length ? <ul className="space-y-2.5">{plan.features.map((feature, index) => <li key={index} className="flex items-start gap-2 text-sm leading-5 text-surface-700 dark:text-surface-300"><span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${palette.icon}`}><Check size={10} strokeWidth={3} /></span><span className="min-w-0 break-words">{feature}</span></li>)}</ul> : <p className="text-sm text-surface-400">No benefits listed yet.</p>}
                     </div>
 
-                    <div className="mt-6 border-t border-surface-100 pt-4 dark:border-surface-800">
-                      {isCurrent ? (
-                        <Button variant="secondary" className="w-full" disabled>You're on this plan</Button>
-                      ) : !admission || admission.status !== 'active' ? (
-                        <Button variant="secondary" className="w-full" disabled>Admission required</Button>
-                      ) : activeMembership ? (
-                        <Button variant="outline" className="w-full" onClick={() => renew(activeMembership.id)}>Renew membership <ArrowRight size={16} /></Button>
-                      ) : (
-                        <Button className="w-full" onClick={() => purchasePlan(plan)}>Choose this plan <ArrowRight size={16} /></Button>
-                      )}
-                      <p className="mt-2 text-center text-[11px] text-surface-400">Secure payment · Membership details in your account</p>
+                    <div className="mt-5 border-t border-surface-100 pt-3 dark:border-surface-800">
+                      {isCurrent ? <Button variant="secondary" className="w-full" disabled>You're on this plan</Button> : !admission || admission.status !== 'active' ? <Button variant="secondary" className="w-full" disabled>Admission required</Button> : activeMembership ? <Button variant="outline" className="w-full" onClick={() => renew(activeMembership.id)}>Renew membership <ArrowRight size={15} /></Button> : <Button className="w-full" onClick={() => purchasePlan(plan)}>Choose this plan <ArrowRight size={15} /></Button>}
+                      <p className="mt-2 text-center text-[10px] text-surface-400">Secure payment · Details saved to your account</p>
                     </div>
                   </div>
                 </article>
