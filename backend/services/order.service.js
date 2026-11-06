@@ -64,7 +64,7 @@ export async function createOrder(userId, items, shippingAddress) {
       let totalAmount = 0;
       for (const [productId, quantity] of quantities) {
         const product = await Product.findOneAndUpdate(
-          { _id: productId, is_active: true, is_deleted: false, $expr: { $gte: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, quantity] } },
+          { _id: productId, is_active: true, is_deleted: { $ne: true }, $expr: { $gte: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, quantity] } },
           { $inc: { reserved_quantity: quantity } },
           { new: false, session },
         );
