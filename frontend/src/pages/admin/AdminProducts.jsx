@@ -5,7 +5,6 @@ import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import EmptyState from '@/components/ui/EmptyState';
 import { productService, categoryService } from '@/services/productService';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
@@ -113,9 +112,13 @@ export default function AdminProducts() {
       setError('MRP must be equal to or higher than the selling price.');
       return;
     }
-    if (form.expiry_date && new Date(form.expiry_date) < new Date(new Date().toDateString())) {
-      setError('Expiry date cannot be in the past.');
-      return;
+    if (form.expiry_date) {
+      const today = new Date();
+      const todayString = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+      if (form.expiry_date < todayString) {
+        setError('Expiry date cannot be in the past.');
+        return;
+      }
     }
     if (editing === 'new' && !form.image) { setError('Please upload a product photo.'); return; }
     setSaving(true); setError('');
@@ -188,7 +191,7 @@ export default function AdminProducts() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2"><label className="block space-y-2"><span className="text-sm font-medium text-ink-700 dark:text-surface-200">Description</span><textarea rows={3} value={form.description} onChange={(e) => updateField('description', e.target.value)} className="w-full rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></label></div>
               <Field label="Net quantity / pack size" value={form.net_quantity} onChange={(e) => updateField('net_quantity', e.target.value)} placeholder="e.g. 1 kg" />
-              <Field label="Expiry date" type="date" value={form.expiry_date} onChange={(e) => updateField('expiry_date', e.target.value)} />
+              <Field label="Expiry date" type="date" min={new Date().toISOString().slice(0, 10)} value={form.expiry_date} onChange={(e) => updateField('expiry_date', e.target.value)} />
             </div>
           </section>
 
