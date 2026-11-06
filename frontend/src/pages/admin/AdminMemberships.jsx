@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Search, Dumbbell, Clock3, CalendarClock, Layers3,
-  ChevronLeft, ChevronRight, Eye, X, RefreshCw, CalendarDays, Printer, Snowflake, CalendarPlus, RotateCcw,
+  ChevronLeft, ChevronRight, Eye, X, RefreshCw, CalendarDays, Printer,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
@@ -63,42 +63,87 @@ function escapeReceiptText(value = '') {
   })[character]);
 }
 
+function formatReceiptDateTime(value) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    : 'Not available';
+}
+
 function printPaymentReceipt(payment, membership) {
   if (payment.status !== 'success') return;
-  const receiptWindow = window.open('', '_blank', 'width=720,height=800');
+  const receiptWindow = window.open('', '_blank', 'width=820,height=900');
   if (!receiptWindow) {
     window.alert('Please allow pop-ups to print the payment receipt.');
     return;
   }
+
   const safe = escapeReceiptText;
-  const receiptDate = formatDate(payment.payment_date || payment.createdAt);
-  receiptWindow.document.write(`<!doctype html><html><head><title>Payment Receipt</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-    body{font-family:Arial,sans-serif;color:#172033;margin:0;padding:32px;background:#f5f7fb}
-    .receipt{max-width:620px;margin:auto;background:#fff;border:1px solid #dce3ed;border-radius:16px;padding:32px}
-    h1{margin:0;font-size:24px} .muted{color:#64748b;font-size:13px}
-    .top{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #e2e8f0;padding-bottom:20px}
-    .amount{font-size:30px;font-weight:800;margin:24px 0;color:#047857}
-    .line{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #edf1f6;font-size:14px}
-    .line span:first-child{color:#64748b}.line strong{text-align:right;overflow-wrap:anywhere}
-    .paid{color:#047857;font-weight:700}.foot{margin-top:24px;text-align:center;color:#64748b;font-size:12px}
-    @media print{body{background:#fff;padding:0}.receipt{border:0;border-radius:0}}
-  </style></head><body><main class="receipt">
-    <div class="top"><div><h1>IRONFORGE</h1><p class="muted">Gym Membership Payment Receipt</p></div><strong class="paid">PAID</strong></div>
-    <p class="muted">Receipt generated from the gym management system</p>
-    <div class="amount">${safe(formatCurrency(payment.amount))}</div>
-    <div class="line"><span>Member</span><strong>${safe(membership.user_id?.full_name || 'Member')}</strong></div>
-    <div class="line"><span>Member ID</span><strong>${safe(membership.gym_admission_id?.member_id || '—')}</strong></div>
-    <div class="line"><span>Plan</span><strong>${safe(membership.plan_name_snapshot || 'Membership')}</strong></div>
-    <div class="line"><span>Payment type</span><strong>${safe(String(payment.payment_type || '').replaceAll('_', ' '))}</strong></div>
-    <div class="line"><span>Payment method</span><strong>${safe(payment.payment_method || '—')}</strong></div>
-    <div class="line"><span>Date</span><strong>${safe(receiptDate)}</strong></div>
-    <div class="line"><span>Transaction reference</span><strong>${safe(payment.transaction_id || payment.razorpay_payment_id || payment.reference_note || '—')}</strong></div>
-    <div class="foot">Thank you for choosing IronForge.</div>
-  </main><script>window.onload=()=>window.print();</script></body></html>`);
+  const receiptNumber = `IF-${String(payment._id || '').slice(-10).toUpperCase() || 'RECEIPT'}`;
+  const transactionReference = payment.razorpay_payment_id || payment.transaction_id || payment.reference_note || 'Not provided';
+  const paymentDate = formatReceiptDateTime(payment.payment_date || payment.createdAt);
+  const membershipType = membership.membership_type === 'renewal' ? 'Renewal' : 'First membership';
+  const paymentMethod = String(payment.payment_method || 'online').toUpperCase();
+  const paymentType = String(payment.payment_type || 'membership').replaceAll('_', ' ');
+
+  receiptWindow.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><title>Payment Receipt - ${safe(receiptNumber)}</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:28px;background:#eef2f7;color:#172033;font-family:Arial,Helvetica,sans-serif}
+    .sheet{max-width:760px;margin:0 auto;background:#fff;border:1px solid #dbe2ea;border-radius:18px;overflow:hidden}
+    .brand{padding:28px 32px;background:#111827;color:#fff;display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+    .brand h1{margin:0;font-size:26px;letter-spacing:1px}.brand p{margin:7px 0 0;color:#cbd5e1;font-size:12px}
+    .meta{text-align:right;font-size:12px;line-height:1.8;color:#e2e8f0}.meta strong{display:block;color:#fff;font-size:14px}
+    .content{padding:28px 32px}.status{display:inline-block;padding:7px 12px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:800;letter-spacing:.7px}
+    .amount-box{margin:18px 0 24px;padding:20px;border:1px solid #bbf7d0;border-radius:14px;background:#f0fdf4}
+    .amount-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px}.amount{margin-top:6px;font-size:34px;font-weight:800;color:#166534}
+    .section{margin-top:24px}.section h2{margin:0 0 12px;font-size:13px;color:#111827}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;border-top:1px solid #e8edf3}
+    .line{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #e8edf3;font-size:12px}
+    .line span{color:#64748b}.line strong{text-align:right;color:#1e293b;overflow-wrap:anywhere}
+    .notice{margin-top:24px;padding:13px 15px;border-radius:10px;background:#f8fafc;color:#64748b;font-size:11px;line-height:1.6}
+    .footer{padding:18px 32px;border-top:1px solid #e8edf3;text-align:center;color:#64748b;font-size:11px}
+    .actions{max-width:760px;margin:14px auto 0;display:flex;justify-content:flex-end}.print{border:0;border-radius:9px;padding:11px 18px;background:#b91c1c;color:#fff;font-weight:700;cursor:pointer}
+    @media(max-width:560px){body{padding:0;background:#fff}.sheet{border:0;border-radius:0}.brand,.content{padding:22px 18px}.grid{grid-template-columns:1fr}.amount{font-size:29px}}
+    @media print{body{padding:0;background:#fff}.sheet{max-width:none;border:0;border-radius:0}.actions{display:none}.brand,.amount-box,.status,.notice{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body>
+  <main class="sheet">
+    <header class="brand"><div><h1>IRONFORGE</h1><p>GYM MEMBERSHIP · PAYMENT RECEIPT</p></div>
+      <div class="meta"><strong>RECEIPT</strong>No. ${safe(receiptNumber)}<br>Issued: ${safe(paymentDate)}</div>
+    </header>
+    <div class="content"><span class="status">PAYMENT SUCCESSFUL</span>
+      <div class="amount-box"><div class="amount-label">Amount received</div><div class="amount">${safe(formatCurrency(payment.amount))}</div></div>
+      <section class="section"><h2>MEMBER DETAILS</h2><div class="grid">
+        <div class="line"><span>Member name</span><strong>${safe(membership.user_id?.full_name || '—')}</strong></div>
+        <div class="line"><span>Member ID</span><strong>${safe(membership.gym_admission_id?.member_id || '—')}</strong></div>
+        <div class="line"><span>Email</span><strong>${safe(membership.user_id?.email || '—')}</strong></div>
+        <div class="line"><span>Phone</span><strong>${safe(membership.user_id?.phone || '—')}</strong></div>
+      </div></section>
+      <section class="section"><h2>MEMBERSHIP DETAILS</h2><div class="grid">
+        <div class="line"><span>Plan</span><strong>${safe(membership.plan_name_snapshot || '—')}</strong></div>
+        <div class="line"><span>Membership type</span><strong>${safe(membershipType)}</strong></div>
+        <div class="line"><span>Plan price</span><strong>${safe(formatCurrency(membership.plan_price_snapshot))}</strong></div>
+        <div class="line"><span>Duration</span><strong>${safe(`${membership.duration_days || '—'} days`)}</strong></div>
+        <div class="line"><span>Start date</span><strong>${safe(formatDate(membership.start_date))}</strong></div>
+        <div class="line"><span>Expiry date</span><strong>${safe(formatDate(membership.end_date))}</strong></div>
+        <div class="line"><span>Membership ID</span><strong>${safe(membership._id || '—')}</strong></div>
+        <div class="line"><span>Payment category</span><strong>${safe(paymentType)}</strong></div>
+      </div></section>
+      <section class="section"><h2>PAYMENT DETAILS</h2><div class="grid">
+        <div class="line"><span>Payment status</span><strong>SUCCESS</strong></div>
+        <div class="line"><span>Payment method</span><strong>${safe(paymentMethod)}</strong></div>
+        <div class="line"><span>Payment date & time</span><strong>${safe(paymentDate)}</strong></div>
+        <div class="line"><span>Transaction reference</span><strong>${safe(transactionReference)}</strong></div>
+        <div class="line"><span>Payment record ID</span><strong>${safe(payment._id || '—')}</strong></div>
+        <div class="line"><span>Gateway order ID</span><strong>${safe(payment.razorpay_order_id || '—')}</strong></div>
+      </div></section>
+      <div class="notice">This receipt confirms the successful payment recorded by IRONFORGE. Please retain it for your records. For payment queries, share the receipt number or transaction reference with the gym.</div>
+    </div><footer class="footer">Thank you for being a part of IRONFORGE.</footer>
+  </main><div class="actions"><button class="print" onclick="window.print()">Print / Save as PDF</button></div>
+  </body></html>`);
   receiptWindow.document.close();
 }
-
-function MembershipDetails({ membership, loading, error, onClose, onAction, actionBusy }) {
+function MembershipDetails({ membership, loading, error, onClose }) {
   if (!membership && !loading) return null;
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -132,7 +177,6 @@ function MembershipDetails({ membership, loading, error, onClose, onAction, acti
                 <DetailLine label="Member ID" value={membership.gym_admission_id?.member_id}/>
                 <DetailLine label="Membership ID" value={membership._id}/>
                 <DetailLine label="Record type" value={membership.membership_type === 'renewal' ? 'Renewal' : 'Initial membership'}/>
-                <DetailLine label="Frozen since" value={membership.frozen_at ? formatDate(membership.frozen_at) : '—'}/>
                 <DetailLine label="Start date" value={formatDate(membership.start_date)}/>
                 <DetailLine label="Expiry date" value={formatDate(membership.end_date)}/>
                 <DetailLine label="Payment status" value={<Badge tone={paymentTone[membership.payment_status] || 'neutral'}>{membership.payment_status || 'unknown'}</Badge>}/>
@@ -147,23 +191,7 @@ function MembershipDetails({ membership, loading, error, onClose, onAction, acti
                   </div>
                 ))}</div> : <p className="text-sm text-slate-500 dark:text-slate-400">No payment transactions are linked to this membership.</p>}
               </Card>
-              <Card>
-                <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">Membership actions</h3>
-                <div className="flex flex-wrap gap-2">
-                  {membership.status === 'frozen'
-                    ? <Button size="sm" onClick={() => onAction('resume', membership)} disabled={actionBusy}><RotateCcw size={14}/> Resume membership</Button>
-                    : ['active', 'scheduled'].includes(membership.status)
-                      ? <Button size="sm" variant="outline" onClick={() => onAction('freeze', membership)} disabled={actionBusy}><Snowflake size={14}/> Freeze</Button>
-                      : null}
-                  {membership.payment_status === 'paid' && membership.status !== 'frozen'
-                    ? <Button size="sm" variant="outline" onClick={() => onAction('extend', membership)} disabled={actionBusy}><CalendarPlus size={14}/> Extend days</Button>
-                    : null}
-                  {membership.status !== 'pending' && membership.status !== 'frozen'
-                    ? <Button size="sm" variant="outline" onClick={() => onAction('renew', membership)} disabled={actionBusy}><RotateCcw size={14}/> Create renewal</Button>
-                    : null}
-                </div>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Renewal creates a separate full-price membership record. It does not reuse the admission advance from the first membership.</p>
-              </Card>
+
             </>
           ) : null}
         </div>
@@ -185,7 +213,6 @@ export default function AdminMemberships() {
   const [expiry, setExpiry] = useState('all');
   const [plan, setPlan] = useState('all');
   const [membershipType, setMembershipType] = useState('all');
-  const [actionBusy, setActionBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [selected, setSelected] = useState(null);
@@ -225,39 +252,6 @@ export default function AdminMemberships() {
     }
   }
 
-  async function handleMembershipAction(action, membership) {
-    let days;
-    if (action === 'extend') {
-      const entered = window.prompt('How many extra days should be added? (1–365)', '7');
-      if (entered === null) return;
-      days = Number(entered);
-      if (!Number.isInteger(days) || days < 1 || days > 365) {
-        window.alert('Enter a whole number between 1 and 365.');
-        return;
-      }
-    }
-    const labels = { renew: 'create a full-price renewal record', freeze: 'freeze this membership', resume: 'resume this membership', extend: `extend this membership by ${days} days` };
-    if (!window.confirm(`Are you sure you want to ${labels[action]}?`)) return;
-    setActionBusy(true);
-    try {
-      if (action === 'renew') await membershipService.adminRenew(membership._id);
-      if (action === 'freeze') await membershipService.freeze(membership._id);
-      if (action === 'resume') await membershipService.resume(membership._id);
-      if (action === 'extend') await membershipService.extend(membership._id, days);
-      await loadMemberships(true);
-      if (action === 'renew') {
-        setSelected(null);
-        window.alert('Renewal record created. The member must complete the full renewal payment.');
-      } else {
-        const refreshed = await membershipService.getDetails(membership._id);
-        setSelected(refreshed);
-      }
-    } catch (requestError) {
-      window.alert(requestError?.response?.data?.error || 'Membership action could not be completed.');
-    } finally {
-      setActionBusy(false);
-    }
-  }
 
   const pages = Math.max(1, Number(data.pages) || 1);
   const start = data.total ? ((page - 1) * limit) + 1 : 0;
@@ -277,7 +271,7 @@ export default function AdminMemberships() {
   return (
     <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h1 className="font-display text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Membership Management</h1><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Manage membership lifecycle, expiry, payments and member records</p></div>
+        <div><h1 className="font-display text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Membership Management</h1><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">View membership records, renewals, expiry and payment history</p></div>
         <Button variant="outline" onClick={() => loadMemberships(true)} disabled={refreshing}><RefreshCw size={15} className={refreshing ? 'animate-spin' : ''}/> Refresh</Button>
       </div>
 
@@ -341,7 +335,7 @@ export default function AdminMemberships() {
         </>
       ) : <EmptyState title="No memberships found" description="Try changing your search or filters. Membership records will appear here when customers purchase a plan."/>}
 
-      <MembershipDetails membership={selected} loading={detailLoading} error={detailError} onClose={() => {setSelected(null);setDetailError('');}} onAction={handleMembershipAction} actionBusy={actionBusy}/>
+      <MembershipDetails membership={selected} loading={detailLoading} error={detailError} onClose={() => {setSelected(null);setDetailError('');}}/>
     </div>
   );
 }
