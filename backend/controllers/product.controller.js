@@ -3,11 +3,8 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpl
 
 const parseProductBody = (body) => {
   const data = { ...body };
-  if (typeof data.key_features === 'string') {
-    try { data.key_features = JSON.parse(data.key_features); } catch { data.key_features = data.key_features.split('\n').map((item) => item.trim()).filter(Boolean); }
-  }
-  for (const key of ['is_active', 'is_featured']) {
-    if (data[key] !== undefined) data[key] = data[key] === true || data[key] === 'true';
+  if (data.is_active !== undefined) {
+    data.is_active = data.is_active === true || data.is_active === 'true';
   }
   return data;
 };

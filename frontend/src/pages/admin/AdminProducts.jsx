@@ -53,7 +53,7 @@ export default function AdminProducts() {
   const filteredProducts = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return products;
-    return products.filter((item) => [item.name, item.brand, item.sku, item.barcode].some((value) => String(value || '').toLowerCase().includes(term)));
+    return products.filter((item) => [item.name, item.brand, item.sku].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [products, query]);
 
   const stockStats = useMemo(() => ({
@@ -126,7 +126,6 @@ export default function AdminProducts() {
     try {
       const payload = {
         ...form,
-        sale_price: '',
         stock_quantity: editing === 'new' ? Number(form.stock_quantity) : undefined,
       };
       if (editing === 'new') await productService.create(payload);
@@ -253,7 +252,7 @@ export default function AdminProducts() {
         return <Card key={p.id || p._id} padding={false} className="overflow-hidden">
           <div className="relative flex h-44 items-center justify-center bg-surface-50 dark:bg-surface-800">{p.image_url || p.images?.[0]?.url ? <img src={p.image_url || p.images?.[0]?.url} alt={p.name} className="h-full w-full object-contain p-3" /> : <Package size={40} className="text-surface-300" />}<span className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold ${status === 'in_stock' ? 'bg-emerald-100 text-emerald-700' : status === 'low_stock' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{status.replaceAll('_', ' ')}</span></div>
           <div className="space-y-3 p-4"><div><p className="text-xs font-bold uppercase tracking-wide text-brand-600">{p.brand} · {p.sku}</p><h3 className="mt-1 font-semibold text-ink-950 dark:text-white">{p.name}</h3><p className="mt-1 text-xs text-surface-500">{p.category_id?.name || 'Uncategorized'} · {p.net_quantity || 'Pack size not set'}</p></div>
-            <div className="flex items-baseline gap-2"><span className="text-lg font-bold">{formatCurrency(p.sale_price ?? p.price)}</span>{p.sale_price != null && <span className="text-xs text-surface-400 line-through">{formatCurrency(p.price)}</span>}{p.mrp != null && <span className="ml-auto text-xs text-surface-500">MRP {formatCurrency(p.mrp)}</span>}</div>
+            <div className="flex items-baseline gap-2"><span className="text-lg font-bold">{formatCurrency(p.price)}</span>{p.mrp != null && <span className="ml-auto text-xs text-surface-500">MRP {formatCurrency(p.mrp)}</span>}</div>
             <div className="grid grid-cols-3 gap-2 rounded-xl bg-surface-50 p-3 text-center dark:bg-surface-800"><div><p className="text-[10px] text-surface-500">On hand</p><p className="font-bold">{p.stock_quantity}</p></div><div><p className="text-[10px] text-surface-500">Reserved</p><p className="font-bold">{p.reserved_quantity || 0}</p></div><div><p className="text-[10px] text-surface-500">Available</p><p className="font-bold">{available}</p></div></div>
             {p.expiry_date && <p className="text-xs text-surface-500">Expiry: {formatDate(p.expiry_date)}</p>}
             <div className="flex flex-wrap gap-2"><button onClick={() => openEdit(p)} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-100 py-2 text-xs font-semibold hover:bg-surface-200 dark:bg-surface-800"><Pencil size={14} /> Edit</button><button onClick={() => { setStockTarget(p); setStockForm({ quantity: '', reason: '' }); setError(''); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-50 py-2 text-xs font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300"><ArrowDownUp size={14} /> Adjust stock</button><button onClick={() => openHistory(p)} className="rounded-lg bg-surface-100 px-3 py-2 text-surface-600 dark:bg-surface-800"><History size={14} /></button><button onClick={() => removeSupplement(p)} className="rounded-lg bg-red-50 px-3 py-2 text-red-600 dark:bg-red-500/10"><Trash2 size={14} /></button></div>
