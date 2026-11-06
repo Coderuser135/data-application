@@ -42,9 +42,7 @@ export async function getProducts({
   const filter = { is_deleted: { $ne: true } };
 
   if (search.trim()) {
-    const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\export async function getProducts() {
-  return Product.find({ is_deleted: { $ne: true } }).populate('category_id').sort({ createdAt: -1 });
-}');
+    const safeSearch = search.trim().replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
     filter.$or = [
       { name: { $regex: safeSearch, $options: 'i' } },
       { brand: { $regex: safeSearch, $options: 'i' } },
@@ -74,7 +72,7 @@ export async function getProducts({
   } else if (expiry === '30') {
     filter.expiry_date = { $gte: now, $lte: new Date(now.getTime() + 30 * 86400000) };
   } else if (expiry === 'no_date') {
-    filter.$or = [...(filter.$or || []), { expiry_date: null }, { expiry_date: { $exists: false } }];
+    filter.$and = [...(filter.$and || []), { $or: [{ expiry_date: null }, { expiry_date: { $exists: false } }] }];
   }
 
   const safePage = Math.max(1, Number(page) || 1);
