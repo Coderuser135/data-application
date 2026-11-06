@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, X, Plus, Pencil, Trash2, Ruler, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, X, Plus, Pencil, Trash2, Ruler, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
@@ -17,6 +17,8 @@ export default function AdminBodyMeasurements() {
   const dispatch = useDispatch();
   const { adminItems, members, selectedUserMeasurements, loading } = useSelector((state) => state.measurements);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -40,6 +42,7 @@ export default function AdminBodyMeasurements() {
   }
 
   function selectMember(member) {
+    setPage(1);
     setSelectedMember(member);
     setSearchQuery('');
     setSearchResults([]);
@@ -94,6 +97,14 @@ export default function AdminBodyMeasurements() {
   const measurements = selectedMember ? selectedUserMeasurements : adminItems;
   const latest = measurements[0];
   const previous = measurements[1];
+  const totalRecords = measurements.length;
+  const pageCount = Math.max(1, Math.ceil(totalRecords / limit));
+  const currentPage = Math.min(page, pageCount);
+  const startItem = totalRecords ? (currentPage - 1) * limit + 1 : 0;
+  const endItem = Math.min(currentPage * limit, totalRecords);
+  const visibleMeasurements = measurements.slice((currentPage - 1) * limit, currentPage * limit);
+  const firstPageNumber = Math.max(1, Math.min(currentPage - 2, pageCount - 4));
+  const visiblePages = Array.from({ length: Math.min(5, pageCount) }, (_, index) => firstPageNumber + index);
 
   function delta(field) {
     if (!latest || !previous) return null;
@@ -189,7 +200,7 @@ export default function AdminBodyMeasurements() {
                 </tr>
               </thead>
               <tbody>
-                {measurements.map((m) => (
+                {visibleMeasurements.map((m) => (
                   <tr key={m.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
                     <td data-label="Date" className="px-5 py-3 font-medium">{formatDate(m.measurement_date)}</td>
                     <td data-label="Member" className="px-5 py-3 text-surface-600 dark:text-surface-300">{m.user_id?.full_name || '—'}</td>
@@ -202,6 +213,22 @@ export default function AdminBodyMeasurements() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-surface-200 px-4 py-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs font-medium text-surface-500">Showing {startItem}–{endItem} of {totalRecords} measurements</span>
+              <label className="flex items-center gap-2 text-xs font-medium text-surface-600 dark:text-surface-300">
+                Rows per page
+                <select value={limit} onChange={(event) => { setLimit(Number(event.target.value)); setPage(1); }} className="min-h-9 rounded-lg border border-surface-300 bg-white px-2 text-sm text-ink-900 dark:border-surface-700 dark:bg-surface-950 dark:text-white">
+                  <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
+                </select>
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}><ChevronLeft size={14}/> Prev</Button>
+              {visiblePages.map((pageNumber) => <button key={pageNumber} type="button" aria-current={pageNumber === currentPage ? 'page' : undefined} onClick={() => setPage(pageNumber)} className={`h-8 min-w-8 rounded-lg px-2 text-sm font-bold transition ${pageNumber === currentPage ? 'bg-brand-600 text-white shadow-sm' : 'border border-surface-300 bg-white text-surface-700 hover:bg-surface-50 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-300 dark:hover:bg-surface-800'}`}>{pageNumber}</button>)}
+              <Button variant="outline" size="sm" disabled={currentPage >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Next <ChevronRight size={14}/></Button>
+            </div>
           </div>
         ) : <div className="p-5"><EmptyState title="No measurements yet" description={selectedMember ? "Add this member's first measurement." : 'Select a member to view their history.'} /></div>}
       </Card>
