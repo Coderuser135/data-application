@@ -136,8 +136,8 @@ export async function deleteProduct(id) {
 }
 
 export async function adjustStock(id, data, performedBy) {
-  const quantity = numberField(data.quantity, 'stock adjustment quantity');
-  if (!Number.isInteger(quantity) || quantity === 0) throw new ApiError(400, 'Stock adjustment must be a non-zero whole number');
+  const quantity = Number(data.quantity);
+  if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity === 0) throw new ApiError(400, 'Stock adjustment must be a non-zero whole number');
   const reason = String(data.reason || '').trim();
   if (!reason) throw new ApiError(400, 'A reason is required for every stock adjustment');
   const product = await Product.findOne({ _id: id, is_deleted: false });
