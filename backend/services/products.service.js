@@ -42,7 +42,7 @@ export async function getProducts({
   const filter = { is_deleted: { $ne: true } };
 
   if (search.trim()) {
-    const safeSearch = search.trim().replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
       { name: { $regex: safeSearch, $options: 'i' } },
       { brand: { $regex: safeSearch, $options: 'i' } },
