@@ -486,8 +486,8 @@ export default function AdminAdmissions() {
         document.body,
       )}
 
-      {showModal && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowModal(false)}>
+      {showModal && selectedUser && createPortal(
+        <div className="fixed inset-0 z-[10000] grid place-items-center overflow-y-auto bg-black/60 p-3 sm:p-5" onClick={() => setShowModal(false)}>
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-800 dark:bg-surface-900" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 z-10 border-b border-surface-200 bg-white px-6 py-4 dark:border-surface-800 dark:bg-surface-900">
               <div className="flex items-center justify-between">
@@ -594,7 +594,8 @@ export default function AdminAdmissions() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
