@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema({
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductCategory', default: null },
   name: { type: String, required: true, trim: true, maxlength: 200 },
   slug: { type: String, required: true, unique: true, trim: true },
-  sku: { type: String, unique: true, uppercase: true, trim: true, maxlength: 60 },
+  sku: { type: String, unique: true, sparse: true, uppercase: true, trim: true, maxlength: 60 },
   barcode: { type: String, trim: true, default: '', maxlength: 80 },
   brand: { type: String, required: true, trim: true, maxlength: 120, default: 'Unbranded' },
   product_type: { type: String, enum: ['protein', 'vitamin', 'mineral', 'hydration', 'nutrition_bar', 'other'], default: 'other' },
