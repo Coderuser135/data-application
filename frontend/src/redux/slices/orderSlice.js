@@ -11,8 +11,8 @@ export const fetchAllOrders = createAsyncThunk('orders/fetchAll', async (_, { re
   try { return await orderService.getAll(); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to fetch orders')); }
 });
 
-export const createOrder = createAsyncThunk('orders/createOrder', async ({ items, shippingAddress }, { rejectWithValue }) => {
-  try { return await orderService.create(items, shippingAddress); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to create order')); }
+export const createOrder = createAsyncThunk('orders/createOrder', async (orderData, { rejectWithValue }) => {
+  try { return await orderService.create(orderData); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to create order')); }
 });
 
 export const updateOrderStatus = createAsyncThunk('orders/updateStatus', async ({ id, status }, { rejectWithValue }) => {
