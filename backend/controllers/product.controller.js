@@ -1,56 +1,69 @@
 import * as productService from '../services/products.service.js';
+import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.utils.js';
+
+const parseProductBody = (body) => {
+  const data = { ...body };
+  if (typeof data.key_features === 'string') {
+    try { data.key_features = JSON.parse(data.key_features); } catch { data.key_features = data.key_features.split('\n').map((item) => item.trim()).filter(Boolean); }
+  }
+  for (const key of ['is_active', 'is_featured']) {
+    if (data[key] !== undefined) data[key] = data[key] === true || data[key] === 'true';
+  }
+  return data;
+};
 
 export const getProducts = async (req, res, next) => {
-  try {
-    const products = await productService.getProducts();
-    res.json(products);
-  } catch (err) { next(err); }
+  try { res.json(await productService.getProducts()); } catch (err) { next(err); }
 };
 export const getActiveProducts = async (req, res, next) => {
-  try {
-    const products = await productService.getActiveProducts();
-    res.json(products);
-  } catch (err) { next(err); }
+  try { res.json(await productService.getActiveProducts()); } catch (err) { next(err); }
 };
 export const createProduct = async (req, res, next) => {
+  let uploadedImage;
   try {
-    const product = await productService.createProduct(req.body);
+    if (req.file) uploadedImage = await uploadToCloudinary(req.file.buffer);
+    const product = await productService.createProduct(parseProductBody(req.body), uploadedImage);
     res.status(201).json(product);
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (uploadedImage?.public_id) await deleteFromCloudinary(uploadedImage.public_id).catch(() => {});
+    next(err);
+  }
 };
 export const updateProduct = async (req, res, next) => {
+  let uploadedImage;
   try {
-    const product = await productService.updateProduct(req.params.id, req.body);
+    if (req.file) uploadedImage = await uploadToCloudinary(req.file.buffer);
+    const existing = await productService.getProductById(req.params.id);
+    const product = await productService.updateProduct(req.params.id, parseProductBody(req.body), uploadedImage);
+    if (uploadedImage && existing?.image_public_id) await deleteFromCloudinary(existing.image_public_id).catch(() => {});
     res.json(product);
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (uploadedImage?.public_id) await deleteFromCloudinary(uploadedImage.public_id).catch(() => {});
+    next(err);
+  }
 };
 export const deleteProduct = async (req, res, next) => {
   try {
-    await productService.deleteProduct(req.params.id);
-    res.json({ message: 'Product deleted' });
+    const product = await productService.deleteProduct(req.params.id);
+    if (product.image_public_id) await deleteFromCloudinary(product.image_public_id).catch(() => {});
+    res.json({ message: 'Supplement deleted' });
   } catch (err) { next(err); }
+};
+export const adjustStock = async (req, res, next) => {
+  try { res.json(await productService.adjustStock(req.params.id, req.body, req.user?._id)); } catch (err) { next(err); }
+};
+export const getStockHistory = async (req, res, next) => {
+  try { res.json(await productService.getStockHistory(req.params.id)); } catch (err) { next(err); }
 };
 export const getCategories = async (req, res, next) => {
-  try {
-    const categories = await productService.getCategories();
-    res.json(categories);
-  } catch (err) { next(err); }
+  try { res.json(await productService.getCategories()); } catch (err) { next(err); }
 };
 export const createCategory = async (req, res, next) => {
-  try {
-    const category = await productService.createCategory(req.body);
-    res.status(201).json(category);
-  } catch (err) { next(err); }
+  try { res.status(201).json(await productService.createCategory(req.body)); } catch (err) { next(err); }
 };
 export const updateCategory = async (req, res, next) => {
-  try {
-    const category = await productService.updateCategory(req.params.id, req.body);
-    res.json(category);
-  } catch (err) { next(err); }
+  try { res.json(await productService.updateCategory(req.params.id, req.body)); } catch (err) { next(err); }
 };
 export const deleteCategory = async (req, res, next) => {
-  try {
-    await productService.deleteCategory(req.params.id);
-    res.json({ message: 'Category deleted' });
-  } catch (err) { next(err); }
+  try { await productService.deleteCategory(req.params.id); res.json({ message: 'Category deleted' }); } catch (err) { next(err); }
 };
