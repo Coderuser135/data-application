@@ -175,8 +175,8 @@ export default function AdminBodyMeasurements() {
           </h3>
         </div>
         {measurements.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm">
+          <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+            <table className="admin-data-table text-sm" style={{ width: '980px', minWidth: '980px', maxWidth: 'none', tableLayout: 'auto' }}>
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-3 font-medium">Date</th>
