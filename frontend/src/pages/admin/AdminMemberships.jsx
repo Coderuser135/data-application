@@ -305,7 +305,7 @@ export default function AdminMemberships() {
       {loading ? <AdminLoadingSkeleton variant="table" rows={6}/> : data.rows.length ? (
         <>
           <Card padding={false} className="!overflow-hidden !border-slate-200 !bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)] dark:!border-slate-700 dark:!bg-slate-900">
-            <div className="hidden overflow-x-auto md:block"><table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-sm">
               <thead><tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"><th className="px-4 py-4">Member</th><th className="px-4 py-4">Plan</th><th className="px-4 py-4">Price / Due</th><th className="px-4 py-4">Start / End</th><th className="px-4 py-4">Days left</th><th className="px-4 py-4">Status</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4 text-right">Action</th></tr></thead>
               <tbody>{data.rows.map((item) => { const effective = item.effective_status || item.status; return (
                 <tr key={item._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/40">
@@ -320,13 +320,6 @@ export default function AdminMemberships() {
                 </tr>
               );})}</tbody>
             </table></div>
-            <div className="divide-y divide-slate-100 md:hidden dark:divide-slate-800">{data.rows.map((item) => { const effective = item.effective_status || item.status; return (
-              <article key={item._id} className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-slate-950 dark:text-white">{item.user_id?.full_name || 'Unknown member'}</p><p className="mt-1 truncate text-xs text-slate-500">{item.user_id?.email || item.user_id?.phone || '—'}</p></div><Badge tone={statusTone[effective] || 'neutral'}>{effective}</Badge></div>
-                <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70"><div><p className="text-[11px] text-slate-500">Plan</p><p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{item.plan_name_snapshot}</p></div><div><p className="text-[11px] text-slate-500">Price</p><p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{formatCurrency(item.plan_price_snapshot)}</p></div><div><p className="text-[11px] text-slate-500">Start date</p><p className="mt-1 text-xs font-semibold text-slate-800 dark:text-slate-200">{formatDate(item.start_date)}</p></div><div><p className="text-[11px] text-slate-500">Expiry date</p><p className="mt-1 text-xs font-semibold text-slate-800 dark:text-slate-200">{formatDate(item.end_date)}</p></div></div>
-                <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap items-center gap-2"><Badge tone={paymentTone[item.payment_status] || 'neutral'}>{item.payment_status || 'unknown'}</Badge><Badge tone={item.membership_type === 'renewal' ? 'info' : 'neutral'}>{item.membership_type === 'renewal' ? 'Renewal' : 'Initial'}</Badge></div><Button size="sm" variant="outline" onClick={() => openDetails(item)}><Eye size={14}/> View details</Button></div>
-              </article>
-            );})}</div>
           </Card>
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between sm:px-4">
             <p className="text-xs text-slate-500 dark:text-slate-400">Showing <strong className="text-slate-800 dark:text-slate-200">{start}-{end}</strong> of <strong className="text-slate-800 dark:text-slate-200">{data.total}</strong></p>
