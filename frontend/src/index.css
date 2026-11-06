@@ -359,7 +359,11 @@ button, input, select, textarea { font: inherit; }
 .admin-shell .admin-topbar a { min-width: 0; }
 .admin-shell .admin-topbar a > span { white-space: nowrap; }
 .admin-shell .admin-content .overflow-x-auto { width: 100%; min-width: 0; }
-.admin-shell .admin-content .overflow-x-auto table { max-width: 100%; }
+.admin-shell .admin-content .overflow-x-auto table:not(.admin-data-table) { max-width: 100%; }
+.admin-shell .admin-content .admin-table-scroll { display: block; width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.admin-shell .admin-content .admin-table-scroll > .admin-data-table { display: table; width: 980px !important; min-width: 980px !important; max-width: none !important; table-layout: auto; }
+.admin-shell .admin-content .admin-data-table th,
+.admin-shell .admin-content .admin-data-table td { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
 .admin-shell .admin-content .grid > * { min-width: 0; }
 .admin-shell .admin-content .flex > * { min-width: 0; }
 .admin-shell [role="dialog"] { max-width: calc(100vw - 20px); }
