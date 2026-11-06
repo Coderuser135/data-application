@@ -8,8 +8,7 @@ function toSupplementFormData(data) {
       if (value instanceof File) formData.append('image', value);
       continue;
     }
-    if (key === 'key_features') formData.append(key, JSON.stringify(value));
-    else formData.append(key, String(value));
+    formData.append(key, String(value));
   }
   return formData;
 }
