@@ -58,6 +58,10 @@ export default function AdminProducts() {
         page: pageNumber,
         limit: pageSize,
       });
+      if (pageNumber > result.pages) {
+        setPageNumber(result.pages || 1);
+        return;
+      }
       setProductData(result);
       setProducts(result.rows || []);
     } catch (requestError) {
