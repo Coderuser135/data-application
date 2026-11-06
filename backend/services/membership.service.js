@@ -116,11 +116,11 @@ export async function getAllMemberships({
       .filter((payment) => payment.payment_type === 'membership_advance'
         && String(payment.membership_id || '') === String(item._id))
       .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-    const unallocatedAdmissionAdvance = relatedPayments
+    const unallocatedAdmissionAdvance = item.membership_type === 'renewal' ? 0 : relatedPayments
       .filter((payment) => payment.payment_type === 'membership_advance'
         && !payment.membership_id && payment.status === 'success')
       .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
-    const advancePaid = Math.max(
+    const advancePaid = item.membership_type === 'renewal' ? 0 : Math.max(
       Number(item.advance_paid || 0),
       allocatedAdvance + unallocatedAdmissionAdvance,
     );
@@ -168,7 +168,7 @@ export async function getMembershipDetails(membershipId) {
     user_id: membership.user_id._id,
     $or: [
       { membership_id: membership._id },
-      ...(membership.gym_admission_id
+      ...(membership.membership_type !== 'renewal' && membership.gym_admission_id
         ? [{ gym_admission_id: membership.gym_admission_id, payment_type: 'membership_advance' }]
         : []),
     ],
@@ -185,11 +185,11 @@ export async function getMembershipDetails(membershipId) {
     .filter((payment) => payment.payment_type === 'membership_advance'
       && (String(payment.membership_id || '') === String(membership._id)))
     .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-  const unallocatedAdmissionAdvance = payments
+  const unallocatedAdmissionAdvance = membership.membership_type === 'renewal' ? 0 : payments
     .filter((payment) => payment.payment_type === 'membership_advance'
       && !payment.membership_id && payment.status === 'success')
     .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
-  const advancePaid = Math.max(
+  const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
     Number(membership.advance_paid || 0),
     allocatedAdvance + unallocatedAdmissionAdvance,
   );
