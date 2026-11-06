@@ -15,6 +15,7 @@ export default function Checkout() {
   const dispatch = useDispatch();
   const items = useSelector((state) => state.cart.items);
   const [form, setForm] = useState({ full_name: '', phone: '', address: '', city: '', state: '', pincode: '' });
+  const [fulfillmentMethod, setFulfillmentMethod] = useState('store_pickup');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -39,8 +40,8 @@ export default function Checkout() {
     setError('');
     setLoading(true);
     try {
-      const shippingAddress = `${form.full_name}, ${form.address}, ${form.city}, ${form.state} - ${form.pincode}, Phone: ${form.phone}`;
-      const order = await dispatch(createOrder({ items, shippingAddress })).unwrap();
+      const shippingAddress = fulfillmentMethod === 'admin_delivery' ? [form.address, form.city, form.state + ' - ' + form.pincode].join(', ') : '';
+      const order = await dispatch(createOrder({ items, shippingAddress, fulfillmentMethod, customerName: form.full_name.trim(), customerPhone: form.phone.trim() })).unwrap();
       const { payment, keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ orderId: order.id });
 
       if (!razorpayOrder || !keyId || typeof window.Razorpay !== 'function') {
@@ -92,19 +93,20 @@ export default function Checkout() {
       <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Checkout</h1>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card>
-          <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">Shipping Address</h3>
+          <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">How would you like to receive your order?</h3>
+          <div className="mb-5 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => setFulfillmentMethod("store_pickup")} className={"rounded-xl border p-4 text-left " + (fulfillmentMethod === "store_pickup" ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-surface-200 dark:border-surface-700")}><span className="block text-sm font-semibold">Store Pickup</span><span className="mt-1 block text-xs text-surface-500">Pay online and collect from the gym/store.</span></button>
+            <button type="button" onClick={() => setFulfillmentMethod("admin_delivery")} className={"rounded-xl border p-4 text-left " + (fulfillmentMethod === "admin_delivery" ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-surface-200 dark:border-surface-700")}><span className="block text-sm font-semibold">Admin Delivery</span><span className="mt-1 block text-xs text-surface-500">Gym staff will deliver to your address.</span></button>
+          </div>
+          <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">Customer Details</h3>
           <form onSubmit={handleCheckout} className="space-y-4">
             {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</div>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Full Name" value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Your name" required />
               <Input label="Phone" value={form.phone} onChange={(e) => update('phone', e.target.value.replace(/\D/g, ''))} placeholder="10-digit phone" maxLength={10} required />
             </div>
-            <Input label="Address" value={form.address} onChange={(e) => update('address', e.target.value)} placeholder="House no, Street, Area" required />
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Input label="City" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="City" required />
-              <Input label="State" value={form.state} onChange={(e) => update('state', e.target.value)} placeholder="State" required />
-              <Input label="Pincode" value={form.pincode} onChange={(e) => update('pincode', e.target.value.replace(/\D/g, ''))} placeholder="6-digit PIN" maxLength={6} required />
-            </div>
+            {fulfillmentMethod === "admin_delivery" && <div className="space-y-4 rounded-xl border border-surface-200 p-4 dark:border-surface-700"><h4 className="text-sm font-semibold">Delivery Address</h4><Input label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="House no, Street, Area" required /><div className="grid gap-4 sm:grid-cols-3"><Input label="City" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="City" required /><Input label="State" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="State" required /><Input label="Pincode" value={form.pincode} onChange={(e) => update("pincode", e.target.value.replace(/\\D/g, ""))} placeholder="6-digit PIN" maxLength={6} required /></div></div>}
+
             <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
               <div className="flex items-center gap-2">
                 <Lock size={16} className="text-brand-600" />
