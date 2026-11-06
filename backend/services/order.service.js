@@ -73,12 +73,6 @@ export async function createOrder(userId, items, shippingAddress) {
         const subtotal = price * quantity;
         totalAmount += subtotal;
         orderItems.push({ product_id: product._id, product_name_snapshot: product.name, product_price_snapshot: price, quantity, subtotal });
-        await InventoryMovement.create([{
-          product_id: product._id, movement_type: 'order_reserved', quantity,
-          stock_before: product.stock_quantity, stock_after: product.stock_quantity,
-          reserved_before: product.reserved_quantity, reserved_after: product.reserved_quantity + quantity,
-          reason: 'Stock reserved for customer order',
-        }], { session });
       }
       const [order] = await Order.create([{
         user_id: userId, order_number: generateOrderNumber(), total_amount: totalAmount,
@@ -88,10 +82,13 @@ export async function createOrder(userId, items, shippingAddress) {
       }], { session });
       createdOrder = order;
       for (const item of orderItems) {
-        await InventoryMovement.updateMany(
-          { product_id: item.product_id, movement_type: 'order_reserved', reason: 'Stock reserved for customer order' },
-          { $set: { reference_id: order._id } }, { session },
-        );
+        const product = await Product.findById(item.product_id).session(session);
+        await InventoryMovement.create([{
+          product_id: item.product_id, movement_type: 'order_reserved', quantity: item.quantity,
+          stock_before: product.stock_quantity, stock_after: product.stock_quantity,
+          reserved_before: product.reserved_quantity - item.quantity, reserved_after: product.reserved_quantity,
+          reason: 'Stock reserved for customer order', reference_id: order._id,
+        }], { session });
       }
     });
     return createdOrder;
