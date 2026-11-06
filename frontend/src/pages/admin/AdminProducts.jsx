@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Pencil, Trash2, X, Package, Search, ImagePlus, Boxes, AlertTriangle, History, ArrowDownUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Package, Search, ImagePlus, Boxes, AlertTriangle, History, ArrowDownUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -31,6 +31,10 @@ export default function AdminProducts() {
   const [imagePreview, setImagePreview] = useState('');
   const [selectedImageName, setSelectedImageName] = useState('');
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [stockTarget, setStockTarget] = useState(null);
   const [stockForm, setStockForm] = useState({ quantity: '', reason: '' });
   const [stockHistory, setStockHistory] = useState([]);
@@ -52,9 +56,28 @@ export default function AdminProducts() {
 
   const filteredProducts = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return products;
-    return products.filter((item) => [item.name, item.brand, item.sku, item.barcode].some((value) => String(value || '').toLowerCase().includes(term)));
-  }, [products, query]);
+    return products.filter((item) => {
+      const matchesQuery = !term || [item.name, item.brand, item.sku, item.barcode].some((value) => String(value || '').toLowerCase().includes(term));
+      const itemCategoryId = item.category_id?.id || item.category_id?._id || item.category_id || '';
+      const matchesCategory = categoryFilter === 'all' || String(itemCategoryId) === categoryFilter;
+      const available = item.available_quantity ?? Math.max(0, Number(item.stock_quantity || 0) - Number(item.reserved_quantity || 0));
+      const status = item.stock_status || (available === 0 ? 'out_of_stock' : available <= Number(item.low_stock_threshold ?? 5) ? 'low_stock' : 'in_stock');
+      const matchesStock = stockFilter === 'all' || status === stockFilter;
+      return matchesQuery && matchesCategory && matchesStock;
+    });
+  }, [products, query, categoryFilter, stockFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paginatedProducts = filteredProducts.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const firstPageNumber = Math.max(1, Math.min(safePage - 2, pageCount - 4));
+  const visiblePages = Array.from({ length: Math.min(5, pageCount) }, (_, index) => firstPageNumber + index);
+  const startItem = filteredProducts.length ? ((safePage - 1) * pageSize) + 1 : 0;
+  const endItem = Math.min(safePage * pageSize, filteredProducts.length);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   const stockStats = useMemo(() => ({
     total: products.length,
@@ -246,8 +269,25 @@ export default function AdminProducts() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Supplements</h1><p className="mt-1 text-sm text-surface-500">Catalogue, pricing and inventory control</p></div><Button onClick={openCreate}><Plus size={16} /> Add supplement</Button></div>
       <div className="grid gap-3 sm:grid-cols-3"><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Catalogue items</p><Package className="text-brand-600" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.total}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Low stock</p><AlertTriangle className="text-amber-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.low}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Out of stock</p><Boxes className="text-red-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.out}</p></Card></div>
-      <Card><div className="relative"><Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by supplement, brand or SKU..." className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></div></Card>
-      {filteredProducts.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((p) => {
+      <Card>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="relative sm:col-span-1">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" />
+            <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search name, brand, SKU or barcode..." className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" />
+          </div>
+          <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} aria-label="Filter by category" className="w-full rounded-xl border border-surface-300 bg-white px-3 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white">
+            <option value="all">All categories</option>
+            {categories.map((category) => <option key={category.id || category._id} value={category.id || category._id}>{category.name}</option>)}
+          </select>
+          <select value={stockFilter} onChange={(e) => { setStockFilter(e.target.value); setPage(1); }} aria-label="Filter by stock status" className="w-full rounded-xl border border-surface-300 bg-white px-3 py-3 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white">
+            <option value="all">All stock statuses</option>
+            <option value="in_stock">In stock</option>
+            <option value="low_stock">Low stock</option>
+            <option value="out_of_stock">Out of stock</option>
+          </select>
+        </div>
+      </Card>
+      {filteredProducts.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{paginatedProducts.map((p) => {
         const available = p.available_quantity ?? Math.max(0, (p.stock_quantity || 0) - (p.reserved_quantity || 0));
         const status = p.stock_status || (available === 0 ? 'out_of_stock' : available <= (p.low_stock_threshold || 5) ? 'low_stock' : 'in_stock');
         return <Card key={p.id || p._id} padding={false} className="overflow-hidden">
@@ -259,7 +299,22 @@ export default function AdminProducts() {
             <div className="flex flex-wrap gap-2"><button onClick={() => openEdit(p)} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-100 py-2 text-xs font-semibold hover:bg-surface-200 dark:bg-surface-800"><Pencil size={14} /> Edit</button><button onClick={() => { setStockTarget(p); setStockForm({ quantity: '', reason: '' }); setError(''); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-50 py-2 text-xs font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300"><ArrowDownUp size={14} /> Adjust stock</button><button onClick={() => openHistory(p)} className="rounded-lg bg-surface-100 px-3 py-2 text-surface-600 dark:bg-surface-800"><History size={14} /></button><button onClick={() => removeSupplement(p)} className="rounded-lg bg-red-50 px-3 py-2 text-red-600 dark:bg-red-500/10"><Trash2 size={14} /></button></div>
           </div>
         </Card>;
-      })}</div> : <EmptyState title={query ? 'No matching supplements' : 'No supplements yet'} description={query ? 'Try another name, brand or SKU.' : 'Add your first supplement to start managing the store inventory.'} />}
+      })}</div> : <EmptyState title={products.length ? 'No matching supplements' : 'No supplements yet'} description={products.length ? 'Try changing your search or filters.' : 'Add your first supplement to start managing the store inventory.'} />}
+      {filteredProducts.length > 0 && <div className="flex flex-col gap-3 rounded-xl border border-surface-200 bg-white px-4 py-3 dark:border-surface-800 dark:bg-surface-900 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-surface-500">
+          <span>Showing <strong className="text-ink-900 dark:text-white">{startItem}–{endItem}</strong> of <strong className="text-ink-900 dark:text-white">{filteredProducts.length}</strong> supplements</span>
+          <label className="flex items-center gap-2">Rows per page
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="rounded-lg border border-surface-300 bg-white px-2 py-1.5 text-xs text-ink-900 dark:border-surface-700 dark:bg-surface-950 dark:text-white">
+              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
+            </select>
+          </label>
+        </div>
+        <div className="flex items-center justify-between gap-1 sm:justify-end">
+          <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={safePage === 1} className="inline-flex h-9 items-center gap-1 rounded-lg border border-surface-200 px-3 text-xs font-semibold text-surface-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-surface-700 dark:text-surface-300"><ChevronLeft size={15} /> Previous</button>
+          {visiblePages.map((pageNumber) => <button type="button" key={pageNumber} onClick={() => setPage(pageNumber)} aria-current={safePage === pageNumber ? 'page' : undefined} className={`h-9 min-w-9 rounded-lg px-2 text-xs font-semibold ${safePage === pageNumber ? 'bg-brand-600 text-white' : 'border border-surface-200 text-surface-600 hover:bg-surface-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800'}`}>{pageNumber}</button>)}
+          <button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={safePage === pageCount} className="inline-flex h-9 items-center gap-1 rounded-lg border border-surface-200 px-3 text-xs font-semibold text-surface-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-surface-700 dark:text-surface-300">Next <ChevronRight size={15} /></button>
+        </div>
+      </div>}
       {editor}{stockModal}{historyModal}
     </div>
   );
