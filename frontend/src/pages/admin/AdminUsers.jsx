@@ -309,8 +309,8 @@ export default function AdminUsers() {
 
       {loading ? <AdminLoadingSkeleton variant="table" rows={limit === 5 ? 5 : 6} /> : rows.length ? (
         <Card padding={false}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
+          <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+            <table className="admin-data-table text-sm" style={{ width: '980px', minWidth: '980px', maxWidth: 'none', tableLayout: 'auto' }}>
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   <th className="px-4 py-4">Customer</th><th className="px-4 py-4">Contact</th><th className="px-4 py-4">Admission</th><th className="px-4 py-4">Membership</th><th className="px-4 py-4">Latest payment</th><th className="px-4 py-4">Registered</th><th className="px-4 py-4">Profile</th>
