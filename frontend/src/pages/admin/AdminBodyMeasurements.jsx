@@ -8,7 +8,6 @@ import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
 import { fetchAllMeasurements, fetchAdmittedMembers, createMeasurement, updateMeasurement, deleteMeasurement, fetchMeasurementsByUser } from '@/redux/slices/measurementSlice';
-import { admissionService } from '@/services/admissionService';
 import { formatDate } from '@/utils/formatters';
 
 const FIELDS = ['weight', 'height', 'chest', 'stomach', 'biceps', 'back', 'legs', 'body_fat', 'muscle_mass'];
@@ -19,7 +18,8 @@ export default function AdminBodyMeasurements() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchResults, setSearchResults] = useState([]);
+  const [memberPage, setMemberPage] = useState(1);
+  const [memberLimit, setMemberLimit] = useState(10);
   const [selectedMember, setSelectedMember] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingMeasurement, setEditingMeasurement] = useState(null);
@@ -33,19 +33,14 @@ export default function AdminBodyMeasurements() {
     if (selectedMember) dispatch(fetchMeasurementsByUser(selectedMember.user_id || selectedMember._id));
   }, [dispatch, selectedMember]);
 
-  async function handleSearch(e) {
-    const q = e.target.value;
-    setSearchQuery(q);
-    if (q.length >= 2) {
-      try { const res = await admissionService.searchUsers(q, 1, 10); setSearchResults((res.rows || []).filter((user) => user.is_admitted && user.admission_status === 'active')); } catch { setSearchResults([]); }
-    } else { setSearchResults([]); }
+  function handleSearch(e) {
+    setSearchQuery(e.target.value);
+    setMemberPage(1);
   }
 
   function selectMember(member) {
     setPage(1);
     setSelectedMember(member);
-    setSearchQuery('');
-    setSearchResults([]);
   }
 
   function updateField(key, value) { setFormData((prev) => ({ ...prev, [key]: value })); }
@@ -94,6 +89,20 @@ export default function AdminBodyMeasurements() {
     }
   }
 
+  const filteredMembers = members.filter((member) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return [member.full_name, member.email, member.phone, member.member_id]
+      .some((value) => String(value || '').toLowerCase().includes(query));
+  });
+  const memberPageCount = Math.max(1, Math.ceil(filteredMembers.length / memberLimit));
+  const currentMemberPage = Math.min(memberPage, memberPageCount);
+  const visibleMembers = filteredMembers.slice((currentMemberPage - 1) * memberLimit, currentMemberPage * memberLimit);
+  const memberStartItem = filteredMembers.length ? (currentMemberPage - 1) * memberLimit + 1 : 0;
+  const memberEndItem = Math.min(currentMemberPage * memberLimit, filteredMembers.length);
+  const memberFirstPage = Math.max(1, Math.min(currentMemberPage - 2, memberPageCount - 4));
+  const visibleMemberPages = Array.from({ length: Math.min(5, memberPageCount) }, (_, index) => memberFirstPage + index);
+
   const measurements = selectedMember ? selectedUserMeasurements : adminItems;
   const latest = measurements[0];
   const previous = measurements[1];
@@ -124,28 +133,66 @@ export default function AdminBodyMeasurements() {
         {selectedMember && <Button onClick={openCreateForm}><Plus size={16} /> Add Measurement</Button>}
       </div>
 
-      <Card>
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" />
-          <input
-            value={searchQuery}
-            onChange={handleSearch}
-            placeholder="Search member by name, email, or phone..."
-            className="w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-surface-700 dark:bg-surface-950 dark:text-white"
-          />
-        </div>
-        {searchResults.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {searchResults.map((u) => (
-              <button key={u._id || u.id} onClick={() => selectMember(u)} className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition hover:bg-surface-50 dark:hover:bg-surface-800">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/10 text-sm font-bold text-brand-500">{u.full_name?.charAt(0)?.toUpperCase()}</span>
-                <div>
-                  <p className="text-sm font-medium text-ink-900 dark:text-white">{u.full_name}</p>
-                  <p className="text-xs text-surface-500">{u.email} {u.is_admitted && '· Admitted'}</p>
-                </div>
-              </button>
-            ))}
+      <Card padding={false}>
+        <div className="flex flex-col gap-3 border-b border-surface-200 p-4 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div>
+            <h2 className="font-display text-base font-bold text-ink-950 dark:text-white">Admitted Members</h2>
+            <p className="mt-1 text-xs text-surface-500">{members.length} members with an active gym admission</p>
           </div>
+          <div className="relative w-full sm:max-w-sm">
+            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
+            <input
+              value={searchQuery}
+              onChange={handleSearch}
+              placeholder="Search name, email, phone or member ID..."
+              className="min-h-11 w-full rounded-xl border border-surface-300 bg-white py-2.5 pl-10 pr-3 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-surface-700 dark:bg-surface-950 dark:text-white"
+            />
+          </div>
+        </div>
+        {visibleMembers.length ? (
+          <>
+            <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="admin-data-table text-sm" style={{ width: '760px', minWidth: '760px', tableLayout: 'auto' }}>
+                <thead>
+                  <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
+                    <th className="px-5 py-3 font-medium">Member</th>
+                    <th className="px-5 py-3 font-medium">Contact</th>
+                    <th className="px-5 py-3 font-medium">Member ID</th>
+                    <th className="px-5 py-3 font-medium">Admission date</th>
+                    <th className="px-5 py-3 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleMembers.map((member) => (
+                    <tr key={member.user_id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
+                      <td className="px-5 py-3 font-semibold text-ink-900 dark:text-white">{member.full_name || 'Unnamed member'}</td>
+                      <td className="px-5 py-3 text-surface-600 dark:text-surface-300"><div>{member.email || '—'}</div><div className="text-xs">{member.phone || '—'}</div></td>
+                      <td className="px-5 py-3 text-surface-600 dark:text-surface-300">{member.member_id || '—'}</td>
+                      <td className="px-5 py-3 text-surface-600 dark:text-surface-300">{formatDate(member.admission_date)}</td>
+                      <td className="px-5 py-3"><Button size="sm" variant={selectedMember?.user_id === member.user_id ? 'primary' : 'outline'} onClick={() => selectMember(member)}>{selectedMember?.user_id === member.user_id ? 'Selected' : 'View history'}</Button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-col gap-3 border-t border-surface-200 px-4 py-3 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-medium text-surface-500">Showing {memberStartItem}–{memberEndItem} of {filteredMembers.length} members</span>
+                <label className="flex items-center gap-2 text-xs font-medium text-surface-600 dark:text-surface-300">Rows
+                  <select value={memberLimit} onChange={(event) => { setMemberLimit(Number(event.target.value)); setMemberPage(1); }} className="min-h-9 rounded-lg border border-surface-300 bg-white px-2 text-sm text-ink-900 dark:border-surface-700 dark:bg-surface-950 dark:text-white">
+                    <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
+                  </select>
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button variant="outline" size="sm" disabled={currentMemberPage <= 1} onClick={() => setMemberPage((current) => Math.max(1, current - 1))}><ChevronLeft size={14}/> Prev</Button>
+                {visibleMemberPages.map((pageNumber) => <button key={pageNumber} type="button" aria-current={pageNumber === currentMemberPage ? 'page' : undefined} onClick={() => setMemberPage(pageNumber)} className={`h-8 min-w-8 rounded-lg px-2 text-sm font-bold transition ${pageNumber === currentMemberPage ? 'bg-brand-600 text-white shadow-sm' : 'border border-surface-300 bg-white text-surface-700 hover:bg-surface-50 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-300 dark:hover:bg-surface-800'}`}>{pageNumber}</button>)}
+                <Button variant="outline" size="sm" disabled={currentMemberPage >= memberPageCount} onClick={() => setMemberPage((current) => Math.min(memberPageCount, current + 1))}>Next <ChevronRight size={14}/></Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-5"><EmptyState title={searchQuery ? 'No matching admitted members' : 'No admitted members yet'} description={searchQuery ? 'Try another name, email, phone or member ID.' : 'Members will appear here after their gym admission is completed.'} /></div>
         )}
       </Card>
 
