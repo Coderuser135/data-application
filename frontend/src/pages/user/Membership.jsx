@@ -99,29 +99,116 @@ export default function Membership() {
 
       {(!admission || admission.status !== 'active') && <Card className="border-2 border-amber-500 bg-amber-50 dark:bg-amber-500/10"><div className="flex flex-col items-center py-8 text-center"><AlertCircle size={48} className="text-amber-500" /><h3 className="mt-4 font-display text-lg font-bold text-ink-950 dark:text-white">Admission Pending</h3><p className="mt-2 max-w-sm text-sm text-surface-500">You can view available membership plans now. Gym staff must complete your admission before you can purchase one.</p></div></Card>}
 
-      {(plans || []).length > 0 && <div><div className="mb-4 flex items-center gap-2"><CreditCard size={20} className="text-brand-600" /><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Available Plans</h3></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{(plans || []).map((plan, i) => {
-        const isCurrent = activeMembership?.plan_id === plan.id;
-        return <Card key={plan.id} className={`relative ${plan.is_offer ? 'border-2 border-brand-600' : ''} ${i === 1 && !plan.is_offer ? 'ring-2 ring-brand-600/20' : ''}`}>
-          {plan.is_offer && <div className="absolute -top-3 left-4"><span className="flex items-center gap-1 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white"><Tag size={12} /> {plan.offer_label || 'OFFER'}</span></div>}
-          <div className="mt-2"><h4 className="font-display text-lg font-bold text-ink-950 dark:text-white">{plan.name}</h4><p className="text-xs text-surface-500">{plan.duration_days} days</p></div>
-          <div className="mt-4 space-y-1">
-            <div className="flex flex-wrap items-baseline gap-2">
-              {plan.is_offer && plan.original_price && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.original_price)}</span>}
-              {Number(plan.advance_credit || 0) > 0 && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.price)}</span>}
-              <span className="font-display text-2xl font-bold text-brand-600">{formatCurrency(Number(plan.payable_price ?? plan.price))}</span>
-              {plan.is_offer && plan.original_price && <Badge tone="danger">SAVE {Math.round((1 - plan.price / plan.original_price) * 100)}%</Badge>}
+      {(plans || []).length > 0 && (
+        <section>
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <CreditCard size={20} className="text-brand-600" />
+                <h3 className="font-display text-xl font-bold tracking-tight text-ink-950 dark:text-white">Choose your membership</h3>
+              </div>
+              <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">Compare the benefits and choose the plan that works for your fitness routine.</p>
             </div>
-            {Number(plan.advance_credit || 0) > 0 && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-              <p>Plan price: {formatCurrency(plan.price)}</p>
-              <p>Admission advance: − {formatCurrency(plan.advance_credit)}</p>
-              <p className="mt-1 font-semibold">You pay: {formatCurrency(Number(plan.payable_price ?? plan.price))}</p>
-            </div>}
+            <span className="text-xs font-medium text-surface-500 dark:text-surface-400">{plans.length} {plans.length === 1 ? 'plan' : 'plans'} available</span>
           </div>
-          {plan.description && <p className="mt-2 text-sm text-surface-500">{plan.description}</p>}
-          {plan.features?.length > 0 && <ul className="mt-4 space-y-1.5">{plan.features.slice(0, 5).map((f, idx) => <li key={idx} className="flex items-center gap-2 text-xs text-surface-600 dark:text-surface-300"><Check size={14} className="text-emerald-500" /> {f}</li>)}</ul>}
-          <div className="mt-5">{isCurrent ? <Button variant="secondary" size="sm" className="w-full" disabled>Current Plan</Button> : !admission || admission.status !== 'active' ? <Button variant="secondary" size="sm" className="w-full" disabled>Admission Required</Button> : activeMembership ? <Button variant="outline" size="sm" className="w-full" onClick={() => renew(activeMembership.id)}>Renew <ArrowRight size={14} /></Button> : <Button size="sm" className="w-full" onClick={() => purchasePlan(plan)}>Purchase</Button>}</div>
-        </Card>;
-      })}</div></div>}
+
+          <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {plans.map((plan) => {
+              const isCurrent = activeMembership?.plan_id === plan.id;
+              const planPrice = Number(plan.price || 0);
+              const advanceCredit = Number(plan.advance_credit || 0);
+              const payablePrice = Number(plan.payable_price ?? planPrice);
+              const originalPrice = Number(plan.original_price || 0);
+              const duration = Math.max(1, Number(plan.duration_days || 30));
+              const discount = plan.is_offer && originalPrice > planPrice
+                ? Math.round((1 - planPrice / originalPrice) * 100)
+                : 0;
+
+              return (
+                <article
+                  key={plan.id}
+                  className={`relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-surface-900 ${
+                    plan.is_offer
+                      ? 'border-brand-300 ring-1 ring-brand-100 dark:border-brand-700 dark:ring-brand-500/20'
+                      : 'border-surface-200 hover:border-surface-300 dark:border-surface-700 dark:hover:border-surface-600'
+                  }`}
+                >
+                  <div className={`h-1.5 w-full ${plan.is_offer ? 'bg-gradient-to-r from-brand-500 via-rose-500 to-amber-400' : 'bg-gradient-to-r from-surface-300 to-surface-200 dark:from-surface-700 dark:to-surface-800'}`} />
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
+                    <div className="flex min-h-8 flex-wrap items-center gap-2">
+                      {plan.is_offer && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                          <Tag size={12} /> {plan.offer_label || 'Limited offer'}
+                        </span>
+                      )}
+                      {isCurrent && <Badge tone="success">Current plan</Badge>}
+                    </div>
+
+                    <div className="mt-3">
+                      <h4 className="break-words font-display text-xl font-bold tracking-tight text-ink-950 dark:text-white">{plan.name}</h4>
+                      <p className="mt-1 text-sm font-medium text-surface-500 dark:text-surface-400">{duration} {duration === 1 ? 'day' : 'days'} of gym access</p>
+                    </div>
+
+                    <div className="mt-5 rounded-2xl border border-surface-100 bg-surface-50/80 p-4 dark:border-surface-800 dark:bg-surface-950/70">
+                      <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+                        {discount > 0 && <span className="mb-1 text-sm font-medium text-surface-400 line-through">{formatCurrency(originalPrice)}</span>}
+                        {advanceCredit > 0 && <span className="mb-1 text-sm font-medium text-surface-400 line-through">{formatCurrency(planPrice)}</span>}
+                        <span className="font-display text-3xl font-extrabold tracking-tight text-ink-950 dark:text-white">{formatCurrency(payablePrice)}</span>
+                        {discount > 0 && <Badge tone="success">{discount}% OFF</Badge>}
+                      </div>
+                      <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">
+                        {advanceCredit > 0 ? 'Remaining amount after admission advance' : 'Plan price'}
+                      </p>
+                      {advanceCredit > 0 && (
+                        <div className="mt-3 space-y-2 border-t border-surface-200 pt-3 text-xs dark:border-surface-800">
+                          <div className="flex items-center justify-between gap-3 text-surface-600 dark:text-surface-300"><span>Membership price</span><span className="font-semibold">{formatCurrency(planPrice)}</span></div>
+                          <div className="flex items-center justify-between gap-3 text-emerald-700 dark:text-emerald-400"><span>Admission advance applied</span><span className="font-semibold">− {formatCurrency(advanceCredit)}</span></div>
+                          <div className="flex items-center justify-between gap-3 border-t border-surface-200 pt-2 font-bold text-ink-950 dark:border-surface-800 dark:text-white"><span>Payable now</span><span>{formatCurrency(payablePrice)}</span></div>
+                        </div>
+                      )}
+                      <p className="mt-3 text-[11px] text-surface-500 dark:text-surface-400">Approx. {formatCurrency(planPrice / duration)} per day</p>
+                    </div>
+
+                    <p className="mt-4 min-h-[3rem] text-sm leading-6 text-surface-600 dark:text-surface-300">
+                      {plan.description || 'A membership plan designed to support your fitness journey.'}
+                    </p>
+
+                    <div className="mt-5 flex-1 border-t border-surface-100 pt-4 dark:border-surface-800">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-surface-500 dark:text-surface-400">Plan benefits</p>
+                        <span className="rounded-full bg-surface-100 px-2.5 py-1 text-[11px] font-semibold text-surface-600 dark:bg-surface-800 dark:text-surface-300">{(plan.features || []).length} included</span>
+                      </div>
+                      {(plan.features || []).length > 0 ? (
+                        <ul className="space-y-3">
+                          {plan.features.map((feature, index) => (
+                            <li key={index} className="flex items-start gap-2.5 text-sm leading-5 text-surface-700 dark:text-surface-300">
+                              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"><Check size={12} strokeWidth={3} /></span>
+                              <span className="min-w-0 break-words">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-sm text-surface-400">Plan benefits will be updated soon.</p>}
+                    </div>
+
+                    <div className="mt-6 border-t border-surface-100 pt-4 dark:border-surface-800">
+                      {isCurrent ? (
+                        <Button variant="secondary" className="w-full" disabled>You're on this plan</Button>
+                      ) : !admission || admission.status !== 'active' ? (
+                        <Button variant="secondary" className="w-full" disabled>Admission required</Button>
+                      ) : activeMembership ? (
+                        <Button variant="outline" className="w-full" onClick={() => renew(activeMembership.id)}>Renew membership <ArrowRight size={16} /></Button>
+                      ) : (
+                        <Button className="w-full" onClick={() => purchasePlan(plan)}>Choose this plan <ArrowRight size={16} /></Button>
+                      )}
+                      <p className="mt-2 text-center text-[11px] text-surface-400">Secure payment · Membership details in your account</p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <Card padding={false}><div className="border-b border-surface-200 px-5 py-4 dark:border-surface-800"><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Membership History</h3></div>{(memberships || []).length > 0 ? <div className="p-5"><div className="space-y-3">{memberships.map((m) => <div key={m.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800"><div><p className="text-sm font-medium text-ink-900 dark:text-white">{m.plan_name_snapshot} — {formatCurrency(m.plan_price_snapshot)}</p><p className="text-xs text-surface-500">{formatDate(m.start_date)} → {formatDate(m.end_date)}</p><p className="text-xs text-surface-500">Advance applied: {formatCurrency(Number(m.advance_paid || 0))} · Remaining: {formatCurrency(Number(m.amount_due ?? 0))}</p></div><div className="flex items-center gap-3">{m.status === 'pending' && <Button size="sm" onClick={() => payMembership(m)}>Pay Now</Button>}{m.status === 'expired' && <Button size="sm" variant="secondary" onClick={() => renew(m.id)}>Renew</Button>}<Badge tone={statusTone[m.status] || 'neutral'}>{m.status.replace(/_/g, ' ')}</Badge></div></div>)}</div></div> : <div className="p-5"><EmptyState title="No memberships yet" /></div>}</Card>
     </div>
