@@ -176,7 +176,7 @@ export default function AdminBodyMeasurements() {
         </div>
         {measurements.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="admin-mobile-cards w-full text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-3 font-medium">Date</th>
