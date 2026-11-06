@@ -305,7 +305,7 @@ export default function AdminMemberships() {
       {loading ? <AdminLoadingSkeleton variant="table" rows={6}/> : data.rows.length ? (
         <>
           <Card padding={false} className="!overflow-hidden !border-slate-200 !bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)] dark:!border-slate-700 dark:!bg-slate-900">
-            <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-sm">
+            <div className="admin-table-scroll w-full min-w-0" style={{ display: 'block', width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}><table className="admin-data-table text-sm" style={{ width: '1100px', minWidth: '1100px', maxWidth: 'none', tableLayout: 'auto' }}>
               <thead><tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"><th className="px-4 py-4">Member</th><th className="px-4 py-4">Plan</th><th className="px-4 py-4">Price / Due</th><th className="px-4 py-4">Start / End</th><th className="px-4 py-4">Days left</th><th className="px-4 py-4">Status</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4 text-right">Action</th></tr></thead>
               <tbody>{data.rows.map((item) => { const effective = item.effective_status || item.status; return (
                 <tr key={item._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/40">
