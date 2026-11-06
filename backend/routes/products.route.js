@@ -4,7 +4,6 @@ import {
   getCategories, createCategory, updateCategory, deleteCategory, adjustStock, getStockHistory,
 } from '../controllers/product.controller.js';
 import { adminMiddleware } from '../middlewares/admin.middleware.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
 import upload from '../middlewares/upload.middleware.js';
 
 const router = Router();
@@ -15,7 +14,7 @@ router.delete('/categories/:id', adminMiddleware, deleteCategory);
 router.get('/active', getActiveProducts);
 router.get('/', adminMiddleware, getProducts);
 router.post('/', adminMiddleware, upload.single('image'), createProduct);
-router.post('/:id/stock-adjustments', authMiddleware, adminMiddleware, adjustStock);
+router.post('/:id/stock-adjustments', adminMiddleware, adjustStock);
 router.get('/:id/stock-history', adminMiddleware, getStockHistory);
 router.put('/:id', adminMiddleware, upload.single('image'), updateProduct);
 router.delete('/:id', adminMiddleware, deleteProduct);
