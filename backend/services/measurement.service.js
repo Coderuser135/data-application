@@ -72,7 +72,7 @@ export async function updateMeasurement(measurementId, data) {
 export async function deleteMeasurement(measurementId) {
   const existing = await BodyMeasurement.findById(measurementId);
   if (!existing) throw new ApiError(404, 'Measurement not found');
-  const admission = await GymAdmission.findOne({ _id: existing.gym_admission_id, user_id: existing.user_id, status: 'active' });
+  const admission = await GymAdmission.findOne({ _id: existing.gym_admission_id, user_id: existing.user_id });
   if (!admission) throw new ApiError(409, 'An active gym admission is required to delete this measurement');
   await BodyMeasurement.deleteOne({ _id: measurementId, user_id: existing.user_id, gym_admission_id: admission._id });
   return { success: true, message: 'Measurement deleted successfully' };
