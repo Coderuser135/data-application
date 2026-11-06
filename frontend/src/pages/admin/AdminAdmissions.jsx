@@ -81,6 +81,7 @@ export default function AdminAdmissions() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [admissionFilter, setAdmissionFilter] = useState('not_admitted');
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -104,9 +105,9 @@ export default function AdminAdmissions() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, excludeAdmins: true })); }, 300);
+    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, admissionFilter })); }, 300);
     return () => clearTimeout(timer);
-  }, [dispatch, query, page, limit]);
+  }, [dispatch, query, page, limit, admissionFilter]);
 
   useEffect(() => { dispatch(fetchMembershipPlans()); }, [dispatch]);
 
@@ -243,7 +244,7 @@ export default function AdminAdmissions() {
       await dispatch(createAdmission(payload)).unwrap();
       setShowModal(false);
       setFormData({ emergency_contact_name: '', emergency_contact_phone: '', notes: '', full_name: '', phone: '', address: '', measurement: { age: '', height: '', weight: '', stomach: '', chest: '', biceps: '', back: '', legs: '', body_fat: '', muscle_mass: '', notes: '', measurement_date: '' }, payment_method: 'cash', payment_amount: '' });
-      dispatch(searchUsers({ q: query, page, limit, excludeAdmins: true }));
+      dispatch(searchUsers({ q: query, page, limit, admissionFilter }));
     } catch (err) {
       setError(typeof err === 'string' ? err : err?.message || 'Failed to create admission. Please check the backend logs.');
     } finally {
@@ -272,6 +273,18 @@ export default function AdminAdmissions() {
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-surface-500">
+            <span className="whitespace-nowrap">Admission</span>
+            <select
+              value={admissionFilter}
+              onChange={(e) => { setAdmissionFilter(e.target.value); setPage(1); }}
+              aria-label="Filter users by admission status"
+              className="min-w-[142px] rounded-lg border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-500 dark:border-surface-700 dark:bg-surface-950 dark:text-white"
+            >
+              <option value="not_admitted">Not admitted</option>
+              <option value="admitted">Admitted</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-surface-500">
             <span className="whitespace-nowrap">Rows per page</span>
             <select
               value={limit}
@@ -288,7 +301,7 @@ export default function AdminAdmissions() {
       {!loading && rows.length > 0 ? (
         <Card padding={false}>
           <div className="overflow-x-auto">
-            <table className="admin-mobile-cards w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
                   <th className="px-5 py-4 font-medium">User</th>
