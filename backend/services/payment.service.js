@@ -5,6 +5,7 @@ import Payment from '../models/payment.model.js';
 import Membership from '../models/membership.model.js';
 import Order from '../models/order.model.js';
 import Product from '../models/product.model.js';
+import InventoryMovement from '../models/inventoryMovement.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 import { allocateMembershipAdvance } from './membership.service.js';
 
@@ -94,13 +95,34 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
     await membership.save({ session });
   }
   if (payment.order_id) {
-    const order = await Order.findOne({ _id: payment.order_id, user_id: payment.user_id, payment_status: 'pending', status: 'pending' }).session(session);
-    if (!order) throw new ApiError(409, 'Pending order not found');
+    const order = await Order.findOne({ _id: payment.order_id, user_id: payment.user_id, payment_status: 'pending', status: 'pending', inventory_status: 'reserved' }).session(session);
+    if (!order) throw new ApiError(409, 'Pending reserved order not found');
+
     for (const item of order.order_items) {
-      const result = await Product.updateOne({ _id: item.product_id, is_active: true, stock_quantity: { $gte: item.quantity } }, { $inc: { stock_quantity: -item.quantity } }, { session });
-      if (result.modifiedCount !== 1) throw new ApiError(409, 'Stock changed while payment was processing. Payment will be reconciled by webhook/admin.');
+      const product = await Product.findOneAndUpdate(
+        { _id: item.product_id, is_active: true, stock_quantity: { $gte: item.quantity }, reserved_quantity: { $gte: item.quantity } },
+        { $inc: { stock_quantity: -item.quantity, reserved_quantity: -item.quantity } },
+        { new: false, session },
+      );
+      if (!product) throw new ApiError(409, 'Reserved stock is inconsistent. Payment requires reconciliation.');
+      await InventoryMovement.create([{
+        product_id: product._id,
+        movement_type: 'order_sale',
+        quantity: -item.quantity,
+        stock_before: product.stock_quantity,
+        stock_after: product.stock_quantity - item.quantity,
+        reserved_before: product.reserved_quantity,
+        reserved_after: product.reserved_quantity - item.quantity,
+        reason: `Paid order ${order.order_number}; reserved stock converted to sale`,
+        reference_id: order._id,
+      }], { session });
     }
-    order.payment_status = 'success'; order.payment_id = payment._id; order.status = 'confirmed'; await order.save({ session });
+
+    order.payment_status = 'success';
+    order.payment_id = payment._id;
+    order.inventory_status = 'committed';
+    order.status = 'processing';
+    await order.save({ session });
   }
   return payment;
 }
