@@ -53,7 +53,7 @@ export default function AdminProducts() {
   const filteredProducts = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return products;
-    return products.filter((item) => [item.name, item.brand, item.sku, item.barcode].some((value) => String(value || '').toLowerCase().includes(term)));
+    return products.filter((item) => [item.name, item.brand, item.sku].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [products, query]);
 
   const stockStats = useMemo(() => ({
