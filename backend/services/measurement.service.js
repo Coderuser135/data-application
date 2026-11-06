@@ -80,8 +80,8 @@ export async function deleteMeasurement(measurementId) {
 }
 
 export async function getAdmittedUsers() {
-  const admissions = await GymAdmission.find({ status: 'active' })
-    .populate({ path: 'user_id', select: 'full_name email phone' })
+  const admissions = await GymAdmission.find({})
+    .populate({ path: 'user_id', select: 'full_name email phone role' })
     .select('user_id member_id createdAt status')
     .sort({ createdAt: -1 })
     .lean();
