@@ -14,9 +14,8 @@ export async function getAllMeasurements() {
 }
 
 export async function getMeasurementsByUserIdAdmin(userId) {
-  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
-  if (!admission) return [];
-  return BodyMeasurement.find({ user_id: userId, gym_admission_id: admission._id }).sort({ measurement_date: -1 });
+  // Admin history includes records from previous as well as current admissions.
+  return BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 });
 }
 
 function numberField(value, label, { min = 0, max = Number.POSITIVE_INFINITY, integer = false } = {}) {
@@ -59,7 +58,7 @@ export async function createMeasurement(data) {
 export async function updateMeasurement(measurementId, data) {
   const existing = await BodyMeasurement.findById(measurementId);
   if (!existing) throw new ApiError(404, 'Measurement not found');
-  const admission = await GymAdmission.findOne({ _id: existing.gym_admission_id, user_id: existing.user_id, status: 'active' });
+  const admission = await GymAdmission.findOne({ _id: existing.gym_admission_id, user_id: existing.user_id });
   if (!admission) throw new ApiError(409, 'An active gym admission is required to update this measurement');
   const updated = await BodyMeasurement.findOneAndUpdate(
     { _id: measurementId, user_id: existing.user_id, gym_admission_id: admission._id },
