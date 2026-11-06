@@ -130,14 +130,14 @@ export default function AdminBodyMeasurements() {
           <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Body Measurements</h1>
           <p className="mt-1 text-sm text-surface-500">Record and track member body progress</p>
         </div>
-        {selectedMember && <Button onClick={openCreateForm}><Plus size={16} /> Add Measurement</Button>}
+        {selectedMember && <Button onClick={openCreateForm} disabled={selectedMember.admission_status !== 'active'} title={selectedMember.admission_status !== 'active' ? 'Measurements can only be added for an active admission' : undefined}><Plus size={16} /> Add Measurement</Button>}
       </div>
 
       <Card padding={false}>
         <div className="flex flex-col gap-3 border-b border-surface-200 p-4 dark:border-surface-800 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div>
             <h2 className="font-display text-base font-bold text-ink-950 dark:text-white">Admitted Members</h2>
-            <p className="mt-1 text-xs text-surface-500">{members.length} members with an active gym admission</p>
+            <p className="mt-1 text-xs text-surface-500">{members.length} users with a gym admission</p>
           </div>
           <div className="relative w-full sm:max-w-sm">
             <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
