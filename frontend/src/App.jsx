@@ -36,6 +36,7 @@ import AdminMembershipPlans from '@/pages/admin/AdminMembershipPlans';
 import AdminMemberships from '@/pages/admin/AdminMemberships';
 import AdminPayments from '@/pages/admin/AdminPayments';
 import AdminBodyMeasurements from '@/pages/admin/AdminBodyMeasurements';
+import AdminMemberMeasurements from '@/pages/admin/AdminMemberMeasurements';
 import AdminProducts from '@/pages/admin/AdminProducts';
 import AdminOrders from '@/pages/admin/AdminOrders';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
@@ -68,7 +69,7 @@ export default function App() {
           <Route index element={<Navigate to="/admin/dashboard" />} /><Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} /><Route path="admissions" element={<AdminAdmissions />} />
           <Route path="membership-plans" element={<AdminMembershipPlans />} /><Route path="memberships" element={<AdminMemberships />} />
-          <Route path="payments" element={<AdminPayments />} /><Route path="body-measurements" element={<AdminBodyMeasurements />} />
+          <Route path="payments" element={<AdminPayments />} /><Route path="body-measurements" element={<AdminBodyMeasurements />} /><Route path="body-measurements/:userId" element={<AdminMemberMeasurements />} />
           <Route path="products" element={<AdminProducts />} /><Route path="orders" element={<AdminOrders />} />
           <Route path="notifications" element={<AdminNotifications />} /><Route path="settings" element={<AdminSettings />} />
         </Route>
