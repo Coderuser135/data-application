@@ -27,3 +27,17 @@ export const renewMembership = async (req, res, next) => {
 export const getMembershipDetails = async (req, res, next) => {
   try { res.json(await membershipService.getMembershipDetails(req.params.id)); } catch (err) { next(err); }
 };
+
+
+export const adminRenewMembership = async (req, res, next) => {
+  try { res.status(201).json(await membershipService.adminRenewMembership(req.params.id)); } catch (err) { next(err); }
+};
+export const extendMembership = async (req, res, next) => {
+  try { res.json(await membershipService.extendMembership(req.params.id, req.body.days)); } catch (err) { next(err); }
+};
+export const freezeMembership = async (req, res, next) => {
+  try { res.json(await membershipService.freezeMembership(req.params.id)); } catch (err) { next(err); }
+};
+export const resumeMembership = async (req, res, next) => {
+  try { res.json(await membershipService.resumeMembership(req.params.id)); } catch (err) { next(err); }
+};
