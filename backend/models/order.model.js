@@ -7,7 +7,10 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, order_number: { type: String, required: true, unique: true },
   total_amount: { type: Number, required: true, min: 0 },
-  status: { type: String, enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery', 'collected', 'delivered', 'cancelled'], default: 'pending' },
+  fulfillment_method: { type: String, enum: ['store_pickup', 'admin_delivery'], required: true, default: 'store_pickup' },
+  customer_name: { type: String, trim: true, maxlength: 120, default: '' },
+  customer_phone: { type: String, trim: true, maxlength: 20, default: '' },
   shipping_address: { type: String, required: true, trim: true, maxlength: 1000 },
   payment_status: { type: String, enum: ['pending', 'success', 'failed', 'refunded'], default: 'pending' },
   payment_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', default: null },
