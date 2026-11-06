@@ -139,42 +139,96 @@ export default function AdminMembershipPlans() {
         </div>
       </div>
 
-      {items.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((plan) => (
-            <Card key={plan.id} className={plan.is_offer ? 'border-brand-300 dark:border-brand-800' : ''}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-display text-lg font-bold text-ink-950 dark:text-white">{plan.name}</h3>
-                    {plan.is_offer && <Badge tone="danger">OFFER</Badge>}
+      {loading && items.length === 0 ? (
+        <AdminLoadingSkeleton variant="cards" />
+      ) : items.length > 0 ? (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((plan) => {
+            const price = Number(plan.price || 0);
+            const originalPrice = Number(plan.original_price || 0);
+            const duration = Math.max(1, Number(plan.duration_days || 30));
+            const discount = plan.is_offer && originalPrice > price
+              ? Math.round((1 - price / originalPrice) * 100)
+              : 0;
+
+            return (
+              <article
+                key={plan.id}
+                className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-surface-900 ${
+                  plan.is_offer
+                    ? 'border-brand-300 ring-1 ring-brand-100 dark:border-brand-700 dark:ring-brand-500/20'
+                    : 'border-surface-200 hover:border-surface-300 dark:border-surface-700 dark:hover:border-surface-600'
+                }`}
+              >
+                <div className={`h-1.5 w-full ${plan.is_offer ? 'bg-gradient-to-r from-brand-500 via-rose-500 to-amber-400' : 'bg-gradient-to-r from-surface-300 to-surface-200 dark:from-surface-700 dark:to-surface-800'}`} />
+                <div className="flex flex-1 flex-col p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        {plan.is_offer && <Badge tone="danger">SPECIAL OFFER</Badge>}
+                        <Badge tone={plan.is_active ? 'success' : 'neutral'}>{plan.is_active ? 'Published' : 'Hidden'}</Badge>
+                      </div>
+                      <h3 className="break-words font-display text-xl font-bold tracking-tight text-ink-950 dark:text-white">{plan.name}</h3>
+                      <p className="mt-1 text-sm font-medium text-surface-500 dark:text-surface-400">
+                        {duration} {duration === 1 ? 'day' : 'days'} access
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button type="button" aria-label={`Edit ${plan.name}`} onClick={() => openEdit(plan)} className="rounded-xl border border-surface-200 p-2.5 text-surface-500 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-surface-700 dark:hover:border-brand-700 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"><Pencil size={16} /></button>
+                      <button type="button" aria-label={`Delete ${plan.name}`} onClick={() => handleDelete(plan.id)} className="rounded-xl border border-surface-200 p-2.5 text-surface-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-surface-700 dark:hover:border-red-900 dark:hover:bg-red-500/10 dark:hover:text-red-400"><Trash2 size={16} /></button>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-surface-500">{plan.duration_days} days</p>
+
+                  <div className="mt-6 rounded-2xl border border-surface-100 bg-surface-50/80 p-4 dark:border-surface-800 dark:bg-surface-950/70">
+                    <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+                      {discount > 0 && <span className="mb-1 text-sm font-medium text-surface-400 line-through">{formatCurrency(originalPrice)}</span>}
+                      <span className="font-display text-3xl font-extrabold tracking-tight text-ink-950 dark:text-white">{formatCurrency(price)}</span>
+                      {discount > 0 && <Badge tone="success">{discount}% OFF</Badge>}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-surface-500 dark:text-surface-400">
+                      <span>Effective {formatCurrency(price / duration)} / day</span>
+                      {plan.offer_label && <span className="font-semibold text-brand-700 dark:text-brand-300">{plan.offer_label}</span>}
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-surface-500 dark:text-surface-400">About this plan</p>
+                    <p className="mt-2 min-h-[2.75rem] text-sm leading-6 text-surface-700 dark:text-surface-300">
+                      {plan.description || 'No description has been added to this plan yet.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex-1 border-t border-surface-100 pt-4 dark:border-surface-800">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-surface-500 dark:text-surface-400">Included benefits</p>
+                      <span className="rounded-full bg-surface-100 px-2.5 py-1 text-[11px] font-semibold text-surface-600 dark:bg-surface-800 dark:text-surface-300">{(plan.features || []).length} features</span>
+                    </div>
+                    {(plan.features || []).length > 0 ? (
+                      <ul className="space-y-3">
+                        {plan.features.map((feature, index) => (
+                          <li key={index} className="flex items-start gap-2.5 text-sm leading-5 text-surface-700 dark:text-surface-300">
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"><Check size={12} strokeWidth={3} /></span>
+                            <span className="min-w-0 break-words">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-surface-400">No features added yet.</p>
+                    )}
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-between gap-3 border-t border-surface-100 pt-4 dark:border-surface-800">
+                    <span className="text-xs text-surface-500 dark:text-surface-400">Display priority: {Number(plan.display_order || 0)}</span>
+                    <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${plan.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300'}`}>
+                      {plan.is_active ? 'Visible to members' : 'Not visible to members'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => openEdit(plan)} className="rounded-lg p-2 text-surface-400 hover:bg-surface-100 hover:text-brand-600 dark:hover:bg-surface-800"><Pencil size={15} /></button>
-                  <button onClick={() => handleDelete(plan.id)} className="rounded-lg p-2 text-surface-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"><Trash2 size={15} /></button>
-                </div>
-              </div>
-              <div className="mt-4 flex items-baseline gap-2">
-                {plan.is_offer && plan.original_price && <span className="text-sm text-surface-400 line-through">{formatCurrency(plan.original_price)}</span>}
-                <span className="font-display text-2xl font-bold text-brand-600">{formatCurrency(plan.price)}</span>
-                {plan.is_offer && plan.original_price && <Badge tone="danger">SAVE {Math.round((1 - plan.price / plan.original_price) * 100)}%</Badge>}
-              </div>
-              {plan.description && <p className="mt-2 text-sm text-surface-500">{plan.description}</p>}
-              {plan.features.length > 0 && (
-                <ul className="mt-4 space-y-1.5">
-                  {plan.features.slice(0, 5).map((f, i) => <li key={i} className="flex items-center gap-2 text-xs text-surface-600 dark:text-surface-300"><Check size={14} className="text-emerald-500" /> {f}</li>)}
-                </ul>
-              )}
-              <div className="mt-4 flex items-center gap-2">
-                <Badge tone={plan.is_active ? 'success' : 'neutral'}>{plan.is_active ? 'Active' : 'Inactive'}</Badge>
-                {plan.offer_label && <Badge tone="info">{plan.offer_label}</Badge>}
-              </div>
-            </Card>
-          ))}
+              </article>
+            );
+          })}
         </div>
-      ) : loading ? <AdminLoadingSkeleton variant="cards" /> : <EmptyState title="No plans yet" description="Create your first membership plan." />}
+      ) : <EmptyState title="No plans yet" description="Create your first membership plan." />}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowForm(false)}>
