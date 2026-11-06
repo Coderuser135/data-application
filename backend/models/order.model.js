@@ -11,7 +11,7 @@ const orderSchema = new mongoose.Schema({
   shipping_address: { type: String, required: true, trim: true, maxlength: 1000 },
   payment_status: { type: String, enum: ['pending', 'success', 'failed', 'refunded'], default: 'pending' },
   payment_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', default: null },
-  inventory_status: { type: String, enum: ['reserved', 'committed', 'released'], default: 'reserved' },
+  inventory_status: { type: String, enum: ['legacy', 'reserved', 'committed', 'released'], default: 'legacy' },
   reservation_expires_at: { type: Date, default: () => new Date(Date.now() + 30 * 60 * 1000) },
   order_items: { type: [orderItemSchema], validate: { validator: (items) => items.length > 0, message: 'Order must contain at least one item' } },
 }, { timestamps: true });
