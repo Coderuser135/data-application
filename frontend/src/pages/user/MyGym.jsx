@@ -28,7 +28,8 @@ export default function MyGym() {
 
   const activeMembership = (memberships || []).find((m) => m.status === 'active' && m.payment_status === 'paid');
   const scheduledMembership = (memberships || []).find((m) => m.status === 'scheduled' && m.payment_status === 'paid');
-  const currentMembership = activeMembership || scheduledMembership;
+  const pendingMembership = (memberships || []).find((m) => m.payment_status === 'pending' && Number(m.amount_due) > 0);
+  const currentMembership = activeMembership || scheduledMembership || pendingMembership;
   const daysLeft = getDaysRemaining(currentMembership?.end_date);
 
   return (
@@ -74,9 +75,9 @@ export default function MyGym() {
               <div className="flex justify-between text-sm"><span className="text-surface-500">Price</span><span className="font-semibold">{formatCurrency(currentMembership.plan_price_snapshot)}</span></div>
               <div className="flex justify-between text-sm"><span className="text-surface-500">Start date</span><span className="font-medium">{formatDate(currentMembership.start_date)}</span></div>
               <div className="flex justify-between text-sm"><span className="text-surface-500">End date</span><span className="font-medium">{formatDate(currentMembership.end_date)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-surface-500">Days remaining</span><Badge tone={scheduledMembership ? 'info' : daysLeft < 7 ? 'warning' : 'success'}>{scheduledMembership ? 'Scheduled' : `${daysLeft} days`}</Badge></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">Days remaining</span><Badge tone={pendingMembership ? 'warning' : scheduledMembership ? 'info' : daysLeft < 7 ? 'warning' : 'success'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Scheduled' : `${daysLeft} days`}</Badge></div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-800">
-                <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.min(100, (daysLeft / activeMembership.duration_days) * 100)}%` }} />
+                <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.min(100, (daysLeft / currentMembership.duration_days) * 100)}%` }} />
               </div>
               {activeMembership && daysLeft <= 7 && (
                 <Link to="/user/membership" className="mt-3 inline-block"><Button size="sm">Renew Now <ArrowRight size={14} /></Button></Link>
@@ -114,7 +115,7 @@ export default function MyGym() {
                     <td className="px-5 py-3">{formatCurrency(m.plan_price_snapshot)}</td>
                     <td className="px-5 py-3">{formatDate(m.start_date)}</td>
                     <td className="px-5 py-3">{formatDate(m.end_date)}</td>
-                    <td className="px-5 py-3"><Badge tone={m.status === 'active' ? 'success' : m.status === 'pending' ? 'warning' : 'neutral'}>{m.status}</Badge></td>
+                    <td className="px-5 py-3"><Badge tone={m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'warning' : m.status === 'active' ? 'success' : m.status === 'scheduled' ? 'info' : m.status === 'pending' ? 'warning' : 'neutral'}>{m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'payment due' : m.status}</Badge></td>
                   </tr>
                 ))}
               </tbody>
