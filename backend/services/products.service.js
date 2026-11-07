@@ -148,6 +148,7 @@ export async function getProducts({
 }
 function publicProductData(product) {
   const data = product.toObject ? product.toObject() : { ...product };
+  data.id = String(data._id);
   data.available_quantity = Math.max(0, Number(data.stock_quantity || 0) - Number(data.reserved_quantity || 0));
   data.stock_status = data.available_quantity <= 0
     ? 'out_of_stock'
