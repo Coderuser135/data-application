@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,14 +15,16 @@ export default function MyGym() {
   const dispatch = useDispatch();
   const admission = useSelector((state) => state.admissions.admission);
   const memberships = useSelector((state) => state.memberships.items);
-  const loading = useSelector((state) => state.admissions.loading);
+  const admissionLoading = useSelector((state) => state.admissions.loading);
+  const membershipLoading = useSelector((state) => state.memberships.loading);
+  const loading = admissionLoading || membershipLoading;
 
   useEffect(() => {
     dispatch(fetchMyAdmission());
     dispatch(fetchMyMemberships());
   }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="details" />;
 
   const activeMembership = (memberships || []).find((m) => m.status === 'active');
   const daysLeft = getDaysRemaining(activeMembership?.end_date);
