@@ -20,6 +20,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: { user: null, profile: null, loading: false, error: null, initializing: true, isAuthenticated: false },
   reducers: {
+    setProfile: (state, action) => { state.profile = action.payload; state.user = action.payload; },
     clearAuth: (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.initializing = false; state.loading = false; },
   },
   extraReducers: (builder) => {
@@ -37,5 +38,5 @@ const authSlice = createSlice({
       .addCase(signOut.rejected, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; });
   },
 });
-export const { clearAuth } = authSlice.actions;
+export const { clearAuth, setProfile } = authSlice.actions;
 export default authSlice.reducer;
