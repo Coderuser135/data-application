@@ -3,7 +3,7 @@ import AdminAvatar from '@/components/admin/AdminAvatar';
 import { createPortal } from 'react-dom';
 import {
   Search, Users, UserCheck, UserX, CreditCard, X, Phone, MessageCircle,
-  CalendarDays, Dumbbell, ExternalLink, Mail, MapPin, Clock3,
+  Dumbbell, ExternalLink, Clock3,
 } from 'lucide-react';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
