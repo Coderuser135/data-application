@@ -32,11 +32,11 @@ function StatCard({ icon: Icon, label, value, tone = 'neutral', sublabel }) {
   return (
     <Card className={palette.card}>
       <div className="flex items-center justify-between">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${palette.icon}`}><Icon size={20} /></span>
+        <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${palette.icon}`}><Icon size={20} /></span>
         {sublabel && <span className="text-xs text-surface-500">{sublabel}</span>}
       </div>
-      <p className="mt-4 text-xs text-surface-500">{label}</p>
-      <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{value}</p>
+      <p className="mt-4 text-xs font-medium text-surface-500">{label}</p>
+      <p className="mt-1 font-display text-2xl font-bold text-ink-950 dark:text-white">{value}</p>
     </Card>
   );
 }
@@ -107,10 +107,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 px-5 py-4 text-white sm:px-6 sm:py-5">
-        <p className="text-xs text-surface-400 sm:text-sm">Welcome back</p>
-        <h1 className="mt-1 font-display text-xl font-bold text-white sm:text-2xl">Admin Dashboard</h1>
-        <p className="mt-1.5 text-xs text-surface-400 sm:text-sm">Business overview and analytics</p>
+      <div>
+        <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-surface-500">Business overview and analytics</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -129,13 +128,13 @@ export default function AdminDashboard() {
 
       {loading && !analytics ? <AdminLoadingSkeleton variant="chart" /> : <RevenueChart analytics={analytics} period={period} onPeriodChange={setPeriod} />}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card padding={false}>
-          <div className="flex items-center justify-between border-b border-surface-100 px-5 py-4 dark:border-surface-800">
+          <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800">
             <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Recent Orders</h3>
             <Link to="/admin/orders"><Button variant="ghost" size="sm">View All <ArrowRight size={14} /></Button></Link>
           </div>
-          <div className="p-4 sm:p-5">
+          <div className="p-5">
             {adminStats.recentOrders.length > 0 ? (
               <div className="space-y-3">
                 {adminStats.recentOrders.map((o) => (
