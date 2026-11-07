@@ -116,19 +116,15 @@ export async function getRevenueAnalytics(period) {
 }
 
 export async function getUserDashboard(userId) {
-  const [admission, payments, orders] = await Promise.all([
+  const [admission, payments, orders, memberships, measurements] = await Promise.all([
     GymAdmission.findOne({ user_id: userId }).lean(),
-    Payment.find({ user_id: userId }).sort({ createdAt: -1 }).lean(),
+    Payment.find({ user_id: userId }).select('-razorpay_signature').sort({ createdAt: -1 }).lean(),
     Order.find({ user_id: userId }).sort({ createdAt: -1 }).lean(),
+    Membership.find({ user_id: userId }).sort({ createdAt: -1 }).lean(),
+    BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 }).lean(),
   ]);
 
   const isAdmitted = admission?.status === 'active';
-  const [memberships, measurements] = isAdmitted
-    ? await Promise.all([
-      Membership.find({ user_id: userId }).sort({ createdAt: -1 }).lean(),
-      BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 }).lean(),
-    ])
-    : [[], []];
 
   const activeMembership = memberships.find((membership) => (
     membership.status === 'active' || membership.status === 'scheduled'
