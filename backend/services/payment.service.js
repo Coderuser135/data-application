@@ -66,6 +66,25 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   if (!payment) throw new ApiError(404, 'Payment not found');
   if (payment.status === 'success') return payment;
   if (payment.status === 'refunded') throw new ApiError(409, 'Payment has already been refunded');
+
+  // Validate an order's reservation inside the same transaction before marking
+  // its payment successful. This closes the race where Razorpay reports a late
+  // capture after the reservation has expired but before the hourly expiry job runs.
+  let reservedOrder = null;
+  if (payment.order_id) {
+    reservedOrder = await Order.findOne({
+      _id: payment.order_id,
+      user_id: payment.user_id,
+      payment_status: 'pending',
+      status: 'pending',
+      inventory_status: 'reserved',
+      reservation_expires_at: { $gt: new Date() },
+    }).session(session);
+    if (!reservedOrder) {
+      throw new ApiError(409, 'Order reservation has expired or is no longer active. Payment needs manual reconciliation.');
+    }
+  }
+
   payment.status = 'success';
   if (razorpayPaymentId) { payment.razorpay_payment_id = razorpayPaymentId; payment.transaction_id = razorpayPaymentId; }
   if (signature) payment.razorpay_signature = signature;
@@ -101,9 +120,8 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
     }
     await membership.save({ session });
   }
-  if (payment.order_id) {
-    const order = await Order.findOne({ _id: payment.order_id, user_id: payment.user_id, payment_status: 'pending', status: 'pending', inventory_status: 'reserved' }).session(session);
-    if (!order) throw new ApiError(409, 'Pending reserved order not found');
+  if (reservedOrder) {
+    const order = reservedOrder;
 
     for (const item of order.order_items) {
       const product = await Product.findOneAndUpdate(
