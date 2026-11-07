@@ -19,6 +19,7 @@ export default function Checkout() {
   const [fulfillmentMethod, setFulfillmentMethod] = useState('store_pickup');
   const [loading, setLoading] = useState(false);
   const [stockChecking, setStockChecking] = useState(true);
+  const [latestProducts, setLatestProducts] = useState({});
   const [stockIssue, setStockIssue] = useState('');
   const [progressMessage, setProgressMessage] = useState('');
   const checkoutLock = useRef(false);
@@ -26,22 +27,31 @@ export default function Checkout() {
   if (!checkoutRequestId.current) checkoutRequestId.current = globalThis.crypto?.randomUUID?.() || `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const total = items.reduce((sum, item) => {
+    const id = item.product.id || item.product._id;
+    const price = Number(latestProducts[id]?.price ?? item.product.price ?? 0);
+    return sum + price * item.quantity;
+  }, 0);
 
   useEffect(() => {
     let active = true;
-    if (!items.length) { setStockIssue(''); setStockChecking(false); return () => { active = false; }; }
+    if (!items.length) { setStockIssue(''); setLatestProducts({}); setStockChecking(false); return () => { active = false; }; }
     setStockChecking(true);
     Promise.all(items.map(async (item) => {
       const id = item.product.id || item.product._id;
       try {
         const latest = await productService.getActiveById(id);
-        return Number(latest.available_quantity) >= item.quantity;
+        return [id, latest];
       } catch {
-        return false;
+        return [id, null];
       }
-    })).then((availability) => {
-      if (active) setStockIssue(availability.every(Boolean) ? '' : 'One or more supplements are out of stock or the selected quantity is no longer available. Return to your cart and update it before ordering.');
+    })).then((products) => {
+      if (active) {
+        const availableProducts = products.filter(([, product]) => product);
+        setLatestProducts(Object.fromEntries(availableProducts));
+        const available = products.every(([id, product]) => product && Number(product.available_quantity) >= items.find((item) => (item.product.id || item.product._id) === id)?.quantity);
+        setStockIssue(available ? '' : 'One or more supplements are out of stock or the selected quantity is no longer available. Return to your cart and update it before ordering.');
+      }
     }).finally(() => { if (active) setStockChecking(false); });
     return () => { active = false; };
   }, [items]);
