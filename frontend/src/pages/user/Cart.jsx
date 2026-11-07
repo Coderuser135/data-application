@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Trash2, Minus, Plus, ShoppingBag, Package } from 'lucide-react';
+import { Trash2, Minus, Plus, Package } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromCart, updateQuantity, clearCart } from '@/redux/slices/cartSlice';
 import Card from '@/components/ui/Card';
