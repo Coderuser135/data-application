@@ -46,8 +46,8 @@ export default function UserDashboard() {
   if (loading) return <UserLoadingSkeleton variant="dashboard" />;
   if (!data) return <EmptyState title="Unable to load dashboard" />;
 
-  const activeMembership = (data.memberships || []).find((m) => m.status === 'active' && m.payment_status === 'paid');
-  const scheduledMembership = (data.memberships || []).find((m) => m.status === 'scheduled' && m.payment_status === 'paid');
+  const activeMembership = (data.memberships || []).find((m) => (m.effective_status || m.status) === 'active' && m.payment_status === 'paid');
+  const scheduledMembership = (data.memberships || []).find((m) => (m.effective_status || m.status) === 'scheduled' && m.payment_status === 'paid');
   const pendingMembership = (data.memberships || []).find((m) => m.payment_status === 'pending' && Number(m.amount_due) > 0);
   const currentMembership = activeMembership || scheduledMembership || pendingMembership;
   const daysLeft = getDaysRemaining(currentMembership?.end_date);
