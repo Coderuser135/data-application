@@ -211,18 +211,6 @@ export default function AdminLayout() {
         )}
 
         <main className="admin-content w-full min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-          <div className="mb-6 flex min-w-0 items-center justify-between gap-3 border-b border-surface-200/80 pb-4 dark:border-surface-800">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-surface-400">Heaven Gym / Admin</p>
-              <h1 className="mt-1 truncate font-display text-xl font-extrabold text-ink-950 dark:text-white sm:text-2xl">
-                {pageTitle}
-              </h1>
-            </div>
-            <span className="hidden shrink-0 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 sm:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Admin workspace
-            </span>
-          </div>
           <Outlet />
         </main>
       </div>
