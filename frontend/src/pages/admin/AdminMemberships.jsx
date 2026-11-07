@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Search, Dumbbell, Clock3, CalendarClock, Layers3,
   ChevronLeft, ChevronRight, Eye, X, RefreshCw, CalendarDays,
@@ -134,7 +134,7 @@ export default function AdminMemberships() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
 
-  async function loadMemberships(showRefresh = false) {
+  const loadMemberships = useCallback(async (showRefresh = false) => {
     showRefresh ? setRefreshing(true) : setLoading(true);
     setError('');
     try {
@@ -146,12 +146,12 @@ export default function AdminMemberships() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [search, status, paymentStatus, expiry, plan, membershipType, page, limit]);
 
   useEffect(() => {
     const timer = setTimeout(() => loadMemberships(), 250);
     return () => clearTimeout(timer);
-  }, [search, status, paymentStatus, expiry, plan, membershipType, page, limit]);
+  }, [loadMemberships]);
 
   async function openDetails(item) {
     setSelected({ _id: item._id });
