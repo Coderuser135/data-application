@@ -9,7 +9,7 @@ const paymentSchema = new mongoose.Schema({
   allocated_amount: { type: Number, default: 0, min: 0 },
   payment_type: { type: String, enum: ['membership_advance', 'membership_installment', 'membership_full', 'order'], required: true },
   payment_method: { type: String, enum: ['online', 'cash', 'other'], default: 'online' },
-  status: { type: String, enum: ['pending', 'success', 'failed', 'refunded'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'success', 'failed', 'refunded', 'reconciliation_required'], default: 'pending' },
   transaction_id: { type: String, default: '' },
   razorpay_order_id: { type: String, default: '', index: true },
   razorpay_payment_id: { type: String, default: '' },
