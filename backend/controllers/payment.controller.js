@@ -10,7 +10,12 @@ export const createRazorpayOrder = async (req, res, next) => {
   try { res.status(201).json(await paymentService.createRazorpayOrder(req.user._id, req.body)); } catch (err) { next(err); }
 };
 export const verifyRazorpayPayment = async (req, res, next) => {
-  try { res.json(await paymentService.verifyRazorpayPayment(req.user._id, req.body)); } catch (err) { next(err); }
+  try {
+    const payment = await paymentService.verifyRazorpayPayment(req.user._id, req.body);
+    const safePayment = payment?.toObject ? payment.toObject() : { ...payment };
+    delete safePayment.razorpay_signature;
+    res.json(safePayment);
+  } catch (err) { next(err); }
 };
 export const razorpayWebhook = async (req, res, next) => {
   try {
