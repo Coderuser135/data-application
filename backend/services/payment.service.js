@@ -67,9 +67,10 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   if (payment.status === 'success') return payment;
   if (payment.status === 'refunded') throw new ApiError(409, 'Payment has already been refunded');
 
-  // Validate an order's reservation inside the same transaction before marking
-  // its payment successful. This closes the race where Razorpay reports a late
-  // capture after the reservation has expired but before the hourly expiry job runs.
+  // Validate stock reservation inside this transaction before fulfillment.
+  // If Razorpay captured money after the reservation expired, preserve the
+  // captured payment as an exception for admin reconciliation; never fulfill
+  // an order whose stock has already been released.
   let reservedOrder = null;
   if (payment.order_id) {
     reservedOrder = await Order.findOne({
@@ -81,7 +82,16 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
       reservation_expires_at: { $gt: new Date() },
     }).session(session);
     if (!reservedOrder) {
-      throw new ApiError(409, 'Order reservation has expired or is no longer active. Payment needs manual reconciliation.');
+      payment.status = 'reconciliation_required';
+      if (razorpayPaymentId) {
+        payment.razorpay_payment_id = razorpayPaymentId;
+        payment.transaction_id = razorpayPaymentId;
+      }
+      if (signature) payment.razorpay_signature = signature;
+      payment.payment_date = new Date();
+      payment.reference_note = 'Payment captured after order stock reservation expired. Do not fulfill automatically; admin reconciliation required.';
+      await payment.save({ session });
+      return payment;
     }
   }
 
