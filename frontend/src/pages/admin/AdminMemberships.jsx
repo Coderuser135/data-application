@@ -32,9 +32,9 @@ function Filter({ label, value, onChange, options }) {
 
 function SummaryCard({ label, value, icon: Icon, tone }) {
   const styles = {
-    green: { icon: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20', card: '!border-emerald-200/80 !bg-emerald-50/50 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.04]' },
-    amber: { icon: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20', card: '!border-amber-200/80 !bg-amber-50/50 dark:!border-amber-500/20 dark:!bg-amber-500/[0.04]' },
-    blue: { icon: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-400/20', card: '!border-blue-200/80 !bg-blue-50/50 dark:!border-blue-500/20 dark:!bg-blue-500/[0.04]' },
+    green: { icon: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20', card: '!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]' },
+    amber: { icon: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20', card: '!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]' },
+    blue: { icon: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-400/20', card: '!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]' },
     slate: { icon: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600', card: '!border-slate-200 !bg-white dark:!border-slate-700 dark:!bg-slate-900' },
   };
   const palette = styles[tone] || styles.slate;
