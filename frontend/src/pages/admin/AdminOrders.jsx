@@ -9,8 +9,8 @@ import EmptyState from '@/components/ui/EmptyState';
 import { fetchAllOrders, updateOrderStatus } from '@/redux/slices/orderSlice';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
-const ORDER_STATUSES = ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery', 'collected', 'delivered', 'cancelled'];
-const STATUS_LABELS = { pending: 'Pending payment', processing: 'Processing', ready_for_pickup: 'Ready for pickup', out_for_delivery: 'Out for delivery', collected: 'Collected', delivered: 'Delivered', cancelled: 'Cancelled' };
+const ORDER_STATUSES = ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery', 'collected', 'delivered', 'cancelled', 'confirmed', 'shipped'];
+const STATUS_LABELS = { pending: 'Pending payment', processing: 'Processing', ready_for_pickup: 'Ready for pickup', out_for_delivery: 'Out for delivery', collected: 'Collected', delivered: 'Delivered', cancelled: 'Cancelled', confirmed: 'Confirmed (legacy)', shipped: 'Shipped (legacy)' };
 
 export default function AdminOrders() {
   const dispatch = useDispatch();
@@ -136,7 +136,7 @@ export default function AdminOrders() {
               <div>
                 <h4 className="mb-2 text-sm font-semibold text-ink-900 dark:text-white">Update Status</h4>
                 <div className="flex flex-wrap gap-2">
-                  {(selectedOrder.status === 'processing' ? (selectedOrder.fulfillment_method === 'store_pickup' ? ['ready_for_pickup'] : ['out_for_delivery']) : selectedOrder.status === 'ready_for_pickup' ? ['collected'] : selectedOrder.status === 'out_for_delivery' ? ['delivered'] : []).map((s) => (
+                  {(selectedOrder.status === 'processing' ? (selectedOrder.fulfillment_method === 'store_pickup' ? ['ready_for_pickup'] : ['out_for_delivery']) : selectedOrder.status === 'ready_for_pickup' ? ['collected'] : selectedOrder.status === 'out_for_delivery' ? ['delivered'] : selectedOrder.status === 'confirmed' ? ['shipped'] : selectedOrder.status === 'shipped' ? ['delivered'] : []).map((s) => (
                     <button key={s} onClick={() => handleStatusChange(selectedOrder.id, s)} className={`rounded-lg px-3 py-2 text-xs font-semibold capitalize transition ${selectedOrder.status === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 hover:bg-surface-200 dark:bg-surface-800'}`}>{STATUS_LABELS[s] || s}</button>
                   ))}
                 </div>
