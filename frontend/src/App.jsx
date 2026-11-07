@@ -24,6 +24,7 @@ import MembershipPage from '@/pages/user/Membership';
 import Payments from '@/pages/user/Payments';
 import BodyProgress from '@/pages/user/BodyProgress';
 import UserStore from '@/pages/user/Store';
+import SupplementDetails from '@/pages/user/SupplementDetails';
 import Cart from '@/pages/user/Cart';
 import Checkout from '@/pages/user/Checkout';
 import Orders from '@/pages/user/Orders';
@@ -61,7 +62,7 @@ export default function App() {
           <Route index element={<Navigate to="/user/dashboard" />} /><Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<Profile />} /><Route path="gym" element={<MyGym />} />
           <Route path="membership" element={<MembershipPage />} /><Route path="payments" element={<Payments />} />
-          <Route path="body-progress" element={<BodyProgress />} /><Route path="store" element={<UserStore />} />
+          <Route path="body-progress" element={<BodyProgress />} /><Route path="store" element={<UserStore />} /><Route path="store/:id" element={<SupplementDetails />} />
           <Route path="cart" element={<Cart />} /><Route path="checkout" element={<Checkout />} />
           <Route path="orders" element={<Orders />} /><Route path="notifications" element={<Notifications />} /><Route path="settings" element={<Settings />} />
         </Route>
