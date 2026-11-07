@@ -16,9 +16,9 @@ const navItems = [
   { to: '/admin/products', icon: Package, label: 'Supplements' },
   { to: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
-  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
   { to: '/admin/banners', icon: PanelsTopLeft, label: 'Banner' },
   { to: '/admin/profile', icon: UserRound, label: 'My Profile' },
+  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
