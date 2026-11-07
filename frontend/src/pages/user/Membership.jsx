@@ -28,6 +28,7 @@ export default function Membership() {
 
   const activeMembership = (memberships || []).find((m) => m.status === 'active' && m.payment_status === 'paid');
   const scheduledMembership = (memberships || []).find((m) => m.status === 'scheduled' && m.payment_status === 'paid');
+  const pendingPaymentMembership = (memberships || []).find((m) => m.payment_status === 'pending' && Number(m.amount_due) > 0);
   const currentMembership = activeMembership || scheduledMembership;
   const daysLeft = getDaysRemaining(currentMembership?.end_date);
 
@@ -87,7 +88,7 @@ export default function Membership() {
     } catch (err) { alert(typeof err === 'string' ? err : (err?.message || 'Membership renewal failed')); }
   }
 
-  const statusTone = { active: 'success', pending: 'warning', expired: 'neutral', cancelled: 'danger', not_purchased: 'neutral' };
+  const statusTone = { active: 'success', scheduled: 'info', pending: 'warning', expired: 'neutral', cancelled: 'danger', not_purchased: 'neutral' };
 
   return (
     <div className="space-y-6">
@@ -165,7 +166,7 @@ export default function Membership() {
                     </div>
 
                     <div className="mt-5 border-t border-surface-100 pt-3 dark:border-surface-800">
-                      {isCurrent ? <Button variant="secondary" className="w-full" disabled>You're on this plan</Button> : !admission || admission.status !== 'active' ? <Button variant="secondary" className="w-full" disabled>Admission required</Button> : scheduledMembership ? <Button variant="secondary" className="w-full" disabled>Upcoming membership</Button> : activeMembership ? <Button variant="outline" className="w-full" onClick={() => renew(activeMembership.id)}>Renew membership <ArrowRight size={15} /></Button> : <Button className="w-full" onClick={() => purchasePlan(plan)}>Choose this plan <ArrowRight size={15} /></Button>}
+                      {isCurrent ? <Button variant="secondary" className="w-full" disabled>You're on this plan</Button> : !admission || admission.status !== 'active' ? <Button variant="secondary" className="w-full" disabled>Admission required</Button> : scheduledMembership ? <Button variant="secondary" className="w-full" disabled>Upcoming membership</Button> : pendingPaymentMembership ? <Button variant="secondary" className="w-full" disabled>Complete pending payment</Button> : activeMembership ? <Button variant="outline" className="w-full" onClick={() => renew(activeMembership.id)}>Renew membership <ArrowRight size={15} /></Button> : <Button className="w-full" onClick={() => purchasePlan(plan)}>Choose this plan <ArrowRight size={15} /></Button>}
                       <p className="mt-2 text-center text-[10px] text-surface-400">Secure payment · Details saved to your account</p>
                     </div>
                   </div>
