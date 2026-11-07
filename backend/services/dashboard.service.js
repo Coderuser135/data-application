@@ -6,6 +6,7 @@ import Order from '../models/order.model.js';
 import Product from '../models/product.model.js';
 import BodyMeasurement from '../models/bodyMeasurement.model.js';
 import OfflineSale from '../models/offlineSale.model.js';
+import { getMembershipsByUserId } from './membership.service.js';
 
 const TIMEZONE = process.env.GYM_TIMEZONE || 'Asia/Kolkata';
 function zonedDateParts(date = new Date()) {
@@ -120,7 +121,7 @@ export async function getUserDashboard(userId) {
     GymAdmission.findOne({ user_id: userId }).lean(),
     Payment.find({ user_id: userId }).select('-razorpay_signature').sort({ createdAt: -1 }).lean(),
     Order.find({ user_id: userId }).sort({ createdAt: -1 }).lean(),
-    Membership.find({ user_id: userId }).sort({ createdAt: -1 }).lean(),
+    getMembershipsByUserId(userId),
     BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 }).lean(),
   ]);
 
