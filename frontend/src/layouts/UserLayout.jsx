@@ -11,7 +11,7 @@ const navItems = [
   { to: '/user/gym', icon: Dumbbell, label: 'My Gym' },
   { to: '/user/membership', icon: CreditCard, label: 'Membership' },
   { to: '/user/body-progress', icon: Ruler, label: 'Body Progress' },
-  { to: '/user/store', icon: ShoppingBag, label: 'Store' },
+  { to: '/user/store', icon: ShoppingBag, label: 'Supplement Store' },
   { to: '/user/cart', icon: ShoppingCart, label: 'Cart' },
   { to: '/user/orders', icon: Package, label: 'Orders' },
   { to: '/user/payments', icon: CreditCard, label: 'Payments' },
