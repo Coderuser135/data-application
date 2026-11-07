@@ -12,9 +12,6 @@ export const createRazorpayOrder = async (req, res, next) => {
 export const verifyRazorpayPayment = async (req, res, next) => {
   try { res.json(await paymentService.verifyRazorpayPayment(req.user._id, req.body)); } catch (err) { next(err); }
 };
-export const refundPayment = async (req, res, next) => {
-  try { res.json(await paymentService.refundPayment(req.params.id, req.body || {})); } catch (err) { next(err); }
-};
 export const razorpayWebhook = async (req, res, next) => {
   try {
     const signature = req.get('x-razorpay-signature');
