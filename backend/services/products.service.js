@@ -64,10 +64,12 @@ export async function getProducts({
       ],
     };
   } else if (stock === 'in') {
-    filter.$expr = { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, '$low_stock_threshold'] };
+    filter.$expr = { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] };
   }
 
-  if (expiry === 'expired') {
+  if (expiry === 'not_expired') {
+    filter.$and = [...(filter.$and || []), { $or: [{ expiry_date: null }, { expiry_date: { $gt: now } }] }];
+  } else if (expiry === 'expired') {
     filter.expiry_date = { $lt: now };
   } else if (expiry === '30') {
     filter.expiry_date = { $gte: now, $lte: new Date(now.getTime() + 30 * 86400000) };
