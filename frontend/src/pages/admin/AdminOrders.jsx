@@ -34,7 +34,14 @@ export default function AdminOrders() {
     } catch (err) { console.error(err); }
   }
 
-  function getTimelineIndex(status) { return (selectedOrder?.fulfillment_method === 'store_pickup' ? ['processing', 'ready_for_pickup', 'collected'] : ['processing', 'out_for_delivery', 'delivered']).indexOf(status); }
+  function getTimelineIndex(status) {
+    const steps = ['confirmed', 'shipped'].includes(selectedOrder?.status)
+      ? ['confirmed', 'shipped', 'delivered']
+      : selectedOrder?.fulfillment_method === 'store_pickup'
+        ? ['processing', 'ready_for_pickup', 'collected']
+        : ['processing', 'out_for_delivery', 'delivered'];
+    return steps.indexOf(status);
+  }
 
   return (
     <div className="space-y-6">
@@ -120,7 +127,7 @@ export default function AdminOrders() {
               <div>
                 <h4 className="mb-3 text-sm font-semibold text-ink-900 dark:text-white">Tracking Timeline</h4>
                 <div className="flex items-center justify-between">
-                  {(selectedOrder.fulfillment_method === 'store_pickup' ? ['processing', 'ready_for_pickup', 'collected'] : ['processing', 'out_for_delivery', 'delivered']).map((status, i) => {
+                  {(['confirmed', 'shipped'].includes(selectedOrder.status) ? ['confirmed', 'shipped', 'delivered'] : selectedOrder.fulfillment_method === 'store_pickup' ? ['processing', 'ready_for_pickup', 'collected'] : ['processing', 'out_for_delivery', 'delivered']).map((status, i) => {
                     const currentIdx = getTimelineIndex(selectedOrder.status);
                     const isDone = i <= currentIdx && selectedOrder.status !== 'cancelled';
                     return (
