@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Building, Phone, Mail } from 'lucide-react';
+import { Save, Building } from 'lucide-react';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -24,7 +24,7 @@ export default function AdminSettings() {
       await gymSettingsService.update(settings);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err) { alert('Failed to save settings'); }
+    } catch { alert('Failed to save settings'); }
     setSaving(false);
   }
 
