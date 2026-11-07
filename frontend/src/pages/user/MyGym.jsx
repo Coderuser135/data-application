@@ -115,7 +115,7 @@ export default function MyGym() {
                     <td className="px-5 py-3">{formatCurrency(m.plan_price_snapshot)}</td>
                     <td className="px-5 py-3">{formatDate(m.start_date)}</td>
                     <td className="px-5 py-3">{formatDate(m.end_date)}</td>
-                    <td className="px-5 py-3"><Badge tone={m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'warning' : m.status === 'active' ? 'success' : m.status === 'scheduled' ? 'info' : m.status === 'pending' ? 'warning' : 'neutral'}>{m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'payment due' : m.status}</Badge></td>
+                    <td className="px-5 py-3"><Badge tone={m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'warning' : (m.effective_status || m.status) === 'active' ? 'success' : (m.effective_status || m.status) === 'scheduled' ? 'info' : (m.effective_status || m.status) === 'pending' ? 'warning' : 'neutral'}>{m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'payment due' : (m.effective_status || m.status)}</Badge></td>
                   </tr>
                 ))}
               </tbody>
