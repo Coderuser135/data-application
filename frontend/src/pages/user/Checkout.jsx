@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { CheckCircle2, CreditCard, Lock } from 'lucide-react';
@@ -17,6 +17,10 @@ export default function Checkout() {
   const [form, setForm] = useState({ full_name: '', phone: '', address: '', city: '', state: '', pincode: '' });
   const [fulfillmentMethod, setFulfillmentMethod] = useState('store_pickup');
   const [loading, setLoading] = useState(false);
+  const [progressMessage, setProgressMessage] = useState('');
+  const checkoutLock = useRef(false);
+  const checkoutRequestId = useRef(null);
+  if (!checkoutRequestId.current) checkoutRequestId.current = globalThis.crypto?.randomUUID?.() || `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -37,15 +41,19 @@ export default function Checkout() {
 
   async function handleCheckout(e) {
     e.preventDefault();
+    if (checkoutLock.current) return;
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
+    checkoutLock.current = true;
     setError('');
     setLoading(true);
+    setProgressMessage('Creating your order securely…');
     let checkoutStage = 'order';
     try {
       const shippingAddress = fulfillmentMethod === 'admin_delivery' ? [form.address, form.city, form.state + ' - ' + form.pincode].join(', ') : '';
-      const order = await dispatch(createOrder({ items, shippingAddress, fulfillmentMethod, customerName: form.full_name.trim(), customerPhone: form.phone.trim() })).unwrap();
+      const order = await dispatch(createOrder({ items, shippingAddress, fulfillmentMethod, customerName: form.full_name.trim(), customerPhone: form.phone.trim(), checkoutRequestId: checkoutRequestId.current })).unwrap();
       checkoutStage = 'payment_setup';
+      setProgressMessage('Preparing secure payment. Please keep this page open…');
       const { keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ orderId: order.id });
 
       if (!razorpayOrder || !keyId || typeof window.Razorpay !== 'function') {
@@ -63,6 +71,7 @@ export default function Checkout() {
           handler: async (response) => {
             try {
               checkoutStage = 'verification';
+              setProgressMessage('Payment received. Verifying securely — please do not close this page…');
               const verifiedPayment = await paymentService.verifyRazorpayPayment(response);
               if (verifiedPayment?.status === 'reconciliation_required') {
                 reject(new Error('Your payment was received, but the order stock reservation expired. Please contact Heaven Gym before making another payment.'));
@@ -78,6 +87,7 @@ export default function Checkout() {
       });
 
       dispatch(clearCart());
+      setProgressMessage('Payment successful. Redirecting to your orders…');
       setSuccess(true);
       setTimeout(() => navigate('/user/orders'), 1200);
     } catch (err) {
@@ -101,7 +111,9 @@ export default function Checkout() {
 
       console.error('Checkout failed:', { stage: checkoutStage, status, serverMessage, error: err });
       setError(friendlyMessage);
+      setProgressMessage('');
     } finally {
+      checkoutLock.current = false;
       setLoading(false);
     }
   }
@@ -142,7 +154,8 @@ export default function Checkout() {
               </div>
               <p className="mt-1 text-xs text-surface-500">Online payment via Razorpay. Payment details are verified on the server.</p>
             </div>
-            <Button type="submit" loading={loading} size="lg" className="w-full"><CreditCard size={18} /> Pay {formatCurrency(total)}</Button>
+            {loading && <p role="status" aria-live="polite" className="rounded-lg bg-brand-50 px-4 py-3 text-center text-sm font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">{progressMessage || 'Please wait while we process your payment. Do not click again.'}</p>}
+            <Button type="submit" loading={loading} disabled={loading} size="lg" className="w-full"><CreditCard size={18} /> {loading ? 'Processing…' : `Pay ${formatCurrency(total)}`}</Button>
           </form>
         </Card>
         <Card>
