@@ -423,3 +423,14 @@ button, input, select, textarea { font: inherit; }
   .admin-content .grid.grid-cols-2 { gap: 8px; }
   .admin-shell table.admin-mobile-cards tbody td::before { flex-basis: 72px; }
 }
+
+
+/* Banner carousel: gentle cross-fade and subtle zoom between images. */
+@keyframes banner-change {
+  from { opacity: .55; transform: scale(1.025); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-banner-change { animation: banner-change .7s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-banner-change { animation: none !important; }
+}
