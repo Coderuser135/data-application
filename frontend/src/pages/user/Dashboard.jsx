@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, CreditCard, Ruler, ShoppingBag, ArrowRight, Dumbbell, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
@@ -41,7 +42,7 @@ export default function UserDashboard() {
 
   useEffect(() => { dispatch(fetchUserDashboard()); }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="dashboard" />;
   if (!data) return <EmptyState title="Unable to load dashboard" />;
 
   const activeMembership = (data.memberships || []).find((m) => m.status === 'active');
