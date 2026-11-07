@@ -86,7 +86,7 @@ function RevenueChart({ analytics, period, onPeriodChange }) {
                   <div className="w-3 rounded-t bg-brand-600 transition-all duration-300" style={{ height: `${gymH}px` }} title={`Gym: ${formatCurrency(gym)}`} />
                   <div className="w-3 rounded-t bg-blue-500 transition-all duration-300" style={{ height: `${storeH}px` }} title={`Store: ${formatCurrency(store)}`} />
                 </div>
-                <span className="text-[10px] text-surface-500">{date.slice(-5)}</span>
+                <span className="text-[10px] text-surface-500">{date.slice(5)}</span>
               </div>
             );
           })}
