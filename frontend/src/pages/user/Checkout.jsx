@@ -25,7 +25,6 @@ export default function Checkout() {
 
   function validate() {
     if (!form.full_name.trim()) return 'Full name is required';
-    if (!form.full_name.trim()) return 'Full name is required';
     if (!/^\d{10}$/.test(form.phone.trim())) return 'Valid 10-digit phone number is required';
     if (fulfillmentMethod === 'admin_delivery') {
       if (!form.address.trim()) return 'Address is required';
@@ -108,7 +107,7 @@ export default function Checkout() {
               <Input label="Full Name" value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Your name" required />
               <Input label="Phone" value={form.phone} onChange={(e) => update('phone', e.target.value.replace(/\D/g, ''))} placeholder="10-digit phone" maxLength={10} required />
             </div>
-            {fulfillmentMethod === "admin_delivery" && <div className="space-y-4 rounded-xl border border-surface-200 p-4 dark:border-surface-700"><h4 className="text-sm font-semibold">Delivery Address</h4><Input label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="House no, Street, Area" required /><div className="grid gap-4 sm:grid-cols-3"><Input label="City" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="City" required /><Input label="State" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="State" required /><Input label="Pincode" value={form.pincode} onChange={(e) => update("pincode", e.target.value.replace(/\\D/g, ""))} placeholder="6-digit PIN" maxLength={6} required /></div></div>}
+            {fulfillmentMethod === "admin_delivery" && <div className="space-y-4 rounded-xl border border-surface-200 p-4 dark:border-surface-700"><h4 className="text-sm font-semibold">Delivery Address</h4><Input label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="House no, Street, Area" required /><div className="grid gap-4 sm:grid-cols-3"><Input label="City" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="City" required /><Input label="State" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="State" required /><Input label="Pincode" value={form.pincode} onChange={(e) => update("pincode", e.target.value.replace(/\D/g, ""))} placeholder="6-digit PIN" maxLength={6} required /></div></div>}
 
             <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
               <div className="flex items-center gap-2">
