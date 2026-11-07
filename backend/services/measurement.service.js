@@ -4,9 +4,7 @@ import User from '../models/user.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 
 export async function getMeasurementsByUserId(userId) {
-  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
-  if (!admission) return [];
-  return BodyMeasurement.find({ user_id: userId, gym_admission_id: admission._id }).sort({ measurement_date: -1 });
+  return BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 });
 }
 
 export async function getAllMeasurements() {
