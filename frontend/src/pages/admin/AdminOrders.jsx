@@ -9,7 +9,8 @@ import EmptyState from '@/components/ui/EmptyState';
 import { fetchAllOrders, updateOrderStatus } from '@/redux/slices/orderSlice';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
-const STATUS_LABELS = { processing: 'Processing', ready_for_pickup: 'Ready for pickup', out_for_delivery: 'Out for delivery', collected: 'Collected', delivered: 'Delivered' };
+const ORDER_STATUSES = ['pending', 'processing', 'ready_for_pickup', 'out_for_delivery', 'collected', 'delivered', 'cancelled'];
+const STATUS_LABELS = { pending: 'Pending payment', processing: 'Processing', ready_for_pickup: 'Ready for pickup', out_for_delivery: 'Out for delivery', collected: 'Collected', delivered: 'Delivered', cancelled: 'Cancelled' };
 
 export default function AdminOrders() {
   const dispatch = useDispatch();
@@ -49,7 +50,7 @@ export default function AdminOrders() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {['all', ...ORDER_STATUSES].map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition ${statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 dark:bg-surface-800'}`}>{STATUS_LABELS[s]}</button>
+            <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition ${statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 dark:bg-surface-800'}`}>{STATUS_LABELS[s] || s}</button>
           ))}
         </div>
       </Card>
@@ -77,7 +78,7 @@ export default function AdminOrders() {
                     <td data-label="Date" className="px-5 py-4 text-surface-500">{formatDate(o.created_at)}</td>
                     <td data-label="Amount" className="px-5 py-4 font-semibold">{formatCurrency(o.total_amount)}</td>
                     <td data-label="Payment" className="px-5 py-4"><Badge tone={o.payment_status === 'success' ? 'success' : 'warning'}>{o.payment_status}</Badge></td>
-                    <td data-label="Status" className="px-5 py-4"><Badge tone={o.status === 'delivered' ? 'success' : o.status === 'cancelled' ? 'danger' : 'info'}>{o.status}</Badge></td>
+                    <td data-label="Status" className="px-5 py-4"><Badge tone={o.status === 'delivered' ? 'success' : o.status === 'cancelled' ? 'danger' : 'info'}>{STATUS_LABELS[o.status] || o.status}</Badge></td>
                     <td data-label="Action" className="px-5 py-4 text-right"><Button variant="ghost" size="sm" onClick={() => setSelectedOrder(o)}>View</Button></td>
                   </tr>
                 ))}
@@ -136,7 +137,7 @@ export default function AdminOrders() {
                 <h4 className="mb-2 text-sm font-semibold text-ink-900 dark:text-white">Update Status</h4>
                 <div className="flex flex-wrap gap-2">
                   {(selectedOrder.status === 'processing' ? (selectedOrder.fulfillment_method === 'store_pickup' ? ['ready_for_pickup'] : ['out_for_delivery']) : selectedOrder.status === 'ready_for_pickup' ? ['collected'] : selectedOrder.status === 'out_for_delivery' ? ['delivered'] : []).map((s) => (
-                    <button key={s} onClick={() => handleStatusChange(selectedOrder.id, s)} className={`rounded-lg px-3 py-2 text-xs font-semibold capitalize transition ${selectedOrder.status === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 hover:bg-surface-200 dark:bg-surface-800'}`}>{s}</button>
+                    <button key={s} onClick={() => handleStatusChange(selectedOrder.id, s)} className={`rounded-lg px-3 py-2 text-xs font-semibold capitalize transition ${selectedOrder.status === s ? 'bg-brand-600 text-white' : 'bg-surface-100 text-surface-500 hover:bg-surface-200 dark:bg-surface-800'}`}>{STATUS_LABELS[s] || s}</button>
                   ))}
                 </div>
               </div>
