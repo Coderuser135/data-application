@@ -17,6 +17,7 @@ const navItems = [
   { to: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
   { to: '/admin/banners', icon: PanelsTopLeft, label: 'Banner' },
+  { to: '/admin/supplement-selling', icon: ShoppingCart, label: 'Supplement Selling' },
   { to: '/admin/profile', icon: UserRound, label: 'My Profile' },
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
