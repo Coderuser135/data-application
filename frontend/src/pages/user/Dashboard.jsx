@@ -62,13 +62,13 @@ export default function UserDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white sm:p-8">
-        <p className="text-sm text-surface-400">Welcome back</p>
-        <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{profile?.full_name || 'Athlete'}</h1>
-        <p className="mt-2 text-sm text-surface-400">Here's your training overview at a glance.</p>
-      </div>
-
       <BannerCarousel section="gym" />
+
+      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 px-5 py-4 text-white sm:px-6 sm:py-5">
+        <p className="text-xs text-surface-400 sm:text-sm">Welcome back</p>
+        <h1 className="mt-1 font-display text-xl font-bold sm:text-2xl">{profile?.full_name || 'Athlete'}</h1>
+        <p className="mt-1.5 text-xs text-surface-400 sm:text-sm">Here's your training overview at a glance.</p>
+      </div>
 
       {showRenewalBanner && (
         <Card className={`border-2 ${daysLeft <= 2 ? 'border-red-500 bg-red-50 dark:bg-red-500/10' : 'border-amber-500 bg-amber-50 dark:bg-amber-500/10'}`}>
