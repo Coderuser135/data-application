@@ -23,7 +23,7 @@ export default function BannerCarousel({ section, children = null }) {
     if (banners.length < 2) return undefined;
     const timer = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % banners.length);
-    }, 7000);
+    }, 4000);
     return () => window.clearInterval(timer);
   }, [banners.length]);
 
@@ -33,13 +33,14 @@ export default function BannerCarousel({ section, children = null }) {
 
   return (
     <section
-      className="relative isolate min-h-[190px] overflow-hidden rounded-[26px] bg-ink-950 shadow-lg sm:min-h-[260px] lg:min-h-[320px]"
+      className="relative isolate h-[150px] w-full overflow-hidden rounded-2xl bg-ink-950 shadow-lg sm:h-[210px] sm:rounded-[22px] lg:h-[250px]"
       aria-label={section === 'gym' ? 'Gym promotional banners' : 'Supplement Store promotional banners'}
     >
       <img
+        key={active._id || activeIndex}
         src={active.image_url}
         alt={section === 'gym' ? 'Heaven Gym promotional banner' : 'Supplement Store promotional banner'}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover animate-banner-change"
       />
       {banners.length > 1 && (
         <>
