@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminAvatar from '@/components/admin/AdminAvatar';
 import { createPortal } from 'react-dom';
-import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft, User, Phone, Mail, CreditCard, Ruler, IndianRupee } from 'lucide-react';
+import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
