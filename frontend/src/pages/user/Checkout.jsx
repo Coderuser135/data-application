@@ -60,7 +60,11 @@ export default function Checkout() {
           order_id: razorpayOrder.id,
           handler: async (response) => {
             try {
-              await paymentService.verifyRazorpayPayment(response);
+              const verifiedPayment = await paymentService.verifyRazorpayPayment(response);
+              if (verifiedPayment?.status === 'reconciliation_required') {
+                reject(new Error('Your payment was received, but the order stock reservation expired. Please contact Heaven Gym before making another payment.'));
+                return;
+              }
               resolve();
             } catch (err) { reject(err); }
           },
