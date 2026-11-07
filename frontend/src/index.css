@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -433,4 +433,119 @@ button, input, select, textarea { font: inherit; }
 .animate-banner-change { animation: banner-change .7s ease both; }
 @media (prefers-reduced-motion: reduce) {
   .animate-banner-change { animation: none !important; }
+}
+
+
+/* Heaven Gym admin identity: athletic typography, graphite surfaces and electric-lime accents. */
+.admin-shell {
+  --admin-accent: #b7df45;
+  --admin-accent-strong: #8fb927;
+  --admin-accent-ink: #17200d;
+  --admin-border: #e1e7dc;
+  --admin-muted: #647064;
+  background: #f4f6f1;
+  color: #1b241b;
+  font-family: 'DM Sans', sans-serif;
+}
+.dark .admin-shell {
+  --admin-accent: #c1eb4b;
+  --admin-accent-strong: #a8d638;
+  --admin-accent-ink: #11180a;
+  --admin-border: #29352b;
+  --admin-muted: #a4b09f;
+  background: #0d130f;
+  color: #edf3e9;
+}
+.admin-shell h1,
+.admin-shell h2,
+.admin-shell h3,
+.admin-shell .font-display {
+  font-family: 'Space Grotesk', 'DM Sans', sans-serif;
+  letter-spacing: -.035em;
+}
+.admin-shell h1 { font-weight: 700; }
+.admin-shell h2,
+.admin-shell h3 { font-weight: 600; }
+
+.admin-shell .admin-topbar {
+  background: #121a16 !important;
+  border-color: #26352b !important;
+  box-shadow: 0 8px 28px rgba(11, 20, 14, .16);
+}
+.admin-shell .admin-topbar .bg-brand-600 {
+  background: var(--admin-accent) !important;
+  color: var(--admin-accent-ink) !important;
+  box-shadow: 0 8px 22px rgba(183, 223, 69, .14);
+}
+.admin-shell .text-brand-500,
+.admin-shell .text-brand-600,
+.admin-shell .text-brand-700 {
+  color: #789c20 !important;
+}
+.dark .admin-shell .text-brand-400,
+.dark .admin-shell .text-brand-500 {
+  color: var(--admin-accent) !important;
+}
+.admin-shell .bg-brand-600 {
+  background: var(--admin-accent) !important;
+  color: var(--admin-accent-ink) !important;
+}
+.admin-shell .border-brand-600 { border-color: var(--admin-accent-strong) !important; }
+.admin-shell .ring-brand-500 { --tw-ring-color: rgba(183, 223, 69, .38) !important; }
+
+.admin-shell .admin-sidebar {
+  background: #fbfcf8 !important;
+  border-color: #e1e7dc !important;
+  box-shadow: 8px 0 28px rgba(24, 39, 24, .035);
+}
+.dark .admin-shell .admin-sidebar {
+  background: #121a15 !important;
+  border-color: #29352b !important;
+}
+.admin-shell .admin-nav a[aria-current="page"] {
+  background: #edf5d9 !important;
+  border-color: #dcebb5 !important;
+  color: #344b12 !important;
+  box-shadow: inset 3px 0 0 var(--admin-accent-strong);
+}
+.dark .admin-shell .admin-nav a[aria-current="page"] {
+  background: rgba(183, 223, 69, .12) !important;
+  border-color: rgba(183, 223, 69, .22) !important;
+  color: #d2f18a !important;
+}
+.admin-shell .admin-nav a:not([aria-current="page"]):hover {
+  background: #f0f3eb !important;
+  color: #263521 !important;
+}
+.dark .admin-shell .admin-nav a:not([aria-current="page"]):hover {
+  background: #202b22 !important;
+  color: #f3f8ed !important;
+}
+.admin-shell .admin-nav a { font-weight: 600; letter-spacing: .005em; }
+.admin-shell .admin-content h1 { color: #182319; }
+.dark .admin-shell .admin-content h1 { color: #f1f7e9; }
+.admin-shell .admin-content h2,
+.admin-shell .admin-content h3 { color: #263426; }
+.dark .admin-shell .admin-content h2,
+.dark .admin-shell .admin-content h3 { color: #e6efdf; }
+.admin-shell .admin-content .rounded-2xl.border {
+  border-color: var(--admin-border);
+  box-shadow: 0 2px 5px rgba(25, 40, 24, .025), 0 12px 28px rgba(25, 40, 24, .035);
+}
+.dark .admin-shell .admin-content .rounded-2xl.border {
+  border-color: var(--admin-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .17);
+}
+.admin-shell .admin-content input:focus,
+.admin-shell .admin-content select:focus,
+.admin-shell .admin-content textarea:focus {
+  border-color: var(--admin-accent-strong) !important;
+  box-shadow: 0 0 0 3px rgba(183, 223, 69, .2) !important;
+}
+.admin-shell .admin-content button:focus-visible,
+.admin-shell .admin-content a:focus-visible {
+  outline-color: rgba(143, 185, 39, .55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-content { animation: none !important; }
 }
