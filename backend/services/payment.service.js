@@ -43,9 +43,29 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
   }
   if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Invalid payment amount');
   const targetFilter = orderId ? { order_id: orderId } : { membership_id: membershipId };
+
+  // Never create a second chargeable Razorpay order while an earlier order
+  // for the same gym-store order may already have captured the customer's money.
+  if (orderId) {
+    const completedPayment = await Payment.findOne({
+      user_id: userId,
+      order_id: orderId,
+      status: { $in: ['success', 'reconciliation_required'] },
+    });
+    if (completedPayment?.status === 'success') {
+      throw new ApiError(409, 'This order already has a successful payment. Please refresh your orders.');
+    }
+    if (completedPayment?.status === 'reconciliation_required') {
+      throw new ApiError(409, 'A payment was received for this order and requires Heaven Gym admin reconciliation. Do not pay again.');
+    }
+  }
+
   const existing = await Payment.findOne({ user_id: userId, ...targetFilter, status: 'pending', razorpay_order_id: { $ne: '' } });
   if (existing) {
     const existingOrder = await gateway().orders.fetch(existing.razorpay_order_id).catch(() => null);
+    if (existingOrder?.status === 'paid') {
+      throw new ApiError(409, 'The previous payment appears captured and is being verified. Do not make another payment; please contact Heaven Gym if your order does not update.');
+    }
     if (existingOrder && existingOrder.status !== 'paid') return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder: existingOrder };
   }
   const reservationExpiresAt = orderId ? await Order.findById(orderId).select('reservation_expires_at') : null;
