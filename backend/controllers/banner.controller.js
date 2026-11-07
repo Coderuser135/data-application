@@ -80,6 +80,7 @@ export const updateBanner = async (req, res, next) => {
     const banner = await Banner.findById(req.params.id);
     if (!banner) throw new ApiError(404, 'Banner not found');
     const payload = parsePayload(req.body);
+    const previousPublicId = banner.image_public_id;
     if (req.body.section && getSection(req.body.section) !== banner.section) {
       throw new ApiError(400, 'A banner cannot be moved to another section');
     }
@@ -90,7 +91,7 @@ export const updateBanner = async (req, res, next) => {
       banner.image_public_id = uploaded.public_id;
     }
     await banner.save();
-    if (uploaded) await removeCloudImage(req.file ? (req.body.old_public_id || '') : '');
+    if (uploaded) await removeCloudImage(previousPublicId);
     res.json(banner);
   } catch (error) {
     await removeCloudImage(uploaded?.public_id);
