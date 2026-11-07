@@ -34,10 +34,10 @@ export async function getAllPayments({ page = 1, limit = 10, status = 'all', typ
   if (status !== 'all') filter.status = status;
   if (type !== 'all') filter.payment_type = type;
   if (search.trim()) {
-    const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\export async function getAllPayments() { return Payment.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 }); }'), 'i');
-    const matchingUsers = await (await import('../models/user.model.js')).default.find({
-      $or: [{ full_name: regex }, { email: regex }],
-    }).select('_id').lean();
+    const escapedSearch = search.trim().replace(/[.*+?^\${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedSearch, 'i');
+    const User = (await import('../models/user.model.js')).default;
+    const matchingUsers = await User.find({ $or: [{ full_name: regex }, { email: regex }] }).select('_id').lean();
     filter.$or = [
       { transaction_id: regex },
       { razorpay_payment_id: regex },
@@ -48,17 +48,15 @@ export async function getAllPayments({ page = 1, limit = 10, status = 'all', typ
   const [items, total, summary] = await Promise.all([
     Payment.find(filter).populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1, _id: -1 }).skip((safePage - 1) * safeLimit).limit(safeLimit),
     Payment.countDocuments(filter),
-    Payment.aggregate([
-      { $group: {
-        _id: null,
-        gymRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $ne: ['$payment_type', 'order'] }] }, '$amount', 0] } },
-        storeRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $eq: ['$payment_type', 'order'] }] }, '$amount', 0] } },
-        refunded: { $sum: { $cond: [{ $eq: ['$status', 'refunded'] }, { $ifNull: ['$refunded_amount', '$amount'] }, 0] } },
-        pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-        reconciliationRequired: { $sum: { $cond: [{ $eq: ['$status', 'reconciliation_required'] }, 1, 0] } },
-        totalTransactions: { $sum: 1 },
-      } },
-    ]),
+    Payment.aggregate([{ $group: {
+      _id: null,
+      gymRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $ne: ['$payment_type', 'order'] }] }, '$amount', 0] } },
+      storeRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $eq: ['$payment_type', 'order'] }] }, '$amount', 0] } },
+      refunded: { $sum: { $cond: [{ $eq: ['$status', 'refunded'] }, { $ifNull: ['$refunded_amount', '$amount'] }, 0] } },
+      pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+      reconciliationRequired: { $sum: { $cond: [{ $eq: ['$status', 'reconciliation_required'] }, 1, 0] } },
+      totalTransactions: { $sum: 1 },
+    } }]),
   ]);
   return {
     items,
