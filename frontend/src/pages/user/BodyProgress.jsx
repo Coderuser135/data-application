@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ruler, TrendingUp, TrendingDown, Activity } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function BodyProgress() {
     dispatch(fetchMyAdmission());
   }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="details" />;
 
   const latest = measurements[0];
   const previous = measurements[1];
