@@ -1,13 +1,14 @@
 import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingBag, SlidersHorizontal, ArrowUpDown, PackageSearch, ChevronLeft, ChevronRight, ShoppingCart, Dumbbell } from 'lucide-react';
+import { Search, ShoppingBag, SlidersHorizontal, ArrowUpDown, PackageSearch, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { addToCart } from '@/redux/slices/cartSlice';
 import { productService, categoryService } from '@/services/productService';
 import { formatCurrency } from '@/utils/formatters';
+import BannerCarousel from '@/components/public/BannerCarousel';
 
 const PAGE_SIZE = 12;
 
@@ -71,18 +72,20 @@ export default function UserStore() {
 
   return (
     <div className="space-y-7">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#171923] via-[#242735] to-[#3b1519] px-6 py-8 text-white shadow-xl sm:px-9 sm:py-10">
-        <div className="absolute -right-10 -top-16 h-64 w-64 rounded-full border-[30px] border-white/5" />
-        <div className="absolute -bottom-24 right-1/4 h-52 w-52 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80"><Dumbbell size={13} /> Heaven Gym Nutrition</div>
-            <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Fuel your next level.</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/65">Explore training essentials and nutrition supplements selected for your fitness journey.</p>
+      <BannerCarousel section="store">
+        <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#171923] via-[#242735] to-[#3b1519] px-6 py-8 text-white shadow-xl sm:px-9 sm:py-10">
+          <div className="absolute -right-10 -top-16 h-64 w-64 rounded-full border-[30px] border-white/5" />
+          <div className="absolute -bottom-24 right-1/4 h-52 w-52 rounded-full bg-brand-500/10 blur-3xl" />
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80"><ShoppingBag size={13} /> Heaven Gym Nutrition</div>
+              <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Fuel your next level.</h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/65">Explore training essentials and nutrition supplements selected for your fitness journey.</p>
+            </div>
+            <Link to="/user/cart" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-ink-950 transition hover:bg-brand-50"><ShoppingCart size={17} /> View cart <span className="rounded-full bg-brand-500 px-2 py-0.5 text-xs text-white">{cartCount}</span></Link>
           </div>
-          <Link to="/user/cart" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-ink-950 transition hover:bg-brand-50"><ShoppingCart size={17} /> View cart <span className="rounded-full bg-brand-500 px-2 py-0.5 text-xs text-white">{cartCount}</span></Link>
-        </div>
-      </section>
+        </section>
+      </BannerCarousel>
 
       <section className="space-y-4">
         <div className="flex flex-col gap-3 lg:flex-row">
