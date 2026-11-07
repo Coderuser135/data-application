@@ -28,6 +28,8 @@ export default function Cart() {
     let active = true;
     if (!items.length) { setStockById({}); setProductsById({}); setStockLoading(false); return () => { active = false; }; }
     setStockLoading(true);
+    setStockById({});
+    setProductsById({});
     Promise.all(items.map(async (item) => {
       const id = getProductId(item.product);
       try {
