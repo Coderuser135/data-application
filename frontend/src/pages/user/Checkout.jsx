@@ -41,10 +41,12 @@ export default function Checkout() {
     if (validationError) { setError(validationError); return; }
     setError('');
     setLoading(true);
+    let checkoutStage = 'order';
     try {
       const shippingAddress = fulfillmentMethod === 'admin_delivery' ? [form.address, form.city, form.state + ' - ' + form.pincode].join(', ') : '';
       const order = await dispatch(createOrder({ items, shippingAddress, fulfillmentMethod, customerName: form.full_name.trim(), customerPhone: form.phone.trim() })).unwrap();
-      const { payment, keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ orderId: order.id });
+      checkoutStage = 'payment_setup';
+      const { keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ orderId: order.id });
 
       if (!razorpayOrder || !keyId || typeof window.Razorpay !== 'function') {
         throw new Error('Online payment is temporarily unavailable. Your order is saved as pending; please try again from your orders.');
@@ -60,6 +62,7 @@ export default function Checkout() {
           order_id: razorpayOrder.id,
           handler: async (response) => {
             try {
+              checkoutStage = 'verification';
               const verifiedPayment = await paymentService.verifyRazorpayPayment(response);
               if (verifiedPayment?.status === 'reconciliation_required') {
                 reject(new Error('Your payment was received, but the order stock reservation expired. Please contact Heaven Gym before making another payment.'));
@@ -78,7 +81,26 @@ export default function Checkout() {
       setSuccess(true);
       setTimeout(() => navigate('/user/orders'), 1200);
     } catch (err) {
-      setError(typeof err === 'string' ? err : (err?.message || 'Checkout failed. Please try again.'));
+      const status = err?.response?.status;
+      const serverMessage = err?.response?.data?.error || '';
+      let friendlyMessage;
+
+      if (err?.message?.toLowerCase().includes('reservation expired') || serverMessage.toLowerCase().includes('reservation')) {
+        friendlyMessage = 'This order session has expired. Please return to your cart and place the order again.';
+      } else if (status === 409 || serverMessage.toLowerCase().includes('already has a successful payment')) {
+        friendlyMessage = 'We found an existing payment attempt for this order. Please check My Orders before trying again.';
+      } else if (checkoutStage === 'verification') {
+        friendlyMessage = 'We could not confirm your payment yet. Please do not pay again. Check My Orders or contact Heaven Gym with your payment reference.';
+      } else if (checkoutStage === 'payment_setup') {
+        friendlyMessage = 'Online payment could not be started right now. Your order is saved as pending; please check My Orders before retrying.';
+      } else if (typeof err === 'string' || status === 400 || status === 404 || status === 422) {
+        friendlyMessage = 'We could not place your order. Please check your cart and available stock, then try again.';
+      } else {
+        friendlyMessage = 'Something went wrong while processing your order. Please try again in a moment.';
+      }
+
+      console.error('Checkout failed:', { stage: checkoutStage, status, serverMessage, error: err });
+      setError(friendlyMessage);
     } finally {
       setLoading(false);
     }
