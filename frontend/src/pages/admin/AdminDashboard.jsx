@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Dumbbell, CreditCard, Package, TrendingUp, IndianRupee, ShoppingCart, AlertTriangle, Calendar, ArrowRight, Activity, Store } from 'lucide-react';
+import { Users, Dumbbell, CreditCard, TrendingUp, IndianRupee, ShoppingCart, AlertTriangle, ArrowRight, Activity, Store } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
