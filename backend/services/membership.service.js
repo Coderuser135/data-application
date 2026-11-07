@@ -18,9 +18,60 @@ function nextStartDate(membership) {
 }
 
 export async function getMembershipsByUserId(userId) {
-  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
-  if (!admission) return [];
-  return Membership.find({ user_id: userId, gym_admission_id: admission._id }).sort({ createdAt: -1 });
+  const memberships = await Membership.find({ user_id: userId }).sort({ createdAt: -1 }).lean();
+  if (!memberships.length) return [];
+
+  const membershipIds = memberships.map((membership) => membership._id);
+  const admissionIds = memberships.map((membership) => membership.gym_admission_id).filter(Boolean);
+  const payments = await Payment.find({
+    user_id: userId,
+    $or: [
+      { membership_id: { $in: membershipIds } },
+      ...(admissionIds.length ? [{ gym_admission_id: { $in: admissionIds }, payment_type: 'membership_advance' }] : []),
+    ],
+  }).select('membership_id gym_admission_id amount allocated_amount payment_type status').lean();
+
+  const now = new Date();
+  return memberships.map((membership) => {
+    const related = payments.filter((payment) =>
+      String(payment.membership_id || '') === String(membership._id)
+      || (payment.payment_type === 'membership_advance'
+        && String(payment.gym_admission_id || '') === String(membership.gym_admission_id || ''))
+    );
+    const allocatedAdvance = related
+      .filter((payment) => payment.payment_type === 'membership_advance'
+        && String(payment.membership_id || '') === String(membership._id)
+        && payment.status === 'success')
+      .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
+    const unallocatedAdvance = membership.membership_type === 'renewal' ? 0 : related
+      .filter((payment) => payment.payment_type === 'membership_advance'
+        && !payment.membership_id && payment.status === 'success')
+      .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
+    const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
+      Number(membership.advance_paid || 0),
+      allocatedAdvance + unallocatedAdvance,
+    );
+    const received = related
+      .filter((payment) => ['membership_full', 'membership_installment'].includes(payment.payment_type)
+        && payment.status === 'success')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const amountDue = Math.max(0, Number((
+      Number(membership.plan_price_snapshot || 0) - advancePaid - received
+    ).toFixed(2)));
+    const paymentStatus = related.some((payment) => payment.status === 'refunded')
+      ? 'refunded'
+      : amountDue === 0 ? 'paid' : 'pending';
+
+    return {
+      ...membership,
+      id: String(membership._id),
+      advance_paid: advancePaid,
+      amount_due: amountDue,
+      payment_status: paymentStatus,
+      effective_status: membership.end_date && new Date(membership.end_date) < now
+        && ['active', 'scheduled'].includes(membership.status) ? 'expired' : membership.status,
+    };
+  });
 }
 export async function getAllMemberships({
   search = '',
