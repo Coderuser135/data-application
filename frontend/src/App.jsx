@@ -43,6 +43,8 @@ import AdminOrders from '@/pages/admin/AdminOrders';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import AdminProfile from '@/pages/admin/AdminProfile';
+import AdminBadges from '@/pages/admin/AdminBadges';
+import AdminBadgeManager from '@/pages/admin/AdminBadgeManager';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -73,6 +75,7 @@ export default function App() {
           <Route path="membership-plans" element={<AdminMembershipPlans />} /><Route path="memberships" element={<AdminMemberships />} />
           <Route path="payments" element={<AdminPayments />} /><Route path="body-measurements" element={<AdminBodyMeasurements />} /><Route path="body-measurements/:userId" element={<AdminMemberMeasurements />} />
           <Route path="products" element={<AdminProducts />} /><Route path="orders" element={<AdminOrders />} />
+          <Route path="badges" element={<AdminBadges />} /><Route path="badges/:section" element={<AdminBadgeManager />} />
           <Route path="notifications" element={<AdminNotifications />} /><Route path="settings" element={<AdminSettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
