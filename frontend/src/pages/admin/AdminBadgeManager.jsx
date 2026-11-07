@@ -83,7 +83,7 @@ export default function AdminBadgeManager() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><Link to="/admin/badges" className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-surface-500 hover:text-brand-600"><ArrowLeft size={16} /> All badge sections</Link><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">{title}</h1><p className="mt-1 text-sm text-surface-500">Upload wide promotional images. Active banners rotate automatically on the matching user page.</p></div>
+        <div><Link to="/admin/banners" className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-surface-500 hover:text-brand-600"><ArrowLeft size={16} /> All banner sections</Link><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">{title}</h1><p className="mt-1 text-sm text-surface-500">Upload wide promotional images. Active banners rotate automatically on the matching user page.</p></div>
         <Badge tone="info">{items.length} total</Badge>
       </div>
       {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">{error}</div>}
