@@ -144,11 +144,13 @@ export async function getUserDashboard(userId) {
       admission_status: admission?.status || 'not_admitted',
       has_membership: Boolean(activeMembership),
       membership_status: pendingMembership ? 'payment_pending' : activeMembership?.status || 'not_purchased',
-      message: !isAdmitted
-        ? 'Your gym admission is pending. Contact the gym admin to complete admission.'
-        : !activeMembership
-          ? 'Your gym admission is complete. Choose a membership plan to activate your gym membership.'
-          : '',
+      message: pendingMembership
+        ? 'Your membership payment is pending. Complete the payment to activate your gym access.'
+        : !isAdmitted
+          ? 'Your gym admission is pending. Contact the gym admin to complete admission.'
+          : !activeMembership
+            ? 'Your gym admission is complete. Choose a membership plan to activate your gym membership.'
+            : '',
     },
   };
 }
