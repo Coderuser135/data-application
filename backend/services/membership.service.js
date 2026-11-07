@@ -43,13 +43,11 @@ export async function getMembershipsByUserId(userId) {
         && String(payment.membership_id || '') === String(membership._id)
         && payment.status === 'success')
       .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-    const unallocatedAdvance = membership.membership_type === 'renewal' ? 0 : related
-      .filter((payment) => payment.payment_type === 'membership_advance'
-        && !payment.membership_id && payment.status === 'success')
-      .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
+    // The membership stores its advance allocation at creation. Only use
+    // advances explicitly allocated to this membership as a ledger fallback.
     const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
       Number(membership.advance_paid || 0),
-      allocatedAdvance + unallocatedAdvance,
+      allocatedAdvance,
     );
     const received = related
       .filter((payment) => ['membership_full', 'membership_installment'].includes(payment.payment_type)
@@ -167,13 +165,9 @@ export async function getAllMemberships({
       .filter((payment) => payment.payment_type === 'membership_advance'
         && String(payment.membership_id || '') === String(item._id))
       .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-    const unallocatedAdmissionAdvance = item.membership_type === 'renewal' ? 0 : relatedPayments
-      .filter((payment) => payment.payment_type === 'membership_advance'
-        && !payment.membership_id && payment.status === 'success')
-      .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
     const advancePaid = item.membership_type === 'renewal' ? 0 : Math.max(
       Number(item.advance_paid || 0),
-      allocatedAdvance + unallocatedAdmissionAdvance,
+      allocatedAdvance,
     );
     const membershipPayments = relatedPayments.filter((payment) =>
       payment.payment_type !== 'membership_advance' && payment.status === 'success'
@@ -236,13 +230,9 @@ export async function getMembershipDetails(membershipId) {
     .filter((payment) => payment.payment_type === 'membership_advance'
       && (String(payment.membership_id || '') === String(membership._id)))
     .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-  const unallocatedAdmissionAdvance = membership.membership_type === 'renewal' ? 0 : payments
-    .filter((payment) => payment.payment_type === 'membership_advance'
-      && !payment.membership_id && payment.status === 'success')
-    .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
   const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
     Number(membership.advance_paid || 0),
-    allocatedAdvance + unallocatedAdmissionAdvance,
+    allocatedAdvance,
   );
   const membershipPayments = payments.filter((payment) =>
     payment.payment_type !== 'membership_advance' && payment.status === 'success'
