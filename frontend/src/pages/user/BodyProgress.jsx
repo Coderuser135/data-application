@@ -1,7 +1,7 @@
 import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Ruler, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 import { fetchMyMeasurements } from '@/redux/slices/measurementSlice';
