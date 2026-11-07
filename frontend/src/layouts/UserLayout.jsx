@@ -86,7 +86,7 @@ export default function UserLayout() {
 
         <div className="border-t border-surface-200 p-3 dark:border-white/[0.08]">
           <div className={`flex items-center rounded-xl bg-surface-100 dark:bg-white/[0.035] ${collapsed ? 'justify-center p-2' : 'gap-3 p-3'}`}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-extrabold text-white">{initials}</span>
+            <Link to="/user/profile" aria-label="Open profile" className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-sm font-extrabold text-white">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" /> : initials}</Link>
             {!collapsed && <div className="min-w-0"><p className="truncate text-sm font-bold text-ink-900 dark:text-white">{displayName}</p><p className="text-[11px] text-surface-500 dark:text-slate-500">Member account</p></div>}
           </div>
         </div>
