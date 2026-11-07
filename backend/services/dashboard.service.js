@@ -89,8 +89,7 @@ export async function getRevenueAnalytics(period) {
       break;
     case '1y':
       start.setUTCDate(1);
-      start.setUTCMonth(0);
-      start.setUTCFullYear(start.getUTCFullYear() - 1);
+      start.setUTCMonth(start.getUTCMonth() - 11);
       groupFormat = '%Y-%m';
       break;
     default:
