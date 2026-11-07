@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Tag, Pencil, Trash2, Check, Crown, Dumbbell, Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { Plus, X, Tag, Pencil, Trash2, Check, Crown, Dumbbell, Sparkles, ShieldCheck } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
-import Card from '@/components/ui/Card';
+
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
