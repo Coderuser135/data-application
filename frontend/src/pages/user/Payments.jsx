@@ -22,9 +22,9 @@ export default function Payments() {
     <div className="space-y-6">
       <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Payments</h1>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card><p className="text-xs text-surface-500">Total paid</p><p className="mt-2 font-display text-2xl font-bold text-brand-600">{formatCurrency(totalPaid)}</p></Card>
-        <Card><p className="text-xs text-surface-500">Total transactions</p><p className="mt-2 font-display text-2xl font-bold">{payments.length}</p></Card>
-        <Card><p className="text-xs text-surface-500">Successful</p><p className="mt-2 font-display text-2xl font-bold">{payments.filter((p) => p.status === 'success').length}</p></Card>
+        <Card className="!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]"><p className="text-xs text-surface-500">Total paid</p><p className="mt-2 font-display text-2xl font-bold text-brand-600">{formatCurrency(totalPaid)}</p></Card>
+        <Card className="!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]"><p className="text-xs text-surface-500">Total transactions</p><p className="mt-2 font-display text-2xl font-bold">{payments.length}</p></Card>
+        <Card className="!border-teal-200/80 !bg-teal-50/70 dark:!border-teal-500/20 dark:!bg-teal-500/[0.08]"><p className="text-xs text-surface-500">Successful</p><p className="mt-2 font-display text-2xl font-bold">{payments.filter((p) => p.status === 'success').length}</p></Card>
       </div>
       <Card>
         <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">Transaction History</h3>
