@@ -17,7 +17,8 @@ const TYPE_LABELS = { membership_advance: 'Membership advance', membership_insta
 function SummaryCard({ icon: Icon, label, value, tone = 'neutral' }) {
   const styles = {
     neutral: { icon: 'bg-surface-100 text-surface-600 dark:bg-surface-800', card: '' },
-    teal: { icon: 'bg-teal-500/10 text-teal-700 dark:text-teal-400', card: '!border-teal-200/80 !bg-teal-50/70 dark:!border-teal-500/20 dark:!bg-teal-500/[0.08]' },\n    blue: { icon: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', card: '!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]' },
+    teal: { icon: 'bg-teal-500/10 text-teal-700 dark:text-teal-400', card: '!border-teal-200/80 !bg-teal-50/70 dark:!border-teal-500/20 dark:!bg-teal-500/[0.08]' },
+    blue: { icon: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', card: '!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]' },
     green: { icon: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', card: '!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]' },
     amber: { icon: 'bg-amber-500/10 text-amber-700 dark:text-amber-400', card: '!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]' },
     red: { icon: 'bg-red-500/10 text-red-700 dark:text-red-400', card: '!border-red-200/80 !bg-red-50/70 dark:!border-red-500/20 dark:!bg-red-500/[0.08]' },
