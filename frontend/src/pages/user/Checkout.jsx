@@ -25,11 +25,14 @@ export default function Checkout() {
 
   function validate() {
     if (!form.full_name.trim()) return 'Full name is required';
+    if (!form.full_name.trim()) return 'Full name is required';
     if (!/^\d{10}$/.test(form.phone.trim())) return 'Valid 10-digit phone number is required';
-    if (!form.address.trim()) return 'Address is required';
-    if (!form.city.trim()) return 'City is required';
-    if (!form.state.trim()) return 'State is required';
-    if (!/^\d{6}$/.test(form.pincode.trim())) return 'Valid 6-digit pincode is required';
+    if (fulfillmentMethod === 'admin_delivery') {
+      if (!form.address.trim()) return 'Address is required';
+      if (!form.city.trim()) return 'City is required';
+      if (!form.state.trim()) return 'State is required';
+      if (!/^\d{6}$/.test(form.pincode.trim())) return 'Valid 6-digit pincode is required';
+    }
     return null;
   }
 
