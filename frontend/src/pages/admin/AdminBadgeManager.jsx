@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ImagePlus, Pencil, Trash2, Eye, EyeOff, Save, X } from 'lucide-react';
+import { ArrowLeft, Camera, ImagePlus, Pencil, Trash2, Eye, EyeOff, Save, X } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -11,6 +11,7 @@ const getId = (item) => item._id || item.id;
 
 export default function AdminBadgeManager() {
   const { section } = useParams();
+  const fileRef = useRef(null);
   const title = section === 'gym' ? 'Gym Banners' : 'Supplement Store Banners';
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -32,13 +33,33 @@ export default function AdminBadgeManager() {
   function resetForm() {
     setEditingId('');
     setForm(emptyForm);
+    if (fileRef.current) fileRef.current.value = '';
   }
 
   function startEdit(item) {
     setEditingId(getId(item));
     setForm({ image: null, is_active: Boolean(item.is_active) });
+    if (fileRef.current) fileRef.current.value = '';
     setSuccess('');
     setError('');
+  }
+
+  function handleImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setError('Choose a JPG, PNG or WEBP image.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Banner image must be 5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setForm((current) => ({ ...current, image: file }));
   }
 
   async function submit(event) {
@@ -112,14 +133,19 @@ export default function AdminBadgeManager() {
           {editingId && <Button type="button" variant="ghost" size="sm" onClick={resetForm}><X size={15} /> Cancel</Button>}
         </div>
         <form onSubmit={submit} className="space-y-4">
-          <label className="flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed border-surface-300 p-5 text-sm font-semibold dark:border-surface-700 sm:flex-row sm:items-center">
-            <ImagePlus size={28} className="shrink-0 text-brand-600" />
-            <span className="min-w-0 flex-1">
-              <span className="block">{editingId ? 'Choose replacement image' : 'Choose banner image'}</span>
-              <span className="mt-1 block text-xs font-normal text-surface-500">{form.image?.name || 'JPG, PNG or WEBP · max 5 MB · wide landscape image recommended'}</span>
-            </span>
-            <input type="file" accept="image/jpeg,image/png,image/webp" required={!editingId} onChange={(e) => setForm((current) => ({ ...current, image: e.target.files?.[0] || null }))} className="max-w-full text-xs" />
-          </label>
+          <div className="flex flex-col gap-3 rounded-2xl bg-surface-50 p-5 dark:bg-surface-800/50 sm:flex-row sm:items-center">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+              <ImagePlus size={28} />
+            </div>
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <h3 className="font-semibold text-ink-900 dark:text-white">Banner image</h3>
+              <p className="mt-1 text-sm text-surface-500">{form.image?.name || 'JPG, PNG or WEBP. Maximum file size: 5 MB.'}</p>
+              <div className="mt-3 flex justify-center sm:justify-start">
+                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Camera size={15} /> {form.image ? 'Change photo' : editingId ? 'Choose replacement photo' : 'Choose photo'}</Button>
+              </div>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" required={!editingId} onChange={handleImageChange} className="hidden" />
+            </div>
+          </div>
           <Button type="submit" loading={saving}><Save size={16} /> {editingId ? 'Replace image' : 'Upload banner'}</Button>
         </form>
       </Card>
