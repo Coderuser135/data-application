@@ -154,6 +154,8 @@ function publicProductData(product) {
     ? 'out_of_stock'
     : data.available_quantity <= Number(data.low_stock_threshold || 0) ? 'low_stock' : 'in_stock';
   delete data.cost_price;
+  delete data.stock_quantity;
+  delete data.low_stock_threshold;
   delete data.reserved_quantity;
   delete data.image_public_id;
   if (Array.isArray(data.images)) {
