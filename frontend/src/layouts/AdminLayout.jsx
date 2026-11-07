@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
 import {
   Dumbbell,
   Menu,
@@ -115,14 +116,8 @@ export default function AdminLayout() {
               <span className="text-xs font-semibold text-surface-300">Administrator</span>
             </div>
             <ThemeToggle />
-            <Link
-              to="/admin/profile"
-              aria-label="Open admin profile"
-              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-brand-600/20 text-sm font-bold text-brand-300 ring-2 ring-transparent transition hover:ring-brand-500/40"
-            >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt="Admin profile" className="h-full w-full object-cover" />
-                : profile?.full_name?.charAt(0)?.toUpperCase() || 'A'}
+            <Link to="/admin/profile" aria-label="Open admin profile" className="rounded-full ring-2 ring-transparent transition hover:ring-brand-500/40">
+              <AdminAvatar name={profile?.full_name || 'Administrator'} src={profile?.avatar_url} className="h-9 w-9 border border-white/15 text-sm" />
             </Link>
             <button
               type="button"
@@ -179,11 +174,7 @@ export default function AdminLayout() {
 
           <div className="border-t border-surface-100 p-4 dark:border-surface-800">
             <div className="flex items-center gap-3 rounded-xl bg-surface-50 p-3 dark:bg-surface-800/70">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600/15 text-sm font-bold text-brand-600 dark:text-brand-400">
-                {profile?.avatar_url
-                  ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                  : profile?.full_name?.charAt(0)?.toUpperCase() || 'A'}
-              </span>
+              <AdminAvatar name={profile?.full_name || 'Administrator'} src={profile?.avatar_url} className="h-9 w-9 text-sm" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-bold text-ink-900 dark:text-white">
                   {profile?.full_name || 'Administrator'}
