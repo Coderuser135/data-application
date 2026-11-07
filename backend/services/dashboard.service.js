@@ -127,7 +127,10 @@ export async function getUserDashboard(userId) {
   const isAdmitted = admission?.status === 'active';
 
   const activeMembership = memberships.find((membership) => (
-    membership.status === 'active' || membership.status === 'scheduled'
+    ['active', 'scheduled'].includes(membership.status) && membership.payment_status === 'paid'
+  )) || null;
+  const pendingMembership = memberships.find((membership) => (
+    membership.payment_status === 'pending' && Number(membership.amount_due) > 0
   )) || null;
 
   return {
@@ -140,7 +143,7 @@ export async function getUserDashboard(userId) {
       is_admitted: isAdmitted,
       admission_status: admission?.status || 'not_admitted',
       has_membership: Boolean(activeMembership),
-      membership_status: activeMembership?.status || 'not_purchased',
+      membership_status: pendingMembership ? 'payment_pending' : activeMembership?.status || 'not_purchased',
       message: !isAdmitted
         ? 'Your gym admission is pending. Contact the gym admin to complete admission.'
         : !activeMembership
