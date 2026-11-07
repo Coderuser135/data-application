@@ -14,7 +14,6 @@ const parsePayload = (body) => {
   const button_link = String(body.button_link || '').trim();
   const sort_order = Number(body.sort_order ?? 0);
   const is_active = body.is_active === true || body.is_active === 'true';
-  if (!title) throw new ApiError(400, 'Banner title is required');
   if (!Number.isInteger(sort_order) || sort_order < 0) throw new ApiError(400, 'Display order must be a non-negative whole number');
   if (button_link && ((!button_link.startsWith('/') || button_link.startsWith('//')) && !/^https?:\/\//i.test(button_link))) {
     throw new ApiError(400, 'Button link must be an internal path or an HTTP(S) URL');
