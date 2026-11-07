@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
 import { Search, Ruler, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -65,9 +66,7 @@ export default function AdminBodyMeasurements() {
               <Link key={member.user_id} to={`/admin/body-measurements/${member.user_id}`}
                 className="group block rounded-2xl border border-surface-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md dark:border-surface-800 dark:bg-surface-900 dark:hover:border-brand-600">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-lg font-bold text-brand-600 dark:text-brand-400">
-                    {(member.full_name || 'M').charAt(0).toUpperCase()}
-                  </span>
+                  <AdminAvatar name={member.full_name} src={member.avatar_url} className="h-12 w-12 rounded-xl text-lg" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="truncate font-semibold text-ink-950 dark:text-white">{member.full_name || 'Unnamed member'}</p>
