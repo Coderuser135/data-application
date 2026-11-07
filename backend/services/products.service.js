@@ -179,23 +179,7 @@ export async function getActiveProducts({
   };
 
   if (String(search).trim()) {
-    const safeSearch = String(search).trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\export async function getActiveProducts() {
-  const products = await Product.find({ is_active: true, is_deleted: { $ne: true }, $or: [{ expiry_date: null }, { expiry_date: { $gt: new Date() } }] })
-    .populate({ path: 'category_id', match: { is_active: true } }).sort({ is_featured: -1, createdAt: -1 });
-  return products.map((product) => {
-    const data = product.toObject();
-    data.available_quantity = Math.max(0, data.stock_quantity - data.reserved_quantity);
-    data.stock_status = data.available_quantity <= 0 ? 'out_of_stock' : data.available_quantity <= data.low_stock_threshold ? 'low_stock' : 'in_stock';
-    delete data.cost_price;
-    delete data.reserved_quantity;
-    delete data.image_public_id;
-    if (Array.isArray(data.images)) data.images = data.images.map(({ url, alt_text, is_primary }) => ({ url, alt_text, is_primary }));
-    return data;
-  });
-}
-export async function getProductById(id) {
-  return Product.findOne({ _id: id, is_active: true, is_deleted: { $ne: true } }).populate('category_id');
-}');
+    const safeSearch = String(search).trim().replace(/[.*+?^\${}()|[\]\\]/g, '\\$&');
     filter.$and = [
       ...(filter.$and || []),
       { $or: [
