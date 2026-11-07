@@ -48,7 +48,14 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
     const existingOrder = await gateway().orders.fetch(existing.razorpay_order_id).catch(() => null);
     if (existingOrder && existingOrder.status !== 'paid') return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder: existingOrder };
   }
-  const razorpayOrder = await gateway().orders.create({ amount: Math.round(amount * 100), currency: 'INR', receipt: `${paymentType}-${Date.now()}` });
+  const reservationExpiresAt = orderId ? await Order.findById(orderId).select('reservation_expires_at') : null;
+  const expireBy = orderId && reservationExpiresAt?.reservation_expires_at
+    ? Math.floor(new Date(reservationExpiresAt.reservation_expires_at).getTime() / 1000)
+    : undefined;
+  const razorpayOrder = await gateway().orders.create({
+    amount: Math.round(amount * 100), currency: 'INR', receipt: `${paymentType}-${Date.now()}`,
+    ...(expireBy ? { expire_by: expireBy } : {}),
+  });
   const payment = await Payment.create({ user_id: userId, order_id: orderId || null, membership_id: membershipId || null, amount, payment_type: paymentType, payment_method: 'online', status: 'pending', razorpay_order_id: razorpayOrder.id });
   return { payment, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder };
 }
@@ -156,8 +163,7 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
   }
   if (payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
   if (payment.order_id) {
-    const linkedOrder = await Order.findOne({ _id: payment.order_id, payment_id: payment._id });
-    if (linkedOrder && ['delivered', 'collected'].includes(linkedOrder.status)) throw new ApiError(409, 'This order has already been handed over. Handle the refund manually.');
+    throw new ApiError(409, 'Refunds are not available for supplement store orders. Please contact Heaven Gym directly.');
   }
   if (payment.payment_method !== 'online' || !payment.razorpay_payment_id) throw new ApiError(400, 'Only Razorpay payments can be refunded automatically');
 
@@ -173,14 +179,6 @@ export async function refundPayment(paymentId, { note = '' } = {}) {
       );
       if (!updated) throw new ApiError(409, 'Payment refund state changed. Please refresh and try again.');
 
-      if (payment.order_id) {
-        const order = await Order.findOne({ _id: payment.order_id, payment_id: payment._id }).session(session);
-        if (order && ['delivered', 'collected'].includes(order.status)) throw new ApiError(409, 'This order has already been handed over. Handle the refund manually.');
-        if (order) {
-          for (const item of order.order_items) await Product.updateOne({ _id: item.product_id }, { $inc: { stock_quantity: item.quantity } }, { session });
-          order.payment_status = 'refunded'; order.status = 'cancelled'; await order.save({ session });
-        }
-      }
       if (payment.membership_id) {
         await Membership.updateOne({ _id: payment.membership_id, user_id: payment.user_id, payment_status: 'paid', status: { $in: ['active', 'scheduled'] } }, { $set: { status: 'cancelled', payment_status: 'refunded' } }, { session });
       }
