@@ -75,7 +75,7 @@ export default function MyGym() {
               <div className="flex justify-between text-sm"><span className="text-surface-500">Price</span><span className="font-semibold">{formatCurrency(currentMembership.plan_price_snapshot)}</span></div>
               <div className="flex justify-between text-sm"><span className="text-surface-500">Start date</span><span className="font-medium">{formatDate(currentMembership.start_date)}</span></div>
               <div className="flex justify-between text-sm"><span className="text-surface-500">End date</span><span className="font-medium">{formatDate(currentMembership.end_date)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-surface-500">Days remaining</span><Badge tone={pendingMembership ? 'warning' : scheduledMembership ? 'info' : daysLeft < 7 ? 'warning' : 'success'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Scheduled' : `${daysLeft} days`}</Badge></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">{pendingMembership ? 'Payment status' : scheduledMembership ? 'Membership status' : 'Days remaining'}</span><Badge tone={pendingMembership ? 'warning' : scheduledMembership ? 'info' : daysLeft < 7 ? 'warning' : 'success'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Scheduled' : `${daysLeft} days`}</Badge></div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-800">
                 <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.min(100, (daysLeft / currentMembership.duration_days) * 100)}%` }} />
               </div>
