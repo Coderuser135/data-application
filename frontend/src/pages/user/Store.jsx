@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingBag, SlidersHorizontal, ArrowUpDown, PackageSearch, ChevronLeft, ChevronRight, ShoppingCart, Dumbbell } from 'lucide-react';
@@ -111,7 +112,7 @@ export default function UserStore() {
       <div className="flex items-center justify-between gap-3"><div><h2 className="font-display text-xl font-extrabold text-ink-950 dark:text-white">Shop supplements</h2><p className="mt-1 text-xs text-surface-500">{result.total || 0} products available</p></div></div>
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">{error}</div>}
-      {loading ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="h-[330px] animate-pulse rounded-2xl bg-surface-200 dark:bg-surface-800" />)}</div> : products.length > 0 ? (
+      {loading ? <UserLoadingSkeleton variant="cards" /> : products.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => {
             const id = product.id || product._id;
