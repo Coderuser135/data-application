@@ -9,9 +9,9 @@ import EmptyState from '@/components/ui/EmptyState';
 import { fetchAllPayments } from '@/redux/slices/paymentSlice';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
-const STATUSES = ['all', 'success', 'pending', 'failed', 'refunded', 'reconciliation_required'];
+const STATUSES = ['all', 'success', 'pending', 'failed', 'reconciliation_required'];
 const TYPES = ['all', 'membership_advance', 'membership_installment', 'membership_full', 'order'];
-const STATUS_LABELS = { reconciliation_required: 'Reconciliation required', success: 'Successful', pending: 'Pending', failed: 'Failed', refunded: 'Refunded' };
+const STATUS_LABELS = { reconciliation_required: 'Reconciliation required', success: 'Successful', pending: 'Pending', failed: 'Failed' };
 const TYPE_LABELS = { membership_advance: 'Membership advance', membership_installment: 'Membership installment', membership_full: 'Membership payment', order: 'Supplement order' };
 
 function SummaryCard({ icon: Icon, label, value, tone = 'neutral' }) {
@@ -57,7 +57,7 @@ export default function AdminPayments() {
   }, [page, totalPages]);
   const summary = adminSummary || {};
 
-  const statusTone = (value) => value === 'success' ? 'success' : value === 'pending' || value === 'reconciliation_required' ? 'warning' : value === 'refunded' ? 'neutral' : 'danger';
+  const statusTone = (value) => value === 'success' ? 'success' : value === 'pending' || value === 'reconciliation_required' ? 'warning' : 'danger';
 
   return (
     <div className="space-y-6">
@@ -73,7 +73,7 @@ export default function AdminPayments() {
         <SummaryCard icon={TrendingUp} label="Pending transactions" value={summary.pending || 0} tone="amber" />
         <SummaryCard icon={AlertTriangle} label="Needs reconciliation" value={summary.reconciliationRequired || 0} tone="red" />
       </div>
-      {(summary.refunded || 0) > 0 && <p className="text-xs text-surface-500">Historical refunded amount: {formatCurrency(summary.refunded)}. Refund processing is not available in this application.</p>}
+      
 
       <Card>
         <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_200px_220px]">
@@ -100,7 +100,7 @@ export default function AdminPayments() {
         <div className="flex flex-wrap items-center gap-1"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="min-h-9 rounded-lg border border-surface-300 px-3 text-xs font-semibold disabled:opacity-40 dark:border-surface-700">‹ Previous</button>{pageNumbers.map((number) => <button key={number} type="button" aria-current={page === number ? 'page' : undefined} disabled={loading} onClick={() => setPage(number)} className={`h-9 min-w-9 rounded-lg px-2 text-xs font-bold ${page === number ? 'bg-brand-600 text-white' : 'border border-surface-300 dark:border-surface-700'}`}>{number}</button>)}<button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="min-h-9 rounded-lg border border-surface-300 px-3 text-xs font-semibold disabled:opacity-40 dark:border-surface-700">Next ›</button></div>
       </div>
 
-      {selectedPayment && <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedPayment(null)}><div role="dialog" aria-modal="true" aria-label="Payment details" className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-surface-900" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800"><div className="flex items-center gap-2"><ReceiptText size={18} /><h2 className="font-semibold">Payment details</h2></div><button onClick={() => setSelectedPayment(null)} aria-label="Close details" className="rounded-lg p-2 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18} /></button></div><div className="space-y-4 p-5"><div className="flex items-center justify-between"><span className="text-sm text-surface-500">Status</span><Badge tone={statusTone(selectedPayment.status)}>{STATUS_LABELS[selectedPayment.status] || selectedPayment.status}</Badge></div>{[['Customer', selectedPayment.user_id?.full_name], ['Email', selectedPayment.user_id?.email], ['Amount', formatCurrency(selectedPayment.amount)], ['Payment type', TYPE_LABELS[selectedPayment.payment_type] || selectedPayment.payment_type], ['Method', selectedPayment.payment_method], ['Transaction ID', selectedPayment.transaction_id || '—'], ['Razorpay payment ID', selectedPayment.razorpay_payment_id || '—'], ['Razorpay order ID', selectedPayment.razorpay_order_id || '—'], ['Date', formatDate(selectedPayment.payment_date || selectedPayment.createdAt || selectedPayment.created_at)], ['Refunded amount', selectedPayment.status === 'refunded' ? formatCurrency(selectedPayment.refunded_amount || selectedPayment.amount) : '—']].map(([label, value]) => <div key={label} className="flex flex-col gap-1 border-b border-surface-100 pb-3 text-sm dark:border-surface-800 sm:flex-row sm:justify-between"><span className="text-surface-500">{label}</span><span className="break-all font-medium text-ink-900 dark:text-white sm:max-w-[65%] sm:text-right">{value || '—'}</span></div>)}{selectedPayment.reference_note && <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"><strong>Admin note:</strong> {selectedPayment.reference_note}</div>}</div></div></div>}
+      {selectedPayment && <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedPayment(null)}><div role="dialog" aria-modal="true" aria-label="Payment details" className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-surface-900" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800"><div className="flex items-center gap-2"><ReceiptText size={18} /><h2 className="font-semibold">Payment details</h2></div><button onClick={() => setSelectedPayment(null)} aria-label="Close details" className="rounded-lg p-2 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18} /></button></div><div className="space-y-4 p-5"><div className="flex items-center justify-between"><span className="text-sm text-surface-500">Status</span><Badge tone={statusTone(selectedPayment.status)}>{STATUS_LABELS[selectedPayment.status] || selectedPayment.status}</Badge></div>{[['Customer', selectedPayment.user_id?.full_name], ['Email', selectedPayment.user_id?.email], ['Amount', formatCurrency(selectedPayment.amount)], ['Payment type', TYPE_LABELS[selectedPayment.payment_type] || selectedPayment.payment_type], ['Method', selectedPayment.payment_method], ['Transaction ID', selectedPayment.transaction_id || '—'], ['Razorpay payment ID', selectedPayment.razorpay_payment_id || '—'], ['Razorpay order ID', selectedPayment.razorpay_order_id || '—'], ['Date', formatDate(selectedPayment.payment_date || selectedPayment.createdAt || selectedPayment.created_at)]].map(([label, value]) => <div key={label} className="flex flex-col gap-1 border-b border-surface-100 pb-3 text-sm dark:border-surface-800 sm:flex-row sm:justify-between"><span className="text-surface-500">{label}</span><span className="break-all font-medium text-ink-900 dark:text-white sm:max-w-[65%] sm:text-right">{value || '—'}</span></div>)}{selectedPayment.reference_note && <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"><strong>Admin note:</strong> {selectedPayment.reference_note}</div>}</div></div></div>}
     </div>
   );
 }
