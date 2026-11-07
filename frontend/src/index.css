@@ -591,7 +591,7 @@ button, input, select, textarea { font: inherit; }
 .admin-content [class*="text-amber-"],
 .admin-content [class*="text-orange-"],
 .admin-content [class*="text-red-"],
-.admin-content [class*="text-rose-"] {
+.admin-content [class*="text-rose-"]:not(.inline-flex.rounded-full) {
   color: #475569 !important;
 }
 .dark .admin-content [class*="text-brand-"],
@@ -605,7 +605,7 @@ button, input, select, textarea { font: inherit; }
 .dark .admin-content [class*="text-amber-"],
 .dark .admin-content [class*="text-orange-"],
 .dark .admin-content [class*="text-red-"],
-.dark .admin-content [class*="text-rose-"] {
+.dark .admin-content [class*="text-rose-"]:not(.inline-flex.rounded-full) {
   color: #c4cdc2 !important;
 }
 .admin-content [class*="border-brand-"],
@@ -635,4 +635,13 @@ button, input, select, textarea { font: inherit; }
 .dark .admin-content [class*="border-red-"],
 .dark .admin-content [class*="border-rose-"] {
   border-color: #364136 !important;
+}
+
+/* Remove decorative gradient fills from page content as well. */
+.admin-content [class*="from-"],
+.admin-content [class*="via-"],
+.admin-content [class*="to-"] {
+  --tw-gradient-from: transparent !important;
+  --tw-gradient-to: transparent !important;
+  background-image: none !important;
 }
