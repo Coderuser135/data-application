@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Order from '../models/order.model.js';
 import Product from '../models/product.model.js';
 import InventoryMovement from '../models/inventoryMovement.model.js';
+import Payment from '../models/payment.model.js';
 import { generateOrderNumber } from '../utils/generators.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
 
@@ -148,7 +149,7 @@ export async function releaseExpiredOrderReservations() {
         order.inventory_status = 'released';
         order.status = 'cancelled';
         await order.save({ session });
-        await (await import('../models/payment.model.js')).default.updateMany(
+        await Payment.updateMany(
           { order_id: order._id, status: 'pending' },
           { $set: { status: 'failed', reference_note: 'Razorpay order expired; stock reservation released.' } },
           { session },
