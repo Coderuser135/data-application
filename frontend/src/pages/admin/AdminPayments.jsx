@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { IndianRupee, Dumbbell, Store, TrendingUp } from 'lucide-react';
+import { useEffect } from 'react';
+import { IndianRupee, Dumbbell, Store, TrendingUp, RotateCcw } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
