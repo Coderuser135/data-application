@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, PackageCheck, PackageX, ShoppingCart, ShieldCheck, Truck } from 'lucide-react';
@@ -27,7 +28,7 @@ export default function SupplementDetails() {
     return () => { active = false; };
   }, [id]);
 
-  if (loading) return <div className="grid animate-pulse gap-8 lg:grid-cols-2"><div className="h-[420px] rounded-3xl bg-surface-200 dark:bg-surface-800" /><div className="h-[420px] rounded-3xl bg-surface-200 dark:bg-surface-800" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="details" />;
   if (error || !product) return <div className="mx-auto max-w-xl py-16 text-center"><PackageX className="mx-auto mb-4 text-surface-400" size={44} /><h2 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Supplement unavailable</h2><p className="mt-2 text-sm text-surface-500">{error || 'This product may have been removed or is currently unavailable.'}</p><Link to="/user/store"><Button className="mt-6">Back to supplement store</Button></Link></div>;
 
   const image = product.image_url || product.images?.find((item) => item.is_primary)?.url || product.images?.[0]?.url;
