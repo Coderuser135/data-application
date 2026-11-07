@@ -25,7 +25,10 @@ export async function getAllOrders() {
   return Order.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
 }
 
-export async function createOrder(userId, { items, shippingAddress, fulfillmentMethod, customerName, customerPhone }) {
+export async function createOrder(userId, { items, shippingAddress, fulfillmentMethod, customerName, customerPhone, checkoutRequestId }) {
+  if (!checkoutRequestId || typeof checkoutRequestId !== 'string' || checkoutRequestId.length > 100) throw new ApiError(400, 'Invalid checkout request');
+  const existingOrder = await Order.findOne({ user_id: userId, checkout_request_id: checkoutRequestId });
+  if (existingOrder) return existingOrder;
   if (!Array.isArray(items) || items.length === 0) throw new ApiError(400, 'Cart cannot be empty');
   if (!['store_pickup', 'admin_delivery'].includes(fulfillmentMethod)) throw new ApiError(400, 'Choose store pickup or admin delivery');
   if (!String(customerName || '').trim()) throw new ApiError(400, 'Customer name is required');
@@ -68,6 +71,7 @@ export async function createOrder(userId, { items, shippingAddress, fulfillmentM
         shipping_address: addressSnapshot,
         payment_status: 'pending', inventory_status: 'reserved',
         reservation_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        checkout_request_id: checkoutRequestId,
         order_items: orderItems,
       }], { session });
       createdOrder = order;
@@ -82,6 +86,12 @@ export async function createOrder(userId, { items, shippingAddress, fulfillmentM
       }
     });
     return createdOrder;
+  } catch (error) {
+    if (error?.code === 11000) {
+      const duplicateOrder = await Order.findOne({ user_id: userId, checkout_request_id: checkoutRequestId });
+      if (duplicateOrder) return duplicateOrder;
+    }
+    throw error;
   } finally {
     await session.endSession();
   }
