@@ -551,14 +551,88 @@ button, input, select, textarea { font: inherit; }
 }
 
 
-/* Admin content uses neutral surfaces; the branded accents remain in the shell and navigation. */
-.admin-content .admin-neutral-surface {
-  background: #f8faf8 !important;
-  border-color: #e2e8e2 !important;
-  color: #334155 !important;
+/* Neutralize decorative/content accents while preserving semantic status badges. */
+.admin-content [class*="bg-brand-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-emerald-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-green-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-teal-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-blue-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-indigo-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-violet-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-purple-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-amber-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-orange-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-red-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="bg-rose-"]:not(.inline-flex.rounded-full) {
+  background-color: #f1f3ef !important;
 }
-.dark .admin-content .admin-neutral-surface {
-  background: #18201a !important;
-  border-color: #303a31 !important;
-  color: #e2e8e2 !important;
+.dark .admin-content [class*="bg-brand-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-emerald-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-green-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-teal-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-blue-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-indigo-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-violet-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-purple-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-amber-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-orange-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-red-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="bg-rose-"]:not(.inline-flex.rounded-full) {
+  background-color: #202720 !important;
+}
+.admin-content [class*="text-brand-"],
+.admin-content [class*="text-emerald-"],
+.admin-content [class*="text-green-"],
+.admin-content [class*="text-teal-"],
+.admin-content [class*="text-blue-"],
+.admin-content [class*="text-indigo-"],
+.admin-content [class*="text-violet-"],
+.admin-content [class*="text-purple-"],
+.admin-content [class*="text-amber-"],
+.admin-content [class*="text-orange-"],
+.admin-content [class*="text-red-"],
+.admin-content [class*="text-rose-"] {
+  color: #475569 !important;
+}
+.dark .admin-content [class*="text-brand-"],
+.dark .admin-content [class*="text-emerald-"],
+.dark .admin-content [class*="text-green-"],
+.dark .admin-content [class*="text-teal-"],
+.dark .admin-content [class*="text-blue-"],
+.dark .admin-content [class*="text-indigo-"],
+.dark .admin-content [class*="text-violet-"],
+.dark .admin-content [class*="text-purple-"],
+.dark .admin-content [class*="text-amber-"],
+.dark .admin-content [class*="text-orange-"],
+.dark .admin-content [class*="text-red-"],
+.dark .admin-content [class*="text-rose-"] {
+  color: #c4cdc2 !important;
+}
+.admin-content [class*="border-brand-"],
+.admin-content [class*="border-emerald-"],
+.admin-content [class*="border-green-"],
+.admin-content [class*="border-teal-"],
+.admin-content [class*="border-blue-"],
+.admin-content [class*="border-indigo-"],
+.admin-content [class*="border-violet-"],
+.admin-content [class*="border-purple-"],
+.admin-content [class*="border-amber-"],
+.admin-content [class*="border-orange-"],
+.admin-content [class*="border-red-"],
+.admin-content [class*="border-rose-"] {
+  border-color: #dce2da !important;
+}
+.dark .admin-content [class*="border-brand-"],
+.dark .admin-content [class*="border-emerald-"],
+.dark .admin-content [class*="border-green-"],
+.dark .admin-content [class*="border-teal-"],
+.dark .admin-content [class*="border-blue-"],
+.dark .admin-content [class*="border-indigo-"],
+.dark .admin-content [class*="border-violet-"],
+.dark .admin-content [class*="border-purple-"],
+.dark .admin-content [class*="border-amber-"],
+.dark .admin-content [class*="border-orange-"],
+.dark .admin-content [class*="border-red-"],
+.dark .admin-content [class*="border-rose-"] {
+  border-color: #364136 !important;
 }
