@@ -42,7 +42,7 @@ export default function AdminSupplementSelling() {
       setLoading(true);
       setError('');
       try {
-        const data = await productService.getActive({ search, category, stock, sort, minPrice, maxPrice, page, limit: PAGE_SIZE });
+        const data = await productService.getAll({ search, category, status: 'active', expiry: 'not_expired', stock, sort, minPrice, maxPrice, page, limit: PAGE_SIZE });
         if (!active) return;
         setProducts(data.rows || []);
         setResult(data);
@@ -138,7 +138,17 @@ export default function AdminSupplementSelling() {
                 <div className="flex h-52 items-center justify-center overflow-hidden bg-white p-5 dark:bg-surface-950">{image ? <img src={image} alt={product.name} loading="lazy" className="h-full w-full object-contain" /> : <PackageSearch size={48} className="text-surface-300" />}</div>
                 <div className="px-4 pt-4"><p className="text-[10px] font-bold uppercase tracking-wider text-brand-600">{product.category_id?.name || product.brand}</p><h3 className="mt-1 min-h-11 line-clamp-2 font-display text-base font-bold text-ink-950 dark:text-white">{product.name}</h3><p className="mt-1 text-xs text-surface-500">{product.brand}{product.net_quantity ? ` · ${product.net_quantity}` : ''}</p></div>
               </Link>
-              <div className="flex items-center justify-between gap-2 px-4 pb-4 pt-3"><div><p className="font-display text-lg font-extrabold text-ink-950 dark:text-white">{formatCurrency(product.price)}</p><p className="text-[11px] text-surface-500">{product.available_quantity} in stock</p></div><Button size="sm" disabled={product.available_quantity <= 0} onClick={() => addProduct(product)}>{selected ? 'Add another' : 'Add to bill'}</Button></div>
+              <div className="space-y-3 px-4 pb-4 pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div><p className="font-display text-lg font-extrabold text-ink-950 dark:text-white">{formatCurrency(product.price)}</p><span className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${Number(product.available_quantity) > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{Number(product.available_quantity) > 0 ? 'In stock' : 'Out of stock'}</span></div>
+                  <Button size="sm" disabled={Number(product.available_quantity) <= 0} onClick={() => addProduct(product)}>{selected ? 'Add another' : 'Add to bill'}</Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 rounded-lg bg-surface-50 p-2.5 text-center dark:bg-surface-800">
+                  <div><p className="text-[10px] text-surface-500">On hand</p><p className="text-sm font-bold text-ink-900 dark:text-white">{Number(product.stock_quantity || 0)}</p></div>
+                  <div><p className="text-[10px] text-surface-500">Reserved</p><p className="text-sm font-bold text-ink-900 dark:text-white">{Number(product.reserved_quantity || 0)}</p></div>
+                  <div><p className="text-[10px] text-surface-500">Available</p><p className="text-sm font-bold text-ink-900 dark:text-white">{Number(product.available_quantity || 0)}</p></div>
+                </div>
+              </div>
             </Card>;
           })}
         </div>
