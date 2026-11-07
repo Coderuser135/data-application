@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { User, Mail, Phone, MapPin, Save } from 'lucide-react';
@@ -33,7 +34,7 @@ export default function UserProfile() {
     }
   }
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="profile" />;
 
   return (
     <div className="space-y-6">
