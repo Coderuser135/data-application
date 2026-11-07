@@ -43,7 +43,8 @@ export async function getAllOrders({ search = '', status = 'all', page = 1, limi
       .lean(),
     Order.countDocuments(filter),
   ]);
-  return { rows, total, page: safePage, pages: Math.max(1, Math.ceil(total / safeLimit)), limit: safeLimit };
+  const normalizedRows = rows.map((order) => ({ ...order, id: String(order._id) }));
+  return { rows: normalizedRows, total, page: safePage, pages: Math.max(1, Math.ceil(total / safeLimit)), limit: safeLimit };
 }
 
 export async function createOrder(userId, { items, shippingAddress, fulfillmentMethod, customerName, customerPhone, checkoutRequestId }) {
