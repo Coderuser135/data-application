@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList, UserRound, PanelsTopLeft, ShoppingBag } from 'lucide-react';
+import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList, UserRound, PanelsTopLeft } from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -16,9 +16,7 @@ const navItems = [
   { to: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/admin/badges', icon: PanelsTopLeft, label: 'Badges' },
-  { to: '/admin/badges/gym', icon: Dumbbell, label: 'Gym', child: true },
-  { to: '/admin/badges/store', icon: ShoppingBag, label: 'Supplement Store', child: true },
+  { to: '/admin/banners', icon: PanelsTopLeft, label: 'Banner' },
   { to: '/admin/profile', icon: UserRound, label: 'My Profile' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
@@ -54,8 +52,8 @@ export default function AdminLayout() {
         <aside className={`admin-sidebar fixed inset-y-0 left-0 z-30 mt-14 w-64 transform border-r border-surface-200 bg-white transition-transform dark:border-surface-800 dark:bg-surface-900 lg:sticky lg:top-14 lg:mt-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="admin-nav space-y-1 overflow-y-auto p-4" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
             {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} end={!item.child} onClick={() => setOpen(false)} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${item.child ? 'ml-5 !w-[calc(100%-1.25rem)] text-xs' : ''} ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'text-surface-600 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800'}`}>
-                <item.icon size={item.child ? 15 : 18} /> {item.label}
+              <NavLink key={item.to} to={item.to} end={!item.child} onClick={() => setOpen(false)} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'text-surface-600 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800'}`}>
+                <item.icon size={18} /> {item.label}
               </NavLink>
             ))}
           </nav>
