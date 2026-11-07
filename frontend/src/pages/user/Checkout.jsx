@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { CheckCircle2, CreditCard, Lock } from 'lucide-react';
@@ -9,6 +9,7 @@ import { clearCart } from '@/redux/slices/cartSlice';
 import { createOrder } from '@/redux/slices/orderSlice';
 import { paymentService } from '@/services/paymentService';
 import { formatCurrency } from '@/utils/formatters';
+import { productService } from '@/services/productService';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export default function Checkout() {
   const [form, setForm] = useState({ full_name: '', phone: '', address: '', city: '', state: '', pincode: '' });
   const [fulfillmentMethod, setFulfillmentMethod] = useState('store_pickup');
   const [loading, setLoading] = useState(false);
+  const [stockChecking, setStockChecking] = useState(true);
+  const [stockIssue, setStockIssue] = useState('');
   const [progressMessage, setProgressMessage] = useState('');
   const checkoutLock = useRef(false);
   const checkoutRequestId = useRef(null);
@@ -24,6 +27,24 @@ export default function Checkout() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+
+  useEffect(() => {
+    let active = true;
+    if (!items.length) { setStockIssue(''); setStockChecking(false); return () => { active = false; }; }
+    setStockChecking(true);
+    Promise.all(items.map(async (item) => {
+      const id = item.product.id || item.product._id;
+      try {
+        const latest = await productService.getActiveById(id);
+        return Number(latest.available_quantity) >= item.quantity;
+      } catch {
+        return false;
+      }
+    })).then((availability) => {
+      if (active) setStockIssue(availability.every(Boolean) ? '' : 'One or more supplements are out of stock or the selected quantity is no longer available. Return to your cart and update it before ordering.');
+    }).finally(() => { if (active) setStockChecking(false); });
+    return () => { active = false; };
+  }, [items]);
 
   function update(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
 
@@ -42,6 +63,7 @@ export default function Checkout() {
   async function handleCheckout(e) {
     e.preventDefault();
     if (checkoutLock.current) return;
+    if (stockChecking || stockIssue) { setError(stockIssue || 'Please wait while we check product availability.'); return; }
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
     checkoutLock.current = true;
@@ -140,6 +162,8 @@ export default function Checkout() {
           </div>
           <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">Customer Details</h3>
           <form onSubmit={handleCheckout} className="space-y-4">
+            {stockChecking && <div className="rounded-lg bg-surface-100 px-4 py-3 text-sm text-surface-600 dark:bg-surface-800 dark:text-surface-300">Checking supplement availability…</div>}
+            {stockIssue && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">{stockIssue}</div>}
             {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</div>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Full Name" value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Your name" required />
@@ -155,7 +179,7 @@ export default function Checkout() {
               <p className="mt-1 text-xs text-surface-500">Online payment via Razorpay. Payment details are verified on the server.</p>
             </div>
             {loading && <p role="status" aria-live="polite" className="rounded-lg bg-brand-50 px-4 py-3 text-center text-sm font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">{progressMessage || 'Please wait while we process your payment. Do not click again.'}</p>}
-            <Button type="submit" loading={loading} disabled={loading} size="lg" className="w-full"><CreditCard size={18} /> {loading ? 'Processing…' : `Pay ${formatCurrency(total)}`}</Button>
+            <Button type="submit" loading={loading} disabled={loading || stockChecking || Boolean(stockIssue)} size="lg" className="w-full"><CreditCard size={18} /> {loading ? 'Processing…' : `Pay ${formatCurrency(total)}`}</Button>
           </form>
         </Card>
         <Card>
