@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Filter, Search, ShoppingBag, SlidersHorizontal } from 'lucide-react';
+import { Filter, Search, ShoppingBag } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Card from '@/components/ui/Card';
