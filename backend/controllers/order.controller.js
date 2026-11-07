@@ -4,7 +4,7 @@ export const getMyOrders = async (req, res, next) => {
   try { res.json(await orderService.getOrdersByUserId(req.user._id)); } catch (err) { next(err); }
 };
 export const getAllOrders = async (req, res, next) => {
-  try { res.json(await orderService.getAllOrders()); } catch (err) { next(err); }
+  try { res.json(await orderService.getAllOrders(req.query)); } catch (err) { next(err); }
 };
 export const createOrder = async (req, res, next) => {
   try {
