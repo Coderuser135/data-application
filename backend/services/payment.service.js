@@ -52,7 +52,6 @@ export async function getAllPayments({ page = 1, limit = 10, status = 'all', typ
       _id: null,
       gymRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $ne: ['$payment_type', 'order'] }] }, '$amount', 0] } },
       storeRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $eq: ['$payment_type', 'order'] }] }, '$amount', 0] } },
-      refunded: { $sum: { $cond: [{ $eq: ['$status', 'refunded'] }, { $ifNull: ['$refunded_amount', '$amount'] }, 0] } },
       pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
       reconciliationRequired: { $sum: { $cond: [{ $eq: ['$status', 'reconciliation_required'] }, 1, 0] } },
       totalTransactions: { $sum: 1 },
@@ -61,7 +60,7 @@ export async function getAllPayments({ page = 1, limit = 10, status = 'all', typ
   return {
     items,
     pagination: { page: safePage, limit: safeLimit, total, pages: Math.max(1, Math.ceil(total / safeLimit)) },
-    summary: summary[0] || { gymRevenue: 0, storeRevenue: 0, refunded: 0, pending: 0, reconciliationRequired: 0, totalTransactions: 0 },
+    summary: summary[0] || { gymRevenue: 0, storeRevenue: 0, pending: 0, reconciliationRequired: 0, totalTransactions: 0 },
   };
 }
 
