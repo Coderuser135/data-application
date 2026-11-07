@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, production/auth-session-hardening, backend/simple-mvc-refactor]
+    branches: [main, production/auth-session-hardening, backend/simple-mvc-refactor, feature/store-order-fulfillment]
   pull_request:
     branches: [main, production/auth-session-hardening, backend/simple-mvc-refactor]
 
