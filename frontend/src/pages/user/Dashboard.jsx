@@ -104,7 +104,7 @@ export default function UserDashboard() {
         <Card className="!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]">
           <div className="flex items-center justify-between">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"><Dumbbell size={20} /></span>
-            <Badge tone={currentMembership ? (scheduledMembership ? 'info' : 'success') : 'neutral'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Upcoming' : activeMembership ? 'Active' : 'None'}</Badge>
+            <Badge tone={pendingMembership ? 'warning' : currentMembership ? (scheduledMembership ? 'info' : 'success') : 'neutral'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Upcoming' : activeMembership ? 'Active' : 'None'}</Badge>
           </div>
           <p className="mt-4 text-xs text-surface-500">Membership</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{currentMembership ? currentMembership.plan_name_snapshot : 'Not active'}</p>
