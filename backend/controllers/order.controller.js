@@ -8,8 +8,8 @@ export const getAllOrders = async (req, res, next) => {
 };
 export const createOrder = async (req, res, next) => {
   try {
-    const { items, shippingAddress, fulfillmentMethod, customerName, customerPhone } = req.body;
-    res.status(201).json(await orderService.createOrder(req.user._id, { items, shippingAddress, fulfillmentMethod, customerName, customerPhone }));
+    const { items, shippingAddress, fulfillmentMethod, customerName, customerPhone, checkoutRequestId } = req.body;
+    res.status(201).json(await orderService.createOrder(req.user._id, { items, shippingAddress, fulfillmentMethod, customerName, customerPhone, checkoutRequestId }));
   } catch (err) { next(err); }
 };
 export const updateOrderStatus = async (req, res, next) => {
