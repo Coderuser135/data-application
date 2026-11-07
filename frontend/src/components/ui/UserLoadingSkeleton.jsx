@@ -1,0 +1,49 @@
+const BLOCK = 'animate-pulse rounded-lg bg-surface-200 dark:bg-surface-800';
+
+function Bar({ className = '' }) {
+  return <div className={`${BLOCK} ${className}`} />;
+}
+
+export default function UserLoadingSkeleton({ variant = 'list', rows = 4 }) {
+  if (variant === 'dashboard') return (
+    <div className="space-y-6" role="status" aria-label="Loading dashboard" aria-live="polite">
+      <div className="rounded-2xl border border-surface-200 bg-white p-6 dark:border-surface-800 dark:bg-surface-900">
+        <Bar className="h-4 w-28" /><Bar className="mt-3 h-8 w-56 max-w-full" /><Bar className="mt-3 h-4 w-72 max-w-full" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900"><Bar className="h-10 w-10 rounded-xl" /><Bar className="mt-5 h-3 w-24" /><Bar className="mt-2 h-7 w-32 max-w-full" /></div>)}</div>
+      <div className="grid gap-5 lg:grid-cols-2">{Array.from({ length: 2 }, (_, i) => <div key={i} className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900"><Bar className="h-5 w-40" /><Bar className="mt-5 h-36 w-full rounded-xl" /></div>)}</div>
+    </div>
+  );
+  if (variant === 'cards') return (
+    <div className="space-y-5" role="status" aria-label="Loading content" aria-live="polite">
+      <Bar className="h-7 w-48" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900"><Bar className="h-5 w-2/3" /><Bar className="mt-4 h-3 w-1/3" /><Bar className="mt-7 h-8 w-1/2" /><Bar className="mt-5 h-3 w-full" /><Bar className="mt-2 h-3 w-4/5" /></div>)}</div>
+    </div>
+  );
+  if (variant === 'details' || variant === 'form') return (
+    <div className="space-y-5" role="status" aria-label="Loading details" aria-live="polite">
+      <Bar className="h-7 w-48" />
+      <div className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900">
+        <Bar className="h-5 w-40" />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">{Array.from({ length: 6 }, (_, i) => <div key={i}><Bar className="h-3 w-24" /><Bar className="mt-2 h-11 w-full rounded-lg" /></div>)}</div>
+        <Bar className="mt-5 h-11 w-36 rounded-lg" />
+      </div>
+    </div>
+  );
+  if (variant === 'profile') return (
+    <div className="space-y-5" role="status" aria-label="Loading profile" aria-live="polite">
+      <Bar className="h-7 w-44" />
+      <div className="rounded-2xl border border-surface-200 bg-white p-6 dark:border-surface-800 dark:bg-surface-900">
+        <Bar className="h-5 w-36" />
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">{Array.from({ length: 3 }, (_, i) => <div key={i}><Bar className="h-3 w-20" /><Bar className="mt-2 h-11 w-full rounded-lg" /></div>)}</div>
+        <Bar className="mt-6 h-10 w-32 rounded-lg" />
+      </div>
+    </div>
+  );
+  return (
+    <div className="space-y-5" role="status" aria-label="Loading records" aria-live="polite">
+      <Bar className="h-7 w-44" />
+      {Array.from({ length: rows }, (_, i) => <div key={i} className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900"><div className="flex items-center justify-between gap-4"><div className="min-w-0 flex-1"><Bar className="h-4 w-40 max-w-full" /><Bar className="mt-3 h-3 w-28" /></div><Bar className="h-7 w-20 rounded-full" /></div><Bar className="mt-5 h-3 w-full" /><Bar className="mt-2 h-3 w-2/3" /></div>)}
+    </div>
+  );
+}
