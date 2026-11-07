@@ -132,12 +132,12 @@ export default function AdminDashboard() {
         <Card padding={false}>
           <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800">
             <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Recent Orders</h3>
-            <Link to="/admin/orders"><Button variant="ghost" size="sm">View All <ArrowRight size={14} /></Button></Link>
+            <Link to="/admin/orders"><Button variant="ghost" size="sm">All <ArrowRight size={14} /></Button></Link>
           </div>
           <div className="p-5">
             {adminStats.recentOrders.length > 0 ? (
               <div className="space-y-3">
-                {adminStats.recentOrders.map((o) => (
+                {adminStats.recentOrders.slice(0, 5).map((o) => (
                   <div key={o.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800">
                     <div>
                       <p className="text-sm font-medium text-ink-900 dark:text-white">{o.order_number}</p>
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
           <div className="p-5">
             {adminStats.expiringMemberships.length > 0 ? (
               <div className="space-y-3">
-                {adminStats.expiringMemberships.map((m) => {
+                {adminStats.expiringMemberships.slice(0, 5).map((m) => {
                   const days = getDaysRemaining(m.end_date);
                   return (
                     <div key={m.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800">
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
           <div className="p-5">
             {adminStats.lowStockProducts.length > 0 ? (
               <div className="space-y-3">
-                {adminStats.lowStockProducts.map((p) => (
+                {adminStats.lowStockProducts.slice(0, 5).map((p) => (
                   <div key={p.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800">
                     <p className="text-sm font-medium text-ink-900 dark:text-white">{p.name}</p>
                     <Badge tone={p.stock_quantity === 0 ? 'danger' : 'warning'}>{p.stock_quantity} left</Badge>
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
           <div className="p-5">
             {adminStats.recentPayments.length > 0 ? (
               <div className="space-y-3">
-                {adminStats.recentPayments.map((p) => (
+                {adminStats.recentPayments.slice(0, 5).map((p) => (
                   <div key={p.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800">
                     <div>
                       <p className="text-sm font-medium capitalize text-ink-900 dark:text-white">{p.payment_type.replace(/_/g, ' ')}</p>
