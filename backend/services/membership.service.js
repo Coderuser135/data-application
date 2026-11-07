@@ -56,7 +56,7 @@ export async function getMembershipsByUserId(userId) {
     const amountDue = Math.max(0, Number((
       Number(membership.plan_price_snapshot || 0) - advancePaid - received
     ).toFixed(2)));
-    const paymentStatus = related.some((payment) => payment.status === 'refunded')
+    const paymentStatus = membership.payment_status === 'refunded' || related.some((payment) => payment.status === 'refunded')
       ? 'refunded'
       : amountDue === 0 ? 'paid' : 'pending';
 
@@ -176,7 +176,7 @@ export async function getAllMemberships({
     const amountDue = Math.max(0, Number((
       Number(item.plan_price_snapshot || 0) - advancePaid - amountReceived
     ).toFixed(2)));
-    const paymentStatus = relatedPayments.some((payment) => payment.status === 'refunded')
+    const paymentStatus = item.payment_status === 'refunded' || relatedPayments.some((payment) => payment.status === 'refunded')
       ? 'refunded'
       : amountDue === 0 ? 'paid' : 'pending';
 
@@ -241,7 +241,7 @@ export async function getMembershipDetails(membershipId) {
   const calculatedDue = Math.max(0, Number((
     Number(membership.plan_price_snapshot || 0) - advancePaid - amountReceived
   ).toFixed(2)));
-  const hasRefund = payments.some((payment) => payment.status === 'refunded');
+  const hasRefund = membership.payment_status === 'refunded' || payments.some((payment) => payment.status === 'refunded');
   const calculatedPaymentStatus = hasRefund
     ? 'refunded'
     : calculatedDue === 0 ? 'paid' : 'pending';
