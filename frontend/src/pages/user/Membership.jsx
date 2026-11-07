@@ -1,7 +1,7 @@
 import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { CreditCard, Check, AlertCircle, Tag, ArrowRight, Crown, Dumbbell, Sparkles, Zap } from 'lucide-react';
+import { CreditCard, Check, AlertCircle, ArrowRight, Crown, Dumbbell, Sparkles, Zap } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -33,7 +33,7 @@ export default function Membership() {
   const daysLeft = getDaysRemaining(currentMembership?.end_date);
 
   async function payMembership(membership) {
-    const { payment, keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ membershipId: membership.id });
+    const { keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ membershipId: membership.id });
     if (!razorpayOrder || !keyId || typeof window.Razorpay !== 'function') throw new Error('Online payment is temporarily unavailable. Please try again later.');
     await new Promise((resolve, reject) => {
       const rzp = new window.Razorpay({
