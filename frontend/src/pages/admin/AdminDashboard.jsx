@@ -184,7 +184,7 @@ export default function AdminDashboard() {
         <Card padding={false}>
           <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800">
             <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-ink-950 dark:text-white"><AlertTriangle size={18} className="text-amber-500" /> Low Stock</h3>
-            <Link to="/admin/products"><Button variant="ghost" size="sm">View Products <ArrowRight size={14} /></Button></Link>
+            <Link to="/admin/products"><Button variant="ghost" size="sm">All <ArrowRight size={14} /></Button></Link>
           </div>
           <div className="p-5">
             {adminStats.lowStockProducts.length > 0 ? (
