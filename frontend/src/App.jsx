@@ -42,6 +42,7 @@ import AdminProducts from '@/pages/admin/AdminProducts';
 import AdminOrders from '@/pages/admin/AdminOrders';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import AdminSettings from '@/pages/admin/AdminSettings';
+import AdminProfile from '@/pages/admin/AdminProfile';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -67,7 +68,7 @@ export default function App() {
           <Route path="orders" element={<Orders />} /><Route path="notifications" element={<Notifications />} /><Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-          <Route index element={<Navigate to="/admin/dashboard" />} /><Route path="dashboard" element={<AdminDashboard />} />
+          <Route index element={<Navigate to="/admin/dashboard" />} /><Route path="dashboard" element={<AdminDashboard />} /><Route path="profile" element={<AdminProfile />} />
           <Route path="users" element={<AdminUsers />} /><Route path="admissions" element={<AdminAdmissions />} />
           <Route path="membership-plans" element={<AdminMembershipPlans />} /><Route path="memberships" element={<AdminMemberships />} />
           <Route path="payments" element={<AdminPayments />} /><Route path="body-measurements" element={<AdminBodyMeasurements />} /><Route path="body-measurements/:userId" element={<AdminMemberMeasurements />} />
