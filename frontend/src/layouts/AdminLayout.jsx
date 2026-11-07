@@ -65,7 +65,6 @@ const navGroups = [
   },
 ];
 
-const allNavItems = navGroups.flatMap((group) => group.items);
 
 export default function AdminLayout() {
   const [open, setOpen] = useState(false);
