@@ -31,7 +31,6 @@ export async function getAdminStats() {
   const [totalUsers, admittedUsersAgg, activeMemberships, expiredMemberships, totalOrders, pendingOrders, totalProducts, gymRevenueAgg, storeRevenueAgg, offlineStoreRevenueAgg, todayRevenueAgg, todayOfflineRevenueAgg, monthRevenueAgg, monthOfflineRevenueAgg, expiringMemberships, lowStockProducts, recentOrders, recentPayments] = await Promise.all([
     User.countDocuments({ role: 'user' }),
     GymAdmission.aggregate([
-      { $match: { status: 'active' } },
       { $lookup: { from: 'users', localField: 'user_id', foreignField: '_id', as: 'user' } },
       { $unwind: '$user' },
       { $match: { 'user.role': 'user' } },
@@ -66,16 +65,41 @@ export async function getAdminStats() {
 }
 
 export async function getRevenueAnalytics(period) {
-  const now = new Date(); let startDate; let groupFormat;
+  const now = new Date();
+  const { year, month, day } = zonedDateParts(now);
+  const start = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  let groupFormat = '%Y-%m-%d';
+
   switch (period) {
-    case '7d': startDate = new Date(now); startDate.setDate(startDate.getDate() - 6); groupFormat = '%Y-%m-%d'; break;
-    case '30d': startDate = new Date(now); startDate.setDate(startDate.getDate() - 29); groupFormat = '%Y-%m-%d'; break;
-    case '3m': startDate = new Date(now); startDate.setMonth(startDate.getMonth() - 2); groupFormat = '%Y-%m'; break;
-    case '6m': startDate = new Date(now); startDate.setMonth(startDate.getMonth() - 5); groupFormat = '%Y-%m'; break;
-    case '1y': startDate = new Date(now); startDate.setFullYear(startDate.getFullYear() - 1); groupFormat = '%Y-%m'; break;
-    default: startDate = new Date(now); startDate.setDate(startDate.getDate() - 29); groupFormat = '%Y-%m-%d';
+    case '7d':
+      start.setUTCDate(start.getUTCDate() - 6);
+      break;
+    case '30d':
+      start.setUTCDate(start.getUTCDate() - 29);
+      break;
+    case '3m':
+      start.setUTCDate(1);
+      start.setUTCMonth(start.getUTCMonth() - 2);
+      groupFormat = '%Y-%m';
+      break;
+    case '6m':
+      start.setUTCDate(1);
+      start.setUTCMonth(start.getUTCMonth() - 5);
+      groupFormat = '%Y-%m';
+      break;
+    case '1y':
+      start.setUTCDate(1);
+      start.setUTCMonth(0);
+      start.setUTCFullYear(start.getUTCFullYear() - 1);
+      groupFormat = '%Y-%m';
+      break;
+    default:
+      start.setUTCDate(start.getUTCDate() - 29);
   }
-  startDate.setHours(0, 0, 0, 0);
+
+  const dateKey = start.toISOString().slice(0, 10);
+  const offset = TIMEZONE === 'Asia/Kolkata' ? '+05:30' : 'Z';
+  const startDate = new Date(`${dateKey}T00:00:00${offset}`);
   const groupStage = { $dateToString: { format: groupFormat, date: '$payment_date', timezone: TIMEZONE } };
   const [gymData, storeData, offlineStoreData] = await Promise.all([
     Payment.aggregate([{ $match: { status: 'success', payment_type: { $in: ['membership_full', 'membership_advance', 'membership_installment'] }, payment_date: { $gte: startDate } } }, { $group: { _id: groupStage, total: { $sum: '$amount' } } }, { $sort: { _id: 1 } }]),
