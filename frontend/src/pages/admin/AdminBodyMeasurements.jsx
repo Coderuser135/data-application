@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import AdminAvatar from '@/components/admin/AdminAvatar';
-import { Search, Ruler, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
