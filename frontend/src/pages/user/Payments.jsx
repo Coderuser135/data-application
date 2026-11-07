@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Card from '@/components/ui/Card';
@@ -13,7 +14,7 @@ export default function Payments() {
 
   useEffect(() => { dispatch(fetchMyPayments()); }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="list" />;
 
   const totalPaid = payments.filter((p) => p.status === 'success').reduce((sum, p) => sum + Number(p.amount), 0);
 
