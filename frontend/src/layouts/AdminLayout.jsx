@@ -7,7 +7,6 @@ import { signOut } from '@/redux/slices/authSlice';
 
 const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/admin/profile', icon: UserRound, label: 'My Profile' },
   { to: '/admin/admissions', icon: UserPlus, label: 'Admissions' },
   { to: '/admin/users', icon: Users, label: 'Members' },
   { to: '/admin/membership-plans', icon: CreditCard, label: 'Plans' },
@@ -17,6 +16,7 @@ const navItems = [
   { to: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/admin/profile', icon: UserRound, label: 'My Profile' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
