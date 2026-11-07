@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
+import BannerCarousel from '@/components/public/BannerCarousel';
 import { fetchUserDashboard } from '@/redux/slices/dashboardSlice';
 import { formatCurrency, formatDate, getDaysRemaining } from '@/utils/formatters';
 
@@ -66,6 +67,8 @@ export default function UserDashboard() {
         <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{profile?.full_name || 'Athlete'}</h1>
         <p className="mt-2 text-sm text-surface-400">Here's your training overview at a glance.</p>
       </div>
+
+      <BannerCarousel section="gym" />
 
       {showRenewalBanner && (
         <Card className={`border-2 ${daysLeft <= 2 ? 'border-red-500 bg-red-50 dark:bg-red-500/10' : 'border-amber-500 bg-amber-50 dark:bg-amber-500/10'}`}>
