@@ -179,7 +179,7 @@ button, input, select, textarea { font: inherit; }
   .admin-content .gap-4 { gap: 12px; }
   .admin-content .flex.items-center.justify-between { flex-wrap: wrap; }
   .admin-shell .admin-topbar > div { padding-left: 14px; padding-right: 14px; }
-  .admin-shell .admin-sidebar { width: min(84vw, 304px); top: 56px; bottom: 0; margin-top: 0; }
+  .admin-shell .admin-sidebar { width: min(84vw, 304px); top: 4rem; bottom: 0; margin-top: 0; }
   .admin-shell .admin-nav { padding: 14px; }
   .admin-shell .admin-nav a { padding: 11px 12px; }
 }
