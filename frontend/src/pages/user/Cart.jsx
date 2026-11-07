@@ -21,28 +21,34 @@ export default function Cart() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [stockById, setStockById] = useState({});
+  const [productsById, setProductsById] = useState({});
   const [stockLoading, setStockLoading] = useState(true);
   const items = useSelector((state) => state.cart.items);
   useEffect(() => {
     let active = true;
-    if (!items.length) { setStockById({}); setStockLoading(false); return () => { active = false; }; }
+    if (!items.length) { setStockById({}); setProductsById({}); setStockLoading(false); return () => { active = false; }; }
     setStockLoading(true);
     Promise.all(items.map(async (item) => {
       const id = getProductId(item.product);
       try {
         const latest = await productService.getActiveById(id);
-        return [id, Number(latest.available_quantity) || 0];
+        return [id, latest];
       } catch {
-        return [id, 0];
+        return [id, null];
       }
-    })).then((entries) => { if (active) setStockById(Object.fromEntries(entries)); })
+    })).then((entries) => {
+      if (active) {
+        setProductsById(Object.fromEntries(entries.filter(([, product]) => product)));
+        setStockById(Object.fromEntries(entries.map(([id, product]) => [id, Number(product?.available_quantity) || 0])));
+      }
+    })
       .finally(() => { if (active) setStockLoading(false); });
     return () => { active = false; };
   }, [items]);
 
   const canCheckout = !stockLoading && items.every((item) => (stockById[getProductId(item.product)] ?? 0) >= item.quantity);
   const total = items.reduce((sum, item) => {
-    const price = Number(item.product.price || item.product.sale_price || 0);
+    const price = Number(productsById[getProductId(item.product)]?.price ?? item.product.price ?? item.product.sale_price ?? 0);
     return sum + price * item.quantity;
   }, 0);
 
@@ -61,7 +67,7 @@ export default function Cart() {
             const product = item.product;
             const id = getProductId(product);
             const image = getProductImage(product);
-            const price = Number(product.price || product.sale_price || 0);
+            const price = Number(productsById[id]?.price ?? product.price ?? product.sale_price ?? 0);
             return (
               <Card key={id} className="min-w-0 overflow-hidden">
                 <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
