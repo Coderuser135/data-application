@@ -76,7 +76,7 @@ export async function getAllMemberships({
   const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
   const [rows, total, plans, counts] = await Promise.all([
     Membership.find(filter)
-      .populate({ path: 'user_id', select: 'full_name email phone role' })
+      .populate({ path: 'user_id', select: 'full_name email phone role avatar_url' })
       .sort({ createdAt: -1 })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit)
@@ -160,7 +160,7 @@ export async function getAllMemberships({
 export async function getMembershipDetails(membershipId) {
   if (!mongoose.isValidObjectId(membershipId)) throw new ApiError(400, 'Invalid membership ID');
   const membership = await Membership.findById(membershipId)
-    .populate({ path: 'user_id', select: 'full_name email phone role createdAt' })
+    .populate({ path: 'user_id', select: 'full_name email phone role createdAt avatar_url' })
     .populate({ path: 'gym_admission_id', select: 'member_id admission_date status' })
     .lean();
   if (!membership || membership.user_id?.role !== 'user') throw new ApiError(404, 'Membership not found');
