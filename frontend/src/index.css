@@ -434,3 +434,77 @@ button, input, select, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .animate-banner-change { animation: none !important; }
 }
+
+
+/* Dashboard form controls: keep inputs readable and consistent in dark mode. */
+.dark .admin-shell .admin-content input:not([type="checkbox"]):not([type="radio"]),
+.dark .admin-shell .admin-content select,
+.dark .admin-shell .admin-content textarea,
+.dark .user-shell input:not([type="checkbox"]):not([type="radio"]),
+.dark .user-shell select,
+.dark .user-shell textarea {
+  border-color: #3b4657 !important;
+  background-color: #101722 !important;
+  color: #f1f5f9 !important;
+  color-scheme: dark;
+}
+
+.dark .admin-shell .admin-content input::placeholder,
+.dark .admin-shell .admin-content textarea::placeholder,
+.dark .user-shell input::placeholder,
+.dark .user-shell textarea::placeholder {
+  color: #8290a3 !important;
+  opacity: 1;
+}
+
+.dark .admin-shell .admin-content input:focus,
+.dark .admin-shell .admin-content select:focus,
+.dark .admin-shell .admin-content textarea:focus,
+.dark .user-shell input:focus,
+.dark .user-shell select:focus,
+.dark .user-shell textarea:focus {
+  border-color: #ef4444 !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .16);
+}
+
+.dark .admin-shell .admin-content input:disabled,
+.dark .admin-shell .admin-content select:disabled,
+.dark .admin-shell .admin-content textarea:disabled,
+.dark .user-shell input:disabled,
+.dark .user-shell select:disabled,
+.dark .user-shell textarea:disabled {
+  background-color: #1b2431 !important;
+  color: #9aa7b8 !important;
+  cursor: not-allowed;
+}
+
+.dark .admin-shell .admin-content input[type="checkbox"],
+.dark .admin-shell .admin-content input[type="radio"],
+.dark .user-shell input[type="checkbox"],
+.dark .user-shell input[type="radio"] {
+  accent-color: #dc2626;
+  color-scheme: dark;
+}
+
+.dark .admin-shell .admin-content select option,
+.dark .user-shell select option {
+  background-color: #101722;
+  color: #f1f5f9;
+}
+
+.dark .admin-shell .admin-content input:-webkit-autofill,
+.dark .admin-shell .admin-content input:-webkit-autofill:hover,
+.dark .admin-shell .admin-content input:-webkit-autofill:focus,
+.dark .user-shell input:-webkit-autofill,
+.dark .user-shell input:-webkit-autofill:hover,
+.dark .user-shell input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9 !important;
+  -webkit-box-shadow: 0 0 0 1000px #101722 inset !important;
+  caret-color: #f1f5f9;
+}
+
+.dark .admin-shell .admin-content input[type="date"]::-webkit-calendar-picker-indicator,
+.dark .user-shell input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(.85);
+}
