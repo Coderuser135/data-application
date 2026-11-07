@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList } from 'lucide-react';
+import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList, UserRound } from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -7,6 +7,7 @@ import { signOut } from '@/redux/slices/authSlice';
 
 const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin/profile', icon: UserRound, label: 'My Profile' },
   { to: '/admin/admissions', icon: UserPlus, label: 'Admissions' },
   { to: '/admin/users', icon: Users, label: 'Members' },
   { to: '/admin/membership-plans', icon: CreditCard, label: 'Plans' },
@@ -41,7 +42,7 @@ export default function AdminLayout() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <span className="hidden h-9 w-9 items-center justify-center rounded-full bg-brand-600/20 text-sm font-bold text-brand-500 sm:flex">{profile?.full_name?.charAt(0)?.toUpperCase() || 'A'}</span>
+            <Link to="/admin/profile" aria-label="Admin profile" className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-600/20 text-sm font-bold text-brand-500">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Admin profile" className="h-full w-full object-cover" /> : profile?.full_name?.charAt(0)?.toUpperCase() || 'A'}</Link>
             <button onClick={handleSignOut} className="rounded-xl p-2.5 text-surface-300 hover:bg-red-500/10 hover:text-red-400"><LogOut size={18} /></button>
           </div>
         </div>
