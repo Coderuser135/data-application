@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Trash2, Minus, Plus, ShoppingBag, Package } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromCart, updateQuantity, clearCart } from '@/redux/slices/cartSlice';
@@ -6,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { formatCurrency } from '@/utils/formatters';
+import { productService } from '@/services/productService';
 
 function getProductId(product) {
   return product.id || product._id;
@@ -17,7 +19,28 @@ function getProductImage(product) {
 
 export default function Cart() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [stockById, setStockById] = useState({});
+  const [stockLoading, setStockLoading] = useState(true);
   const items = useSelector((state) => state.cart.items);
+  useEffect(() => {
+    let active = true;
+    if (!items.length) { setStockById({}); setStockLoading(false); return () => { active = false; }; }
+    setStockLoading(true);
+    Promise.all(items.map(async (item) => {
+      const id = getProductId(item.product);
+      try {
+        const latest = await productService.getActiveById(id);
+        return [id, Number(latest.available_quantity) || 0];
+      } catch {
+        return [id, 0];
+      }
+    })).then((entries) => { if (active) setStockById(Object.fromEntries(entries)); })
+      .finally(() => { if (active) setStockLoading(false); });
+    return () => { active = false; };
+  }, [items]);
+
+  const canCheckout = !stockLoading && items.every((item) => (stockById[getProductId(item.product)] ?? 0) >= item.quantity);
   const total = items.reduce((sum, item) => {
     const price = Number(item.product.price || item.product.sale_price || 0);
     return sum + price * item.quantity;
@@ -50,6 +73,7 @@ export default function Cart() {
                       {product.brand && <p className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">{product.brand}</p>}
                       <h3 className="break-words font-semibold text-ink-950 dark:text-white">{product.name}</h3>
                       {product.net_quantity && <p className="mt-1 text-xs text-surface-500">{product.net_quantity}</p>}
+                      <p className={`mt-2 text-xs font-bold ${(stockById[id] ?? 0) > 0 && item.quantity <= stockById[id] ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{(stockById[id] ?? 0) > 0 && item.quantity <= stockById[id] ? 'In stock' : 'Out of stock / quantity unavailable'}</p>
                       <p className="mt-1 text-sm font-semibold text-surface-600 dark:text-surface-300">{formatCurrency(price)} <span className="font-normal text-surface-400">/ item</span></p>
                     </div>
                   </div>
@@ -58,7 +82,7 @@ export default function Cart() {
                     <div className="flex items-center gap-2 rounded-lg border border-surface-200 p-1 dark:border-surface-700">
                       <button aria-label={`Decrease ${product.name} quantity`} onClick={() => dispatch(updateQuantity({ id, quantity: item.quantity - 1 }))} className="rounded-md p-1.5 transition hover:bg-surface-100 dark:hover:bg-surface-800"><Minus size={15} /></button>
                       <span className="w-7 text-center text-sm font-semibold tabular-nums">{item.quantity}</span>
-                      <button aria-label={`Increase ${product.name} quantity`} onClick={() => dispatch(updateQuantity({ id, quantity: item.quantity + 1 }))} className="rounded-md p-1.5 transition hover:bg-surface-100 dark:hover:bg-surface-800"><Plus size={15} /></button>
+                      <button aria-label={`Increase ${product.name} quantity`} disabled={stockLoading || item.quantity >= (stockById[id] ?? 0)} onClick={() => dispatch(updateQuantity({ id, quantity: item.quantity + 1 }))} className="rounded-md p-1.5 transition hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-surface-800"><Plus size={15} /></button>
                     </div>
                     <p className="min-w-[76px] text-right font-display text-base font-bold text-ink-950 dark:text-white">{formatCurrency(price * item.quantity)}</p>
                     <button aria-label={`Remove ${product.name} from cart`} onClick={() => dispatch(removeFromCart(id))} className="rounded-lg p-2 text-surface-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"><Trash2 size={18} /></button>
@@ -77,7 +101,8 @@ export default function Cart() {
               <div className="flex justify-between text-sm"><span className="text-surface-500">Subtotal</span><span className="font-medium">{formatCurrency(total)}</span></div>
               <div className="flex justify-between border-t border-surface-200 pt-3 dark:border-surface-800"><span className="font-semibold">Total</span><span className="font-display text-xl font-bold text-brand-600">{formatCurrency(total)}</span></div>
             </div>
-            <Link to="/user/checkout" className="block"><Button className="mt-5 w-full" size="lg">Proceed to checkout</Button></Link>
+            {!canCheckout && <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-300">One or more items are out of stock or the selected quantity is unavailable. Update your cart before checkout.</p>}
+            <Button className="mt-5 w-full" size="lg" disabled={!canCheckout} onClick={() => navigate('/user/checkout')}>{stockLoading ? 'Checking availability…' : 'Proceed to checkout'}</Button>
             <button onClick={() => dispatch(clearCart())} className="mt-3 w-full text-sm text-surface-500 hover:text-red-600">Clear cart</button>
           </Card>
         </div>
