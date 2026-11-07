@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,7 +16,7 @@ export default function Orders() {
 
   useEffect(() => { dispatch(fetchMyOrders()); }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="list" />;
 
   return (
     <div className="space-y-6">
