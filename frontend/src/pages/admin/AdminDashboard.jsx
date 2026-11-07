@@ -11,11 +11,11 @@ import { fetchAdminStats, fetchRevenueAnalytics } from '@/redux/slices/dashboard
 import { formatCurrency, formatDate, getDaysRemaining } from '@/utils/formatters';
 
 const periods = [
-  { key: '7d', label: '7D' },
-  { key: '30d', label: '30D' },
-  { key: '3m', label: '3M' },
-  { key: '6m', label: '6M' },
-  { key: '1y', label: '1Y' },
+  { key: '7d', label: '7 days' },
+  { key: '30d', label: '30 days' },
+  { key: '3m', label: '3 months' },
+  { key: '6m', label: '6 months' },
+  { key: '1y', label: '1 year' },
 ];
 
 function StatCard({ icon: Icon, label, value, tone = 'neutral', sublabel }) {
@@ -55,7 +55,7 @@ function RevenueChart({ analytics, period, onPeriodChange }) {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity size={18} className="text-brand-500" />
-          <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Revenue Analytics</h3>
+          <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Revenue Trend</h3>
         </div>
         <div className="flex gap-1 rounded-lg bg-surface-100 p-1 dark:bg-surface-800">
           {periods.map((p) => (
@@ -64,11 +64,17 @@ function RevenueChart({ analytics, period, onPeriodChange }) {
         </div>
       </div>
       <div className="mb-4 flex items-center gap-4 text-xs">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-brand-600" /> Gym Revenue</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-blue-500" /> Store Revenue</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-brand-600" /> Gym Memberships</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-blue-500" /> Supplement Store (online + counter)</span>
       </div>
       {uniqueDates.length > 0 ? (
-        <div className="flex items-end gap-1 overflow-x-auto" style={{ minHeight: '180px' }}>
+        <>
+        <div className="mb-3 grid grid-cols-3 gap-3 rounded-xl bg-surface-50 p-3 dark:bg-surface-800/60">
+          <div><p className="text-[11px] text-surface-500">Gym</p><p className="mt-1 text-sm font-semibold text-ink-950 dark:text-white">{formatCurrency((analytics?.gymRevenue || []).reduce((sum, item) => sum + item.amount, 0))}</p></div>
+          <div><p className="text-[11px] text-surface-500">Store</p><p className="mt-1 text-sm font-semibold text-ink-950 dark:text-white">{formatCurrency((analytics?.storeRevenue || []).reduce((sum, item) => sum + item.amount, 0))}</p></div>
+          <div><p className="text-[11px] text-surface-500">Total</p><p className="mt-1 text-sm font-semibold text-ink-950 dark:text-white">{formatCurrency([...(analytics?.gymRevenue || []), ...(analytics?.storeRevenue || [])].reduce((sum, item) => sum + item.amount, 0))}</p></div>
+        </div>
+        <div className="flex items-end gap-1 overflow-x-auto" style={{ minHeight: '180px' }}> 
           {uniqueDates.map((date) => {
             const gym = getAmount(analytics.gymRevenue, date);
             const store = getAmount(analytics.storeRevenue, date);
@@ -77,15 +83,16 @@ function RevenueChart({ analytics, period, onPeriodChange }) {
             return (
               <div key={date} className="flex min-w-[40px] flex-1 flex-col items-center gap-1">
                 <div className="flex w-full items-end justify-center gap-1" style={{ height: '160px' }}>
-                  <div className="w-3 rounded-t bg-brand-600 transition-all duration-300" style={{ height: `${Math.max(2, gymH)}px` }} title={`Gym: ${formatCurrency(gym)}`} />
-                  <div className="w-3 rounded-t bg-blue-500 transition-all duration-300" style={{ height: `${Math.max(2, storeH)}px` }} title={`Store: ${formatCurrency(store)}`} />
+                  <div className="w-3 rounded-t bg-brand-600 transition-all duration-300" style={{ height: `${gymH}px` }} title={`Gym: ${formatCurrency(gym)}`} />
+                  <div className="w-3 rounded-t bg-blue-500 transition-all duration-300" style={{ height: `${storeH}px` }} title={`Store: ${formatCurrency(store)}`} />
                 </div>
                 <span className="text-[10px] text-surface-500">{date.slice(-5)}</span>
               </div>
             );
           })}
         </div>
-      ) : <p className="py-8 text-center text-sm text-surface-500">No revenue data for this period</p>}
+        </>
+      ) : <p className="py-8 text-center text-sm text-surface-500">No revenue recorded in this period</p>}
     </Card>
   );
 }
@@ -113,7 +120,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Total Users" value={s.totalUsers} tone="info" />
+        <StatCard icon={Users} label="Registered Users" value={s.totalUsers} tone="info" />
         <StatCard icon={Dumbbell} label="Gym Members" value={s.totalAdmitted} tone="success" sublabel={`${s.notAdmitted} not admitted`} />
         <StatCard icon={CreditCard} label="Active Memberships" value={s.activeMemberships} tone="teal" sublabel={`${s.expiredMemberships} expired`} />
         <StatCard icon={ShoppingCart} label="Total Orders" value={s.totalOrders} tone="violet" sublabel={`${s.pendingOrders} pending`} />
