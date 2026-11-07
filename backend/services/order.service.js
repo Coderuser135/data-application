@@ -21,8 +21,31 @@ const allowedTransitions = {
 export async function getOrdersByUserId(userId) {
   return Order.find({ user_id: userId }).sort({ createdAt: -1 });
 }
-export async function getAllOrders() {
+export async function getAllOrders({ search = '', status = 'all', page = 1, limit = 10 } = {}) {
+  const filter = {};
+  const safeSearch = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\export async function getAllOrders() {
   return Order.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
+}');
+  if (safeSearch) {
+    filter.$or = [
+      { order_number: { $regex: safeSearch, $options: 'i' } },
+      { customer_name: { $regex: safeSearch, $options: 'i' } },
+      { customer_phone: { $regex: safeSearch, $options: 'i' } },
+    ];
+  }
+  if (status && status !== 'all') filter.status = status;
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
+  const [rows, total] = await Promise.all([
+    Order.find(filter)
+      .populate({ path: 'user_id', select: 'full_name email' })
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .lean(),
+    Order.countDocuments(filter),
+  ]);
+  return { rows, total, page: safePage, pages: Math.max(1, Math.ceil(total / safeLimit)), limit: safeLimit };
 }
 
 export async function createOrder(userId, { items, shippingAddress, fulfillmentMethod, customerName, customerPhone, checkoutRequestId }) {
