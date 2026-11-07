@@ -267,7 +267,16 @@ export async function getMembershipDetails(membershipId) {
   };
 }
 export async function getActivePlans(userId) {
-  const plans = await MembershipPlan.find({ is_active: true }).sort({ display_order: 1 }).lean();
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const plans = await MembershipPlan.find({
+    is_active: true,
+    $and: [
+      { $or: [{ is_offer: { $ne: true } }, { offer_start_date: null }, { offer_start_date: { $lte: now } }] },
+      { $or: [{ is_offer: { $ne: true } }, { offer_end_date: null }, { offer_end_date: { $gte: endOfToday } }] },
+    ],
+  }).sort({ display_order: 1 }).lean();
   const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id').lean();
 
   if (!admission) {
