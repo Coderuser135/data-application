@@ -15,8 +15,15 @@ const STATUS_LABELS = { reconciliation_required: 'Reconciliation required', succ
 const TYPE_LABELS = { membership_advance: 'Membership advance', membership_installment: 'Membership installment', membership_full: 'Membership payment', order: 'Supplement order' };
 
 function SummaryCard({ icon: Icon, label, value, tone = 'neutral' }) {
-  const styles = { neutral: 'bg-surface-100 text-surface-600 dark:bg-surface-800', blue: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', green: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-400', red: 'bg-red-500/10 text-red-700 dark:text-red-400' };
-  return <Card><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${styles[tone]}`}><Icon size={19} /></span><p className="mt-4 text-xs text-surface-500">{label}</p><p className="mt-1 font-display text-xl font-bold text-ink-950 dark:text-white">{value}</p></Card>;
+  const styles = {
+    neutral: { icon: 'bg-surface-100 text-surface-600 dark:bg-surface-800', card: '' },
+    blue: { icon: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', card: 'border-blue-200/80 bg-blue-50/50 dark:border-blue-500/20 dark:bg-blue-500/[0.04]' },
+    green: { icon: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', card: 'border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/[0.04]' },
+    amber: { icon: 'bg-amber-500/10 text-amber-700 dark:text-amber-400', card: 'border-amber-200/80 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/[0.04]' },
+    red: { icon: 'bg-red-500/10 text-red-700 dark:text-red-400', card: 'border-red-200/80 bg-red-50/50 dark:border-red-500/20 dark:bg-red-500/[0.04]' },
+  };
+  const palette = styles[tone] || styles.neutral;
+  return <Card className={palette.card}><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${palette.icon}`}><Icon size={19} /></span><p className="mt-4 text-xs text-surface-500">{label}</p><p className="mt-1 font-display text-xl font-bold text-ink-950 dark:text-white">{value}</p></Card>;
 }
 
 export default function AdminPayments() {
@@ -59,7 +66,7 @@ export default function AdminPayments() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <SummaryCard icon={Dumbbell} label="Gym revenue" value={formatCurrency(summary.gymRevenue || 0)} tone="red" />
+        <SummaryCard icon={Dumbbell} label="Gym revenue" value={formatCurrency(summary.gymRevenue || 0)} tone="green" />
         <SummaryCard icon={Store} label="Store revenue" value={formatCurrency(summary.storeRevenue || 0)} tone="blue" />
         <SummaryCard icon={IndianRupee} label="Gross successful revenue" value={formatCurrency((summary.gymRevenue || 0) + (summary.storeRevenue || 0))} tone="green" />
         <SummaryCard icon={TrendingUp} label="Pending transactions" value={summary.pending || 0} tone="amber" />
