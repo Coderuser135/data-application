@@ -1,7 +1,7 @@
 import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, CreditCard, Ruler, ShoppingBag, ArrowRight, Dumbbell, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
+import { Calendar, CreditCard, ShoppingBag, ArrowRight, Dumbbell, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
