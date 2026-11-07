@@ -19,7 +19,7 @@ import {
   ChevronRight,
   ShieldCheck,
 } from 'lucide-react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { signOut } from '@/redux/slices/authSlice';
@@ -71,13 +71,7 @@ export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
   const profile = useSelector((state) => state.auth.profile);
-
-  const activePage = allNavItems.find((item) => (
-    location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
-  ));
-  const pageTitle = activePage?.label || 'Admin Dashboard';
 
   async function handleSignOut() {
     await dispatch(signOut());
