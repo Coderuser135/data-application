@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Pencil, Trash2, X, Package, Search, ImagePlus, Boxes, AlertTriangle, History, ArrowDownUp } from 'lucide-react';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
@@ -49,7 +49,7 @@ export default function AdminProducts() {
   const [historyTarget, setHistoryTarget] = useState(null);
   const [error, setError] = useState('');
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoadError('');
     try {
       const result = await productService.getAll({
@@ -73,7 +73,7 @@ export default function AdminProducts() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [query, categoryFilter, statusFilter, stockFilter, expiryFilter, sort, pageNumber, pageSize]);
 
   useEffect(() => {
     categoryService.getAll().then((result) => setCategories(result || [])).catch(() => setCategories([]));
@@ -82,7 +82,7 @@ export default function AdminProducts() {
   useEffect(() => {
     const timer = setTimeout(loadData, 300);
     return () => clearTimeout(timer);
-  }, [query, categoryFilter, statusFilter, stockFilter, expiryFilter, sort, pageNumber, pageSize]);
+  }, [loadData]);
 
   const stockStats = productData.stats || { total: 0, low: 0, out: 0 };
   const totalPages = Math.max(1, Number(productData.pages) || 1);
