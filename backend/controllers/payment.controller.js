@@ -1,26 +1,21 @@
 import * as paymentService from '../services/payment.service.js';
 
-export async function getMyPayments(req, res, next) {
+export const getMyPayments = async (req, res, next) => {
   try { res.json(await paymentService.getPaymentsByUserId(req.user._id)); } catch (err) { next(err); }
-}
-
-export async function getAllPayments(req, res, next) {
+};
+export const getAllPayments = async (req, res, next) => {
   try { res.json(await paymentService.getAllPayments()); } catch (err) { next(err); }
-}
-
-export async function createRazorpayOrder(req, res, next) {
+};
+export const createRazorpayOrder = async (req, res, next) => {
   try { res.status(201).json(await paymentService.createRazorpayOrder(req.user._id, req.body)); } catch (err) { next(err); }
-}
-
-export async function verifyRazorpayPayment(req, res, next) {
+};
+export const verifyRazorpayPayment = async (req, res, next) => {
   try { res.json(await paymentService.verifyRazorpayPayment(req.user._id, req.body)); } catch (err) { next(err); }
-}
-
-export async function refundPayment(req, res, next) {
+};
+export const refundPayment = async (req, res, next) => {
   try { res.json(await paymentService.refundPayment(req.params.id, req.body || {})); } catch (err) { next(err); }
-}
-
-export async function razorpayWebhook(req, res, next) {
+};
+export const razorpayWebhook = async (req, res, next) => {
   try {
     const signature = req.get('x-razorpay-signature');
     const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
@@ -28,4 +23,4 @@ export async function razorpayWebhook(req, res, next) {
     const payload = JSON.parse(rawBody.toString('utf8'));
     res.json(await paymentService.handleRazorpayWebhook(rawBody, signature, payload));
   } catch (err) { next(err); }
-}
+};

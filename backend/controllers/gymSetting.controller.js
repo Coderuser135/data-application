@@ -1,15 +1,32 @@
-import * as gymSettingsService from '../services/gymSetting.service.js';
+import GymSettings from '../models/gymSetting.model.js';
 
-export async function getGymSettings(req, res, next) {
+export const getGymSettings = async (req, res, next) => {
   try {
-    const settings = await gymSettingsService.getGymSettings();
-    res.json(settings);
-  } catch (err) { next(err); }
-}
+    let settings = await GymSettings.findOne();
 
-export async function updateGymSettings(req, res, next) {
-  try {
-    const settings = await gymSettingsService.updateGymSettings(req.body);
+    if (!settings) {
+      settings = await GymSettings.create({});
+    }
+
     res.json(settings);
-  } catch (err) { next(err); }
-}
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateGymSettings = async (req, res, next) => {
+  try {
+    let settings = await GymSettings.findOne();
+
+    if (!settings) {
+      settings = await GymSettings.create(req.body);
+    } else {
+      Object.assign(settings, req.body);
+      await settings.save();
+    }
+
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -39,7 +39,7 @@ export default {
           950: '#0c0c0e',
         },
       },
-      fontFamily: { display: ['Sora', 'sans-serif'], sans: ['DM Sans', 'sans-serif'] },
+      fontFamily: { display: ['Manrope', 'sans-serif'], sans: ['DM Sans', 'sans-serif'] },
       backgroundImage: { 'hero-grid': 'linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px)' },
     },
   },

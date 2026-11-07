@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Save, Building, Phone, Mail } from 'lucide-react';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -27,7 +28,7 @@ export default function AdminSettings() {
     setSaving(false);
   }
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <AdminLoadingSkeleton variant="form" />;
 
   return (
     <div className="space-y-6">

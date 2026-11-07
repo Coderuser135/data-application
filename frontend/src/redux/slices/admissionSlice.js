@@ -11,8 +11,12 @@ export const fetchAllAdmissions = createAsyncThunk('admissions/fetchAll', async 
   try { return await admissionService.getAll(); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to fetch admissions')); }
 });
 
-export const searchUsers = createAsyncThunk('admissions/searchUsers', async ({ q, page, limit }, { rejectWithValue }) => {
-  try { return await admissionService.searchUsers(q, page, limit); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to search users')); }
+export const searchUsers = createAsyncThunk('admissions/searchUsers', async ({ q, page, limit, admissionFilter = 'all' }, { rejectWithValue }) => {
+  try {
+    return await admissionService.searchUsers(q, page, limit, { admissionFilter });
+  } catch (error) {
+    return rejectWithValue(errorMessage(error, 'Failed to search users'));
+  }
 });
 
 export const createAdmission = createAsyncThunk('admissions/create', async (data, { rejectWithValue }) => {
@@ -31,7 +35,16 @@ const admissionSlice = createSlice({
       .addCase(fetchAllAdmissions.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchAllAdmissions.fulfilled, (state, action) => { state.adminAdmissions = action.payload; state.loading = false; })
       .addCase(fetchAllAdmissions.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
-      .addCase(searchUsers.fulfilled, (state, action) => { state.searchResults = action.payload; })
+      .addCase(searchUsers.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(searchUsers.fulfilled, (state, action) => {
+        state.searchResults = action.payload;
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(searchUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to search users';
+      })
       .addCase(createAdmission.fulfilled, (state, action) => { state.adminAdmissions.unshift(action.payload.admission); });
   },
 });
