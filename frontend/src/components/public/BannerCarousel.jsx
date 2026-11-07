@@ -40,7 +40,7 @@ export default function BannerCarousel({ section, children = null }) {
         key={active._id || activeIndex}
         src={active.image_url}
         alt={section === 'gym' ? 'Heaven Gym promotional banner' : 'Supplement Store promotional banner'}
-        className="absolute inset-0 h-full w-full object-cover animate-banner-change"
+        className="absolute inset-0 h-full w-full object-contain animate-banner-change"
       />
       {banners.length > 1 && (
         <>
