@@ -5,7 +5,7 @@ import InventoryMovement from '../models/inventoryMovement.model.js';
 import { generateOrderNumber } from '../utils/generators.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
 
-const orderStatuses = ['processing', 'ready_for_pickup', 'out_for_delivery', 'collected', 'delivered', 'cancelled'];
+const orderStatuses = ['processing', 'ready_for_pickup', 'out_for_delivery', 'collected', 'delivered', 'cancelled', 'confirmed', 'shipped'];
 const allowedTransitions = {
   processing: ['ready_for_pickup', 'out_for_delivery'],
   ready_for_pickup: ['collected'],
@@ -13,6 +13,8 @@ const allowedTransitions = {
   collected: [],
   delivered: [],
   cancelled: [],
+  confirmed: ['shipped'],
+  shipped: ['delivered'],
 };
 
 export async function getOrdersByUserId(userId) {
@@ -63,7 +65,9 @@ export async function createOrder(userId, { items, shippingAddress, fulfillmentM
         status: 'pending', fulfillment_method: fulfillmentMethod,
         customer_name: String(customerName).trim(), customer_phone: String(customerPhone).trim(),
         shipping_address: addressSnapshot,
-        payment_status: 'pending', inventory_status: 'reserved', order_items: orderItems,
+        payment_status: 'pending', inventory_status: 'reserved',
+        reservation_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        order_items: orderItems,
       }], { session });
       createdOrder = order;
       for (const item of orderItems) {
@@ -92,11 +96,12 @@ export async function updateOrderStatus(orderId, status) {
       if (!order) throw new ApiError(404, 'Order not found');
       if (order.status === status) { updatedOrder = order; return; }
       if (!allowedTransitions[order.status]?.includes(status)) throw new ApiError(409, `Cannot move order from ${order.status} to ${status}`);
-      if (order.payment_status !== 'success' || order.inventory_status !== 'committed') {
+      const isLegacyOrder = ['confirmed', 'shipped'].includes(order.status);
+      if (order.payment_status !== 'success' || (!isLegacyOrder && order.inventory_status !== 'committed')) {
         throw new ApiError(409, 'Only paid orders with committed stock can be fulfilled');
       }
-      if (status === 'ready_for_pickup' && order.fulfillment_method !== 'store_pickup') throw new ApiError(409, 'This order is for admin delivery');
-      if (status === 'out_for_delivery' && order.fulfillment_method !== 'admin_delivery') throw new ApiError(409, 'This order is for store pickup');
+      if (!isLegacyOrder && status === 'ready_for_pickup' && order.fulfillment_method !== 'store_pickup') throw new ApiError(409, 'This order is for admin delivery');
+      if (!isLegacyOrder && status === 'out_for_delivery' && order.fulfillment_method !== 'admin_delivery') throw new ApiError(409, 'This order is for store pickup');
       order.status = status;
       await order.save({ session });
       updatedOrder = order;
@@ -105,4 +110,52 @@ export async function updateOrderStatus(orderId, status) {
   } finally {
     await session.endSession();
   }
+}
+
+
+export async function releaseExpiredOrderReservations() {
+  const now = new Date();
+  const expiredOrders = await Order.find({
+    status: 'pending', payment_status: 'pending', inventory_status: 'reserved',
+    reservation_expires_at: { $ne: null, $lte: now },
+  }).select('_id order_number order_items');
+  let released = 0;
+
+  for (const candidate of expiredOrders) {
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        const order = await Order.findOne({
+          _id: candidate._id, status: 'pending', payment_status: 'pending', inventory_status: 'reserved',
+          reservation_expires_at: { $ne: null, $lte: now },
+        }).session(session);
+        if (!order) return;
+
+        for (const item of order.order_items) {
+          const product = await Product.findOneAndUpdate(
+            { _id: item.product_id, reserved_quantity: { $gte: item.quantity } },
+            { $inc: { reserved_quantity: -item.quantity } },
+            { new: false, session },
+          );
+          if (!product) throw new ApiError(409, `Unable to safely release reserved stock for order ${order.order_number}`);
+          await InventoryMovement.create([{
+            product_id: product._id, movement_type: 'order_release', quantity: item.quantity,
+            stock_before: product.stock_quantity, stock_after: product.stock_quantity,
+            reserved_before: product.reserved_quantity, reserved_after: product.reserved_quantity - item.quantity,
+            reason: `Reservation expired for unpaid order ${order.order_number}`, reference_id: order._id,
+          }], { session });
+        }
+        order.inventory_status = 'released';
+        order.status = 'cancelled';
+        await order.save({ session });
+        await (await import('../models/payment.model.js')).default.updateMany(
+          { order_id: order._id, status: 'pending' },
+          { $set: { status: 'failed', reference_note: 'Razorpay order expired; stock reservation released.' } },
+          { session },
+        );
+        released += 1;
+      });
+    } finally { await session.endSession(); }
+  }
+  return { released };
 }
