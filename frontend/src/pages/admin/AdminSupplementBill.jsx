@@ -23,7 +23,7 @@ export default function AdminSupplementBill() {
   if (loading) return <AdminLoadingSkeleton variant="details" />;
   if (!sale) return <div className="py-16 text-center text-sm text-red-600">{error || 'Bill not found'}<div><Link to="/admin/supplement-selling" className="mt-4 inline-block font-semibold text-brand-600">Back to Supplement Selling</Link></div></div>;
 
-  const date = new Date(sale.createdAt);
+  const date = new Date(sale.created_at);
   const paymentLabel = { cash: 'Cash', upi: 'UPI', card: 'Card', other: 'Other' }[sale.payment_method] || sale.payment_method;
 
   return <div className="space-y-5">
