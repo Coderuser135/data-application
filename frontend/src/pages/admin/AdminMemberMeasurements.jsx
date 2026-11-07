@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, CalendarDays, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -121,7 +122,7 @@ export default function AdminMemberMeasurements() {
 
       <Card>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-500/10 text-xl font-bold text-brand-600 dark:text-brand-400">{(member.full_name || 'M').charAt(0).toUpperCase()}</span>
+          <AdminAvatar name={member.full_name} src={member.avatar_url} className="h-14 w-14 rounded-2xl text-xl" />
           <div className="min-w-0 flex-1"><h2 className="font-display text-lg font-bold text-ink-950 dark:text-white">{member.full_name || 'Unnamed member'}</h2><p className="break-all text-sm text-surface-500">{member.email || '—'}</p><p className="mt-1 text-xs text-surface-500">{member.phone || 'No phone'} · {member.member_id || 'No member ID'}</p></div>
           <Badge color={member.admission_status === 'active' ? 'success' : 'secondary'}>{member.admission_status || 'Admitted'}</Badge>
         </div>
