@@ -68,14 +68,28 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
     }
     if (existingOrder && existingOrder.status !== 'paid') return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder: existingOrder };
   }
-  const reservationExpiresAt = orderId ? await Order.findById(orderId).select('reservation_expires_at') : null;
-  const expireBy = orderId && reservationExpiresAt?.reservation_expires_at
-    ? Math.floor(new Date(reservationExpiresAt.reservation_expires_at).getTime() / 1000)
-    : undefined;
-  const razorpayOrder = await gateway().orders.create({
-    amount: Math.round(amount * 100), currency: 'INR', receipt: `${paymentType}-${Date.now()}`,
-    ...(expireBy ? { expire_by: expireBy } : {}),
-  });
+  // Razorpay Orders API does not support the Payment Links-only `expire_by` field.
+  // The gym app enforces its own stock reservation expiry before creating payments.
+  let razorpayOrder;
+  try {
+    razorpayOrder = await gateway().orders.create({
+      amount: Math.round(amount * 100),
+      currency: 'INR',
+      receipt: `${paymentType}-${Date.now()}`,
+    });
+  } catch (error) {
+    const providerError = error?.error || error?.response?.data?.error || {};
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'razorpay_order_creation_failed',
+      providerStatus: error?.statusCode || error?.status || error?.response?.status || null,
+      providerCode: providerError.code || error?.code || null,
+      providerDescription: providerError.description || error?.description || error?.message || 'Unknown Razorpay error',
+      providerField: providerError.field || null,
+      providerReason: providerError.reason || null,
+    }));
+    throw new ApiError(502, 'Online payment is temporarily unavailable. Please try again shortly.');
+  }
   const payment = await Payment.create({ user_id: userId, order_id: orderId || null, membership_id: membershipId || null, amount, payment_type: paymentType, payment_method: 'online', status: 'pending', razorpay_order_id: razorpayOrder.id });
   return { payment, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder };
 }
