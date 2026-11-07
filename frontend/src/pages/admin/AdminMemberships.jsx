@@ -32,16 +32,17 @@ function Filter({ label, value, onChange, options }) {
 
 function SummaryCard({ label, value, icon: Icon, tone }) {
   const styles = {
-    green: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20',
-    blue: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-400/20',
-    slate: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600',
+    green: { icon: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20', card: '!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]' },
+    amber: { icon: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20', card: '!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]' },
+    blue: { icon: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-400/20', card: '!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]' },
+    slate: { icon: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600', card: '!border-slate-200 !bg-white dark:!border-slate-700 dark:!bg-slate-900' },
   };
+  const palette = styles[tone] || styles.slate;
   return (
-    <Card className="!border-slate-200 !bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)] dark:!border-slate-700 dark:!bg-slate-900">
+    <Card className={`${palette.card} shadow-[0_3px_14px_rgba(15,23,42,0.05)]`}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 sm:text-sm">{label}</p>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${styles[tone]}`}><Icon size={18} /></span>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${palette.icon}`}><Icon size={18} /></span>
       </div>
       <p className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white sm:text-3xl">{value}</p>
     </Card>
@@ -108,7 +109,7 @@ function printPaymentReceipt(payment, membership) {
     @media print{body{padding:0;background:#fff}.sheet{max-width:none;border:0;border-radius:0}.actions{display:none}.brand,.amount-box,.status,.notice{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
   <main class="sheet">
-    <header class="brand"><div><h1>IRONFORGE</h1><p>GYM MEMBERSHIP · PAYMENT RECEIPT</p></div>
+    <header class="brand"><div><h1>HEAVEN GYM</h1><p>GYM MEMBERSHIP · PAYMENT RECEIPT</p></div>
       <div class="meta"><strong>RECEIPT</strong>No. ${safe(receiptNumber)}<br>Issued: ${safe(paymentDate)}</div>
     </header>
     <div class="content"><span class="status">PAYMENT SUCCESSFUL</span>
@@ -137,8 +138,8 @@ function printPaymentReceipt(payment, membership) {
         <div class="line"><span>Payment record ID</span><strong>${safe(payment._id || '—')}</strong></div>
         <div class="line"><span>Gateway order ID</span><strong>${safe(payment.razorpay_order_id || '—')}</strong></div>
       </div></section>
-      <div class="notice">This receipt confirms the successful payment recorded by IRONFORGE. Please retain it for your records. For payment queries, share the receipt number or transaction reference with the gym.</div>
-    </div><footer class="footer">Thank you for being a part of IRONFORGE.</footer>
+      <div class="notice">This receipt confirms the successful payment recorded by HEAVEN GYM. Please retain it for your records. For payment queries, share the receipt number or transaction reference with the gym.</div>
+    </div><footer class="footer">Thank you for being a part of HEAVEN GYM.</footer>
   </main><div class="actions"><button class="print" onclick="window.print()">Print / Save as PDF</button></div>
   </body></html>`);
   receiptWindow.document.close();

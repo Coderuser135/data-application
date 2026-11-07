@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { CheckCircle2, CreditCard, Lock } from 'lucide-react';
@@ -9,39 +9,74 @@ import { clearCart } from '@/redux/slices/cartSlice';
 import { createOrder } from '@/redux/slices/orderSlice';
 import { paymentService } from '@/services/paymentService';
 import { formatCurrency } from '@/utils/formatters';
+import { productService } from '@/services/productService';
 
 export default function Checkout() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const items = useSelector((state) => state.cart.items);
   const [form, setForm] = useState({ full_name: '', phone: '', address: '', city: '', state: '', pincode: '' });
+  const [fulfillmentMethod, setFulfillmentMethod] = useState('store_pickup');
   const [loading, setLoading] = useState(false);
+  const [stockChecking, setStockChecking] = useState(true);
+  const [stockIssue, setStockIssue] = useState('');
+  const [progressMessage, setProgressMessage] = useState('');
+  const checkoutLock = useRef(false);
+  const checkoutRequestId = useRef(null);
+  if (!checkoutRequestId.current) checkoutRequestId.current = globalThis.crypto?.randomUUID?.() || `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const total = items.reduce((sum, item) => sum + (item.product.sale_price ?? item.product.price) * item.quantity, 0);
+  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+
+  useEffect(() => {
+    let active = true;
+    if (!items.length) { setStockIssue(''); setStockChecking(false); return () => { active = false; }; }
+    setStockChecking(true);
+    Promise.all(items.map(async (item) => {
+      const id = item.product.id || item.product._id;
+      try {
+        const latest = await productService.getActiveById(id);
+        return Number(latest.available_quantity) >= item.quantity;
+      } catch {
+        return false;
+      }
+    })).then((availability) => {
+      if (active) setStockIssue(availability.every(Boolean) ? '' : 'One or more supplements are out of stock or the selected quantity is no longer available. Return to your cart and update it before ordering.');
+    }).finally(() => { if (active) setStockChecking(false); });
+    return () => { active = false; };
+  }, [items]);
 
   function update(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
 
   function validate() {
     if (!form.full_name.trim()) return 'Full name is required';
     if (!/^\d{10}$/.test(form.phone.trim())) return 'Valid 10-digit phone number is required';
-    if (!form.address.trim()) return 'Address is required';
-    if (!form.city.trim()) return 'City is required';
-    if (!form.state.trim()) return 'State is required';
-    if (!/^\d{6}$/.test(form.pincode.trim())) return 'Valid 6-digit pincode is required';
+    if (fulfillmentMethod === 'admin_delivery') {
+      if (!form.address.trim()) return 'Address is required';
+      if (!form.city.trim()) return 'City is required';
+      if (!form.state.trim()) return 'State is required';
+      if (!/^\d{6}$/.test(form.pincode.trim())) return 'Valid 6-digit pincode is required';
+    }
     return null;
   }
 
   async function handleCheckout(e) {
     e.preventDefault();
+    if (checkoutLock.current) return;
+    if (stockChecking || stockIssue) { setError(stockIssue || 'Please wait while we check product availability.'); return; }
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
+    checkoutLock.current = true;
     setError('');
     setLoading(true);
+    setProgressMessage('Creating your order securely…');
+    let checkoutStage = 'order';
     try {
-      const shippingAddress = `${form.full_name}, ${form.address}, ${form.city}, ${form.state} - ${form.pincode}, Phone: ${form.phone}`;
-      const order = await dispatch(createOrder({ items, shippingAddress })).unwrap();
-      const { payment, keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ orderId: order.id });
+      const shippingAddress = fulfillmentMethod === 'admin_delivery' ? [form.address, form.city, form.state + ' - ' + form.pincode].join(', ') : '';
+      const order = await dispatch(createOrder({ items, shippingAddress, fulfillmentMethod, customerName: form.full_name.trim(), customerPhone: form.phone.trim(), checkoutRequestId: checkoutRequestId.current })).unwrap();
+      checkoutStage = 'payment_setup';
+      setProgressMessage('Preparing secure payment. Please keep this page open…');
+      const { keyId, razorpayOrder } = await paymentService.createRazorpayOrder({ orderId: order.id });
 
       if (!razorpayOrder || !keyId || typeof window.Razorpay !== 'function') {
         throw new Error('Online payment is temporarily unavailable. Your order is saved as pending; please try again from your orders.');
@@ -52,12 +87,18 @@ export default function Checkout() {
           key: keyId,
           amount: razorpayOrder.amount,
           currency: razorpayOrder.currency || 'INR',
-          name: 'IronForge Store',
+          name: 'Heaven Gym',
           description: `Order ${order.order_number}`,
           order_id: razorpayOrder.id,
           handler: async (response) => {
             try {
-              await paymentService.verifyRazorpayPayment(response);
+              checkoutStage = 'verification';
+              setProgressMessage('Payment received. Verifying securely — please do not close this page…');
+              const verifiedPayment = await paymentService.verifyRazorpayPayment(response);
+              if (verifiedPayment?.status === 'reconciliation_required') {
+                reject(new Error('Your payment was received, but the order stock reservation expired. Please contact Heaven Gym before making another payment.'));
+                return;
+              }
               resolve();
             } catch (err) { reject(err); }
           },
@@ -68,11 +109,33 @@ export default function Checkout() {
       });
 
       dispatch(clearCart());
+      setProgressMessage('Payment successful. Redirecting to your orders…');
       setSuccess(true);
       setTimeout(() => navigate('/user/orders'), 1200);
     } catch (err) {
-      setError(typeof err === 'string' ? err : (err?.message || 'Checkout failed. Please try again.'));
+      const status = err?.response?.status;
+      const serverMessage = err?.response?.data?.error || '';
+      let friendlyMessage;
+
+      if (err?.message?.toLowerCase().includes('reservation expired') || serverMessage.toLowerCase().includes('reservation')) {
+        friendlyMessage = 'This order session has expired. Please return to your cart and place the order again.';
+      } else if (status === 409 || serverMessage.toLowerCase().includes('already has a successful payment')) {
+        friendlyMessage = 'We found an existing payment attempt for this order. Please check My Orders before trying again.';
+      } else if (checkoutStage === 'verification') {
+        friendlyMessage = 'We could not confirm your payment yet. Please do not pay again. Check My Orders or contact Heaven Gym with your payment reference.';
+      } else if (checkoutStage === 'payment_setup') {
+        friendlyMessage = 'Online payment could not be started right now. Your order is saved as pending; please check My Orders before retrying.';
+      } else if (typeof err === 'string' || status === 400 || status === 404 || status === 422) {
+        friendlyMessage = 'We could not place your order. Please check your cart and available stock, then try again.';
+      } else {
+        friendlyMessage = 'Something went wrong while processing your order. Please try again in a moment.';
+      }
+
+      console.error('Checkout failed:', { stage: checkoutStage, status, serverMessage, error: err });
+      setError(friendlyMessage);
+      setProgressMessage('');
     } finally {
+      checkoutLock.current = false;
       setLoading(false);
     }
   }
@@ -92,19 +155,22 @@ export default function Checkout() {
       <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Checkout</h1>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card>
-          <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">Shipping Address</h3>
+          <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">How would you like to receive your order?</h3>
+          <div className="mb-5 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => setFulfillmentMethod("store_pickup")} className={"rounded-xl border p-4 text-left " + (fulfillmentMethod === "store_pickup" ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-surface-200 dark:border-surface-700")}><span className="block text-sm font-semibold">Store Pickup</span><span className="mt-1 block text-xs text-surface-500">Pay online and collect from the gym/store.</span></button>
+            <button type="button" onClick={() => setFulfillmentMethod("admin_delivery")} className={"rounded-xl border p-4 text-left " + (fulfillmentMethod === "admin_delivery" ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10" : "border-surface-200 dark:border-surface-700")}><span className="block text-sm font-semibold">Admin Delivery</span><span className="mt-1 block text-xs text-surface-500">Gym staff will deliver to your address.</span></button>
+          </div>
+          <h3 className="mb-4 font-display text-lg font-semibold text-ink-950 dark:text-white">Customer Details</h3>
           <form onSubmit={handleCheckout} className="space-y-4">
+            {stockChecking && <div className="rounded-lg bg-surface-100 px-4 py-3 text-sm text-surface-600 dark:bg-surface-800 dark:text-surface-300">Checking supplement availability…</div>}
+            {stockIssue && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">{stockIssue}</div>}
             {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</div>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Full Name" value={form.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="Your name" required />
               <Input label="Phone" value={form.phone} onChange={(e) => update('phone', e.target.value.replace(/\D/g, ''))} placeholder="10-digit phone" maxLength={10} required />
             </div>
-            <Input label="Address" value={form.address} onChange={(e) => update('address', e.target.value)} placeholder="House no, Street, Area" required />
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Input label="City" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="City" required />
-              <Input label="State" value={form.state} onChange={(e) => update('state', e.target.value)} placeholder="State" required />
-              <Input label="Pincode" value={form.pincode} onChange={(e) => update('pincode', e.target.value.replace(/\D/g, ''))} placeholder="6-digit PIN" maxLength={6} required />
-            </div>
+            {fulfillmentMethod === "admin_delivery" && <div className="space-y-4 rounded-xl border border-surface-200 p-4 dark:border-surface-700"><h4 className="text-sm font-semibold">Delivery Address</h4><Input label="Address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="House no, Street, Area" required /><div className="grid gap-4 sm:grid-cols-3"><Input label="City" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="City" required /><Input label="State" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="State" required /><Input label="Pincode" value={form.pincode} onChange={(e) => update("pincode", e.target.value.replace(/\D/g, ""))} placeholder="6-digit PIN" maxLength={6} required /></div></div>}
+
             <div className="rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
               <div className="flex items-center gap-2">
                 <Lock size={16} className="text-brand-600" />
@@ -112,7 +178,8 @@ export default function Checkout() {
               </div>
               <p className="mt-1 text-xs text-surface-500">Online payment via Razorpay. Payment details are verified on the server.</p>
             </div>
-            <Button type="submit" loading={loading} size="lg" className="w-full"><CreditCard size={18} /> Pay {formatCurrency(total)}</Button>
+            {loading && <p role="status" aria-live="polite" className="rounded-lg bg-brand-50 px-4 py-3 text-center text-sm font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">{progressMessage || 'Please wait while we process your payment. Do not click again.'}</p>}
+            <Button type="submit" loading={loading} disabled={loading || stockChecking || Boolean(stockIssue)} size="lg" className="w-full"><CreditCard size={18} /> {loading ? 'Processing…' : `Pay ${formatCurrency(total)}`}</Button>
           </form>
         </Card>
         <Card>
@@ -121,7 +188,7 @@ export default function Checkout() {
             {items.map((item) => (
               <div key={item.product.id} className="flex justify-between text-sm">
                 <span className="text-surface-600 dark:text-surface-300">{item.product.name} × {item.quantity}</span>
-                <span className="font-medium">{formatCurrency((item.product.sale_price ?? item.product.price) * item.quantity)}</span>
+                <span className="font-medium">{formatCurrency(item.product.price * item.quantity)}</span>
               </div>
             ))}
             <div className="flex justify-between border-t border-surface-200 pt-3 dark:border-surface-800">

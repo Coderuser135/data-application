@@ -1,3 +1,4 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Moon, Sun, Bell, Shield, Save } from 'lucide-react';
@@ -12,14 +13,23 @@ export default function Settings() {
   const themeMode = useSelector((state) => state.theme.mode);
   const [prefs, setPrefs] = useState({ notify_membership: true, notify_orders: true, notify_payments: true, language: 'en', font_size: 'medium' });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (!userId) return;
-    settingsService.get().then((data) => {
-      if (data) setPrefs(data);
-    });
+    let active = true;
+    if (!userId) {
+      setLoading(false);
+      return () => { active = false; };
+    }
+    settingsService.get()
+      .then((data) => { if (active && data) setPrefs(data); })
+      .catch(() => { if (active) setMessage('Could not load saved settings. You can still update them.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [userId]);
+
+  if (loading) return <UserLoadingSkeleton variant="form" />;
 
   async function handleSave() {
     setSaving(true);

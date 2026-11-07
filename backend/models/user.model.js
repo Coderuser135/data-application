@@ -9,12 +9,14 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, default: '', maxlength: 30 },
   address: { type: String, default: '' },
   avatar_url: { type: String, default: '' },
+  avatar_public_id: { type: String, default: '' },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
 }, { timestamps: true });
 
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.avatar_public_id;
   return obj;
 };
 

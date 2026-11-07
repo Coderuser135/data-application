@@ -4,16 +4,13 @@ export const getMyPayments = async (req, res, next) => {
   try { res.json(await paymentService.getPaymentsByUserId(req.user._id)); } catch (err) { next(err); }
 };
 export const getAllPayments = async (req, res, next) => {
-  try { res.json(await paymentService.getAllPayments()); } catch (err) { next(err); }
+  try { res.json(await paymentService.getAllPayments(req.query)); } catch (err) { next(err); }
 };
 export const createRazorpayOrder = async (req, res, next) => {
   try { res.status(201).json(await paymentService.createRazorpayOrder(req.user._id, req.body)); } catch (err) { next(err); }
 };
 export const verifyRazorpayPayment = async (req, res, next) => {
   try { res.json(await paymentService.verifyRazorpayPayment(req.user._id, req.body)); } catch (err) { next(err); }
-};
-export const refundPayment = async (req, res, next) => {
-  try { res.json(await paymentService.refundPayment(req.params.id, req.body || {})); } catch (err) { next(err); }
 };
 export const razorpayWebhook = async (req, res, next) => {
   try {

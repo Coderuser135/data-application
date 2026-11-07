@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
+import { randomUUID } from 'node:crypto';
 import authRoutes from './routes/auth.route.js';
 import userRoutes from './routes/user.route.js';
 import admissionRoutes from './routes/admission.route.js';
@@ -18,6 +19,8 @@ import notificationRoutes from './routes/notification.route.js';
 import settingsRoutes from './routes/setting.route.js';
 import gymSettingsRoutes from './routes/gymsetting.route.js';
 import dashboardRoutes from './routes/dashboard.route.js';
+import bannerRoutes from './routes/banner.route.js';
+import offlineSaleRoutes from './routes/offlineSale.route.js';
 import { razorpayWebhook } from './controllers/payment.controller.js';
 import { runMembershipExpiry } from './jobs/membershipExpiry.job.js';
 import { originProtection, cronProtection } from './middlewares/security.middleware.js';
@@ -28,6 +31,7 @@ const app = express();
 const allowedOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean);
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+app.use((req, res, next) => { req.requestId = randomUUID(); res.setHeader('X-Request-Id', req.requestId); next(); });
 app.use(helmet());
 app.use(cors({
   origin(origin, callback) {
@@ -51,7 +55,8 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
 app.use(cookieParser());
 app.use(originProtection);
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+morgan.token('request-id', (req) => req.requestId || '-');
+app.use(morgan(':request-id :method :url :status :response-time ms'));
 
 app.get('/api/health', (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
@@ -76,10 +81,12 @@ app.use('/api/payments', paymentLimiter, paymentRoutes);
 app.use('/api/measurements', measurementRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/offline-sales', offlineSaleRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/gym-settings', gymSettingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/banners', bannerRoutes);
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use(errorHandler);
 export default app;

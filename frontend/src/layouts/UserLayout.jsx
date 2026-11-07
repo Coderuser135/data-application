@@ -11,7 +11,7 @@ const navItems = [
   { to: '/user/gym', icon: Dumbbell, label: 'My Gym' },
   { to: '/user/membership', icon: CreditCard, label: 'Membership' },
   { to: '/user/body-progress', icon: Ruler, label: 'Body Progress' },
-  { to: '/user/store', icon: ShoppingBag, label: 'Store' },
+  { to: '/user/store', icon: ShoppingBag, label: 'Supplement Store' },
   { to: '/user/cart', icon: ShoppingCart, label: 'Cart' },
   { to: '/user/orders', icon: Package, label: 'Orders' },
   { to: '/user/payments', icon: CreditCard, label: 'Payments' },
@@ -86,7 +86,7 @@ export default function UserLayout() {
 
         <div className="border-t border-surface-200 p-3 dark:border-white/[0.08]">
           <div className={`flex items-center rounded-xl bg-surface-100 dark:bg-white/[0.035] ${collapsed ? 'justify-center p-2' : 'gap-3 p-3'}`}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-extrabold text-white">{initials}</span>
+            <Link to="/user/profile" aria-label="Open profile" className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-sm font-extrabold text-white">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" /> : initials}</Link>
             {!collapsed && <div className="min-w-0"><p className="truncate text-sm font-bold text-ink-900 dark:text-white">{displayName}</p><p className="text-[11px] text-surface-500 dark:text-slate-500">Member account</p></div>}
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function UserLayout() {
               <Link to="/user/notifications" aria-label="Notifications" className="relative rounded-xl p-2.5 text-surface-500 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"><Bell size={19} />{unreadCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[9px] font-extrabold text-white">{unreadCount}</span>}</Link>
               <Link to="/user/cart" aria-label="Cart" className="relative rounded-xl p-2.5 text-surface-500 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"><ShoppingCart size={19} />{cartCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[9px] font-extrabold text-white">{cartCount}</span>}</Link>
               <div className="relative ml-1 border-l border-surface-200 pl-2 sm:pl-3 dark:border-white/[0.08]">
-                <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-surface-100 dark:hover:bg-white/[0.06]"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-extrabold text-white">{initials}</span><span className="hidden max-w-[110px] truncate text-sm font-bold text-ink-900 md:block dark:text-white">{displayName}</span><ChevronDown size={16} className={`hidden text-surface-400 transition md:block dark:text-slate-500 ${profileOpen ? 'rotate-180' : ''}`} /></button>
+                <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-surface-100 dark:hover:bg-white/[0.06]"><span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-sm font-extrabold text-white">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" /> : initials}</span><span className="hidden max-w-[110px] truncate text-sm font-bold text-ink-900 md:block dark:text-white">{displayName}</span><ChevronDown size={16} className={`hidden text-surface-400 transition md:block dark:text-slate-500 ${profileOpen ? 'rotate-180' : ''}`} /></button>
                 {profileOpen && <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-surface-200 bg-white p-1.5 shadow-2xl dark:border-white/[0.09] dark:bg-[#151821]"><Link to="/user/profile" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-surface-600 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white"><User size={17} /> Profile</Link><button type="button" onClick={handleSignOut} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"><LogOut size={17} /> Sign out</button></div>}
               </div>
             </div>

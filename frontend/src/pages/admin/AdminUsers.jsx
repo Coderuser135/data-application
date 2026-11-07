@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
 import { createPortal } from 'react-dom';
 import {
   Search, Users, UserCheck, UserX, CreditCard, X, Phone, MessageCircle,
@@ -20,8 +21,10 @@ function StatPill({ icon: Icon, label, value, tone }) {
     neutral: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600',
   };
 
+  const cardTones = { success: "!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]", warning: "!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]", info: "!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]", neutral: "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" };
+
   return (
-    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+    <div className={`min-w-0 rounded-2xl border p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] sm:p-5 ${cardTones[tone] || cardTones.neutral}`}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold tracking-wide text-slate-600 dark:text-slate-300 sm:text-sm">{label}</p>
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${tones[tone]}`}>
@@ -93,7 +96,7 @@ function MemberProfileDrawer({ member, overview, loading, error, onClose }) {
   const phone = String(user.phone || '').replace(/[^0-9+]/g, '');
   const normalizedPhone = phone.replace(/^\\+/, '').replace(/^0/, '');
   const whatsappNumber = normalizedPhone.length === 10 ? `91${normalizedPhone}` : normalizedPhone;
-  const whatsappText = encodeURIComponent(`Hello ${user.full_name || 'there'}, this is IronForge Gym. We are contacting you regarding your gym account.`);
+  const whatsappText = encodeURIComponent(`Hello ${user.full_name || 'there'}, this is Heaven Gym. We are contacting you regarding your gym account.`);
   const money = (value) => formatCurrency(Number(value || 0));
 
   return createPortal(
@@ -110,7 +113,7 @@ function MemberProfileDrawer({ member, overview, loading, error, onClose }) {
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-lg font-extrabold text-red-700 ring-1 ring-red-200 dark:bg-red-400/10 dark:text-red-300 dark:ring-red-400/20">{user.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+              <AdminAvatar name={user.full_name} src={user.avatar_url} className="h-12 w-12 rounded-2xl text-lg" />
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-base font-bold text-slate-950 dark:text-white">{user.full_name || 'Unnamed customer'}</h3>
                 <p className="break-all text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
@@ -320,7 +323,7 @@ export default function AdminUsers() {
                 {rows.map((member) => (
                   <tr key={member._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/40">
                     <td data-label="Customer" className="px-4 py-4">
-                      <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-extrabold text-red-700 ring-1 ring-red-200 dark:bg-red-400/10 dark:text-red-300">{member.full_name?.charAt(0)?.toUpperCase() || '?'}</span><span className="font-semibold text-slate-900 dark:text-white">{member.full_name || '—'}</span></div>
+                      <div className="flex items-center gap-3"><AdminAvatar name={member.full_name} src={member.avatar_url} className="h-9 w-9 text-sm" /><span className="font-semibold text-slate-900 dark:text-white">{member.full_name || '—'}</span></div>
                       <p className="mt-1 pl-12 font-mono text-[11px] text-slate-500">{member.member_id || 'No member ID'}</p>
                     </td>
                     <td data-label="Contact" className="max-w-xs px-4 py-4"><p className="break-all font-medium text-slate-800 dark:text-slate-200">{member.email}</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{member.phone || 'No phone'}</p></td>

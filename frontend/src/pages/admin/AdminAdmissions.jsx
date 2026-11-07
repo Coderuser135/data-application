@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
 import { createPortal } from 'react-dom';
 import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft, User, Phone, Mail, CreditCard, Ruler, IndianRupee } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -69,9 +70,8 @@ function Stepper({ current }) {
   );
 }
 
-function Avatar({ name }) {
-  const initial = name?.charAt(0)?.toUpperCase() || '?';
-  return <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/10 text-sm font-bold text-brand-500">{initial}</span>;
+function Avatar({ name, avatarUrl }) {
+  return <AdminAvatar name={name} src={avatarUrl} className="h-9 w-9 text-sm" />;
 }
 
 export default function AdminAdmissions() {
@@ -316,7 +316,7 @@ export default function AdminAdmissions() {
                   <tr key={u._id || u.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
                     <td data-label="User" className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar name={u.full_name} />
+                        <Avatar name={u.full_name} avatarUrl={u.avatar_url} />
                         <div>
                           <p className="font-medium text-ink-900 dark:text-white">{u.full_name || '—'}</p>
                           
@@ -504,7 +504,7 @@ export default function AdminAdmissions() {
               {step === 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
-                    <Avatar name={selectedUser.full_name} />
+                    <Avatar name={selectedUser.full_name} avatarUrl={selectedUser.avatar_url} />
                     <div>
                       <p className="font-semibold text-ink-900 dark:text-white">{selectedUser.full_name}</p>
                       <p className="text-sm text-surface-500">{selectedUser.email}</p>

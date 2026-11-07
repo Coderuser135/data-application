@@ -4,7 +4,7 @@ import { productService, categoryService } from '@/services/productService';
 const errorMessage = (error, fallback) => error.response?.data?.error || fallback;
 
 export const fetchProducts = createAsyncThunk('products/fetchProducts', async (_, { rejectWithValue }) => {
-  try { return await productService.getAll(); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to fetch products')); }
+  try { const result = await productService.getActive(); return result.rows || []; } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to fetch products')); }
 });
 
 export const fetchCategories = createAsyncThunk('products/fetchCategories', async (_, { rejectWithValue }) => {
