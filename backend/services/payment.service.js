@@ -91,12 +91,9 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
       .filter((item) => item.payment_type === 'membership_advance'
         && String(item.membership_id || '') === String(membership._id) && item.status === 'success')
       .reduce((sum, item) => sum + Number(item.allocated_amount || 0), 0);
-    const unallocatedAdvance = membership.membership_type === 'renewal' ? 0 : membershipPayments
-      .filter((item) => item.payment_type === 'membership_advance' && !item.membership_id && item.status === 'success')
-      .reduce((sum, item) => sum + Math.max(0, Number(item.amount || 0) - Number(item.allocated_amount || 0)), 0);
     const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
       Number(membership.advance_paid || 0),
-      allocatedAdvance + unallocatedAdvance,
+      allocatedAdvance,
     );
     const alreadyPaid = membershipPayments
       .filter((item) => ['membership_full', 'membership_installment'].includes(item.payment_type) && item.status === 'success')
@@ -228,12 +225,9 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
       .filter((item) => item.payment_type === 'membership_advance'
         && String(item.membership_id || '') === String(membership._id) && item.status === 'success')
       .reduce((sum, item) => sum + Number(item.allocated_amount || 0), 0);
-    const unallocatedAdvance = membership.membership_type === 'renewal' ? 0 : membershipPayments
-      .filter((item) => item.payment_type === 'membership_advance' && !item.membership_id && item.status === 'success')
-      .reduce((sum, item) => sum + Math.max(0, Number(item.amount || 0) - Number(item.allocated_amount || 0)), 0);
     membership.advance_paid = membership.membership_type === 'renewal' ? 0 : Math.max(
       Number(membership.advance_paid || 0),
-      allocatedAdvance + unallocatedAdvance,
+      allocatedAdvance,
     );
     const received = membershipPayments
       .filter((item) => ['membership_full', 'membership_installment'].includes(item.payment_type) && item.status === 'success')
