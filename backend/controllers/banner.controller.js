@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from 'cloudinary';
+import cloudinary from '../config/cloudinary.config.js';
 import Banner from '../models/banner.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 
