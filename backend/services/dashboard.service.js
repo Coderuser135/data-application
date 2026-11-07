@@ -39,9 +39,9 @@ export async function getAdminStats() {
     Payment.aggregate([{ $match: { status: 'success', payment_type: 'order' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
     Payment.aggregate([{ $match: { status: 'success', payment_date: { $gte: todayStart } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
     Payment.aggregate([{ $match: { status: 'success', payment_date: { $gte: monthStart } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-    Membership.find({ status: 'active', end_date: { $gte: now, $lte: twoDaysFromNow } }).populate({ path: 'user_id', select: 'full_name email' }).sort({ end_date: 1 }).limit(10).lean(),
-    Product.find({ is_active: true, stock_quantity: { $lte: 10 } }).select('name stock_quantity').sort({ stock_quantity: 1 }).limit(10).lean(),
-    Order.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 }).limit(8).lean(),
+    Membership.find({ status: 'active', end_date: { $gte: now, $lte: twoDaysFromNow } }).populate({ path: 'user_id', select: 'full_name email' }).sort({ end_date: 1 }).limit(5).lean(),
+    Product.find({ is_active: true, stock_quantity: { $lte: 10 } }).select('name stock_quantity').sort({ stock_quantity: 1 }).limit(5).lean(),
+    Order.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 }).limit(5).lean(),
     Payment.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 }).limit(8).lean(),
   ]);
   const gymRevenue = gymRevenueAgg[0]?.total || 0; const storeRevenue = storeRevenueAgg[0]?.total || 0;
