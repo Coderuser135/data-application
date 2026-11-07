@@ -58,7 +58,7 @@ export default function UserLayout() {
     : 'text-surface-500 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.055] dark:hover:text-white'}`;
 
   return (
-    <div className="min-h-screen bg-surface-50 text-ink-800 selection:bg-brand-500/20 dark:bg-[#08090c] dark:text-white">
+    <div className="user-shell min-h-screen bg-surface-50 text-ink-800 selection:bg-brand-500/20 dark:bg-[#08090c] dark:text-white">
       <aside className={`user-sidebar fixed inset-y-0 left-0 z-50 hidden border-r border-surface-200 bg-white lg:flex lg:flex-col dark:border-white/[0.08] dark:bg-[#11131b] ${collapsed ? 'w-[84px]' : 'w-[286px]'}`}>
         <div className={`flex h-[72px] shrink-0 items-center border-b border-surface-200 dark:border-white/[0.08] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           <Link to="/" className="group flex min-w-0 items-center gap-3">
