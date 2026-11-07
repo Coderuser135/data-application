@@ -157,7 +157,7 @@ export default function AdminDashboard() {
         <Card padding={false}>
           <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800">
             <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Expiring Memberships</h3>
-            <Link to="/admin/memberships"><Button variant="ghost" size="sm">View All <ArrowRight size={14} /></Button></Link>
+            <Link to="/admin/memberships"><Button variant="ghost" size="sm">All <ArrowRight size={14} /></Button></Link>
           </div>
           <div className="p-5">
             {adminStats.expiringMemberships.length > 0 ? (
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
         <Card padding={false}>
           <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800">
             <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Recent Payments</h3>
-            <Link to="/admin/payments"><Button variant="ghost" size="sm">View All <ArrowRight size={14} /></Button></Link>
+            <Link to="/admin/payments"><Button variant="ghost" size="sm">All <ArrowRight size={14} /></Button></Link>
           </div>
           <div className="p-5">
             {adminStats.recentPayments.length > 0 ? (
