@@ -26,8 +26,8 @@ export default function Membership() {
 
   if (loading) return <UserLoadingSkeleton variant="cards" />;
 
-  const activeMembership = (memberships || []).find((m) => m.status === 'active' && m.payment_status === 'paid');
-  const scheduledMembership = (memberships || []).find((m) => m.status === 'scheduled' && m.payment_status === 'paid');
+  const activeMembership = (memberships || []).find((m) => (m.effective_status || m.status) === 'active' && m.payment_status === 'paid');
+  const scheduledMembership = (memberships || []).find((m) => (m.effective_status || m.status) === 'scheduled' && m.payment_status === 'paid');
   const pendingPaymentMembership = (memberships || []).find((m) => m.payment_status === 'pending' && Number(m.amount_due) > 0);
   const currentMembership = activeMembership || scheduledMembership;
   const daysLeft = getDaysRemaining(currentMembership?.end_date);
@@ -177,7 +177,7 @@ export default function Membership() {
         </section>
       )}
 
-      <Card padding={false}><div className="border-b border-surface-200 px-5 py-4 dark:border-surface-800"><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Membership History</h3></div>{(memberships || []).length > 0 ? <div className="p-5"><div className="space-y-3">{memberships.map((m) => <div key={m.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800"><div><p className="text-sm font-medium text-ink-900 dark:text-white">{m.plan_name_snapshot} — {formatCurrency(m.plan_price_snapshot)}</p><p className="text-xs text-surface-500">{formatDate(m.start_date)} → {formatDate(m.end_date)}</p><p className="text-xs text-surface-500">Advance applied: {formatCurrency(Number(m.advance_paid || 0))} · Remaining: {formatCurrency(Number(m.amount_due ?? 0))}</p></div><div className="flex items-center gap-3">{m.payment_status === 'pending' && Number(m.amount_due) > 0 && <Button size="sm" onClick={() => payMembership(m)}>Pay Now</Button>}{m.status === 'expired' && <Button size="sm" variant="secondary" onClick={() => renew(m.id)}>Renew</Button>}<Badge tone={statusTone[m.effective_status || m.status] || 'neutral'}>{m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'payment pending' : (m.effective_status || m.status).replace(/_/g, ' ')}</Badge></div></div>)}</div></div> : <div className="p-5"><EmptyState title="No memberships yet" /></div>}</Card>
+      <Card padding={false}><div className="border-b border-surface-200 px-5 py-4 dark:border-surface-800"><h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Membership History</h3></div>{(memberships || []).length > 0 ? <div className="p-5"><div className="space-y-3">{memberships.map((m) => <div key={m.id} className="flex items-center justify-between border-b border-surface-100 pb-3 last:border-0 dark:border-surface-800"><div><p className="text-sm font-medium text-ink-900 dark:text-white">{m.plan_name_snapshot} — {formatCurrency(m.plan_price_snapshot)}</p><p className="text-xs text-surface-500">{formatDate(m.start_date)} → {formatDate(m.end_date)}</p><p className="text-xs text-surface-500">Advance applied: {formatCurrency(Number(m.advance_paid || 0))} · Remaining: {formatCurrency(Number(m.amount_due ?? 0))}</p></div><div className="flex items-center gap-3">{m.payment_status === 'pending' && Number(m.amount_due) > 0 && <Button size="sm" onClick={() => payMembership(m)}>Pay Now</Button>}{(m.effective_status || m.status) === 'expired' && <Button size="sm" variant="secondary" onClick={() => renew(m.id)}>Renew</Button>}<Badge tone={statusTone[m.effective_status || m.status] || 'neutral'}>{m.payment_status === 'pending' && Number(m.amount_due) > 0 ? 'payment pending' : (m.effective_status || m.status).replace(/_/g, ' ')}</Badge></div></div>)}</div></div> : <div className="p-5"><EmptyState title="No memberships yet" /></div>}</Card>
     </div>
   );
 }
