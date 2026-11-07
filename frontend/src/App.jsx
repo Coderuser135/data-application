@@ -75,7 +75,7 @@ export default function App() {
           <Route path="membership-plans" element={<AdminMembershipPlans />} /><Route path="memberships" element={<AdminMemberships />} />
           <Route path="payments" element={<AdminPayments />} /><Route path="body-measurements" element={<AdminBodyMeasurements />} /><Route path="body-measurements/:userId" element={<AdminMemberMeasurements />} />
           <Route path="products" element={<AdminProducts />} /><Route path="orders" element={<AdminOrders />} />
-          <Route path="badges" element={<AdminBadges />} /><Route path="badges/:section" element={<AdminBadgeManager />} />
+          <Route path="banners" element={<AdminBadges />} /><Route path="banners/:section" element={<AdminBadgeManager />} />
           <Route path="notifications" element={<AdminNotifications />} /><Route path="settings" element={<AdminSettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
