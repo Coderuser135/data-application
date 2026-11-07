@@ -127,7 +127,7 @@ export default function UserStore() {
                 <div className="relative flex h-56 items-center justify-center overflow-hidden bg-white p-5 dark:bg-surface-950">
                   {image ? <img src={image} alt={product.name} loading="lazy" className="h-full w-full object-contain transition duration-500 group-hover:scale-105" /> : <PackageSearch size={54} strokeWidth={1.1} className="text-surface-300" />}
                   {discount > 0 && <span className="absolute left-3 top-3 rounded-lg bg-brand-500 px-2.5 py-1 text-[10px] font-extrabold text-white">{discount}% OFF</span>}
-                  {unavailable && <span className="absolute right-3 top-3 rounded-lg bg-surface-900/85 px-2.5 py-1 text-[10px] font-bold text-white">Out of stock</span>}
+                  <span className={`absolute right-3 top-3 rounded-lg px-2.5 py-1 text-[10px] font-bold ${unavailable ? 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'}`}>{unavailable ? 'Out of stock' : 'In stock'}</span>
                 </div>
                 <div className="px-4 pt-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-400">{product.category_id?.name || product.brand}</p>
