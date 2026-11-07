@@ -20,16 +20,19 @@ const periods = [
 
 function StatCard({ icon: Icon, label, value, tone = 'neutral', sublabel }) {
   const tones = {
-    success: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-    warning: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    danger: 'bg-red-500/10 text-red-700 dark:text-red-400',
-    info: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-    neutral: 'bg-surface-100 text-surface-700 dark:bg-surface-700 dark:text-surface-300',
+    success: { icon: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', card: 'border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/[0.04]' },
+    warning: { icon: 'bg-amber-500/10 text-amber-700 dark:text-amber-400', card: 'border-amber-200/80 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/[0.04]' },
+    danger: { icon: 'bg-red-500/10 text-red-700 dark:text-red-400', card: 'border-red-200/80 bg-red-50/50 dark:border-red-500/20 dark:bg-red-500/[0.04]' },
+    info: { icon: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', card: 'border-blue-200/80 bg-blue-50/50 dark:border-blue-500/20 dark:bg-blue-500/[0.04]' },
+    violet: { icon: 'bg-violet-500/10 text-violet-700 dark:text-violet-400', card: 'border-violet-200/80 bg-violet-50/50 dark:border-violet-500/20 dark:bg-violet-500/[0.04]' },
+    teal: { icon: 'bg-teal-500/10 text-teal-700 dark:text-teal-400', card: 'border-teal-200/80 bg-teal-50/50 dark:border-teal-500/20 dark:bg-teal-500/[0.04]' },
+    neutral: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-700 dark:text-surface-300', card: '' },
   };
+  const palette = tones[tone] || tones.neutral;
   return (
-    <Card>
+    <Card className={palette.card}>
       <div className="flex items-center justify-between">
-        <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${tones[tone]}`}><Icon size={20} /></span>
+        <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${palette.icon}`}><Icon size={20} /></span>
         {sublabel && <span className="text-xs text-surface-500">{sublabel}</span>}
       </div>
       <p className="mt-4 text-xs font-medium text-surface-500">{label}</p>
@@ -112,15 +115,15 @@ export default function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={s.totalUsers} tone="info" />
         <StatCard icon={Dumbbell} label="Gym Members" value={s.totalAdmitted} tone="success" sublabel={`${s.notAdmitted} not admitted`} />
-        <StatCard icon={CreditCard} label="Active Memberships" value={s.activeMemberships} tone="success" sublabel={`${s.expiredMemberships} expired`} />
-        <StatCard icon={ShoppingCart} label="Total Orders" value={s.totalOrders} tone="neutral" sublabel={`${s.pendingOrders} pending`} />
+        <StatCard icon={CreditCard} label="Active Memberships" value={s.activeMemberships} tone="teal" sublabel={`${s.expiredMemberships} expired`} />
+        <StatCard icon={ShoppingCart} label="Total Orders" value={s.totalOrders} tone="violet" sublabel={`${s.pendingOrders} pending`} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={IndianRupee} label="Gym Revenue" value={formatCurrency(s.gymRevenue)} tone="danger" />
-        <StatCard icon={Store} label="Store Revenue" value={formatCurrency(s.storeRevenue)} tone="info" />
+        <StatCard icon={IndianRupee} label="Gym Revenue" value={formatCurrency(s.gymRevenue)} tone="success" />
+        <StatCard icon={Store} label="Store Revenue" value={formatCurrency(s.storeRevenue)} tone="violet" />
         <StatCard icon={IndianRupee} label="Total Revenue" value={formatCurrency(s.totalRevenue)} tone="success" />
-        <StatCard icon={TrendingUp} label="This Month" value={formatCurrency(s.monthRevenue)} tone="success" sublabel={`Today: ${formatCurrency(s.todayRevenue)}`} />
+        <StatCard icon={TrendingUp} label="This Month" value={formatCurrency(s.monthRevenue)} tone="teal" sublabel={`Today: ${formatCurrency(s.todayRevenue)}`} />
       </div>
 
       {loading && !analytics ? <AdminLoadingSkeleton variant="chart" /> : <RevenueChart analytics={analytics} period={period} onPeriodChange={setPeriod} />}
