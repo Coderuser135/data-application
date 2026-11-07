@@ -129,7 +129,13 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
 
   const existing = await Payment.findOne({ user_id: userId, ...targetFilter, status: 'pending', razorpay_order_id: { $ne: '' } });
   if (existing) {
+    if (!orderId && Number(existing.amount) !== Number(amount)) {
+      throw new ApiError(409, 'An earlier membership payment request exists for a different balance. Please contact Heaven Gym before retrying.');
+    }
     const existingOrder = await gateway().orders.fetch(existing.razorpay_order_id).catch(() => null);
+    if (!existingOrder) {
+      throw new ApiError(409, 'The earlier payment request could not be checked. Please contact Heaven Gym before retrying.');
+    }
     if (existingOrder?.status === 'paid') {
       throw new ApiError(409, 'The previous payment appears captured and is being verified. Do not make another payment; please contact Heaven Gym if your order does not update.');
     }
