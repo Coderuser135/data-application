@@ -33,7 +33,7 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
   if ((orderId && membershipId) || (!orderId && !membershipId)) throw new ApiError(400, 'A single payment target is required');
   let amount; let paymentType;
   if (orderId) {
-    const order = await Order.findOne({ _id: orderId, user_id: userId, payment_status: 'pending', status: 'pending' });
+    const order = await Order.findOne({ _id: orderId, user_id: userId, payment_status: 'pending', status: 'pending', inventory_status: 'reserved', reservation_expires_at: { $gt: new Date() } });
     if (!order) throw new ApiError(404, 'Pending order not found');
     amount = order.total_amount; paymentType = 'order';
   } else {
