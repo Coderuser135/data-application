@@ -10,6 +10,13 @@ function createBillNumber() {
   return `HG-OFF-${stamp}-${random}`;
 }
 
+export async function getOfflineSaleById(id) {
+  if (!mongoose.isValidObjectId(id)) throw new ApiError(404, 'Bill not found');
+  const sale = await OfflineSale.findById(id).populate('sold_by', 'full_name');
+  if (!sale) throw new ApiError(404, 'Bill not found');
+  return sale;
+}
+
 export async function createOfflineSale({ items, customerName = '', customerPhone = '', paymentMethod = 'cash', performedBy }) {
   if (!Array.isArray(items) || items.length === 0) throw new ApiError(400, 'Select at least one supplement');
   if (!['cash', 'upi', 'card', 'other'].includes(paymentMethod)) throw new ApiError(400, 'Choose a valid payment method');
@@ -43,7 +50,12 @@ export async function createOfflineSale({ items, customerName = '', customerPhon
       );
       if (!product) throw new ApiError(409, 'A selected supplement is unavailable or has insufficient stock. Refresh the store and try again.');
 
-      decremented.push({ productId, quantity });
+      decremented.push({
+        productId,
+        quantity,
+        stockBefore: product.stock_quantity,
+        reservedQuantity: product.reserved_quantity,
+      });
       const subtotal = Number(product.price) * quantity;
       totalAmount += subtotal;
       saleItems.push({
@@ -66,16 +78,15 @@ export async function createOfflineSale({ items, customerName = '', customerPhon
       sold_by: performedBy || null,
     });
 
-    for (const item of saleItems) {
-      const after = await Product.findById(item.product_id).select('stock_quantity reserved_quantity');
+    for (const item of decremented) {
       await InventoryMovement.create({
-        product_id: item.product_id,
+        product_id: item.productId,
         movement_type: 'offline_sale',
         quantity: -item.quantity,
-        stock_before: after.stock_quantity + item.quantity,
-        stock_after: after.stock_quantity,
-        reserved_before: after.reserved_quantity,
-        reserved_after: after.reserved_quantity,
+        stock_before: item.stockBefore,
+        stock_after: item.stockBefore - item.quantity,
+        reserved_before: item.reservedQuantity,
+        reserved_after: item.reservedQuantity,
         reason: `Offline counter sale ${sale.bill_number}`,
         reference_id: sale._id,
         performed_by: performedBy || null,
