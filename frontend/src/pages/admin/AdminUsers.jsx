@@ -20,7 +20,7 @@ function StatPill({ icon: Icon, label, value, tone }) {
     neutral: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600',
   };
 
-  const cardTones = { success: "border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/[0.04]", warning: "border-amber-200/80 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/[0.04]", info: "border-blue-200/80 bg-blue-50/50 dark:border-blue-500/20 dark:bg-blue-500/[0.04]", neutral: "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" };
+  const cardTones = { success: "!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]", warning: "!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]", info: "!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]", neutral: "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" };
 
   return (
     <div className={`min-w-0 rounded-2xl border p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] sm:p-5 ${cardTones[tone] || cardTones.neutral}`}>
