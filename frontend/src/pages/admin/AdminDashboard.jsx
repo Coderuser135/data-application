@@ -20,12 +20,12 @@ const periods = [
 
 function StatCard({ icon: Icon, label, value, tone = 'neutral', sublabel }) {
   const tones = {
-    success: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', card: '' },
-    warning: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', card: '' },
-    danger: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', card: '' },
-    info: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', card: '' },
-    violet: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', card: '' },
-    teal: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200', card: '' },
+    success: { icon: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', card: '!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]' },
+    warning: { icon: 'bg-amber-500/10 text-amber-700 dark:text-amber-400', card: '!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]' },
+    danger: { icon: 'bg-red-500/10 text-red-700 dark:text-red-400', card: '!border-red-200/80 !bg-red-50/70 dark:!border-red-500/20 dark:!bg-red-500/[0.08]' },
+    info: { icon: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', card: '!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]' },
+    violet: { icon: 'bg-violet-500/10 text-violet-700 dark:text-violet-400', card: '!border-violet-200/80 !bg-violet-50/70 dark:!border-violet-500/20 dark:!bg-violet-500/[0.08]' },
+    teal: { icon: 'bg-teal-500/10 text-teal-700 dark:text-teal-400', card: '!border-teal-200/80 !bg-teal-50/70 dark:!border-teal-500/20 dark:!bg-teal-500/[0.08]' },
     neutral: { icon: 'bg-surface-100 text-surface-700 dark:bg-surface-700 dark:text-surface-300', card: '' },
   };
   const palette = tones[tone] || tones.neutral;
@@ -64,8 +64,8 @@ function RevenueChart({ analytics, period, onPeriodChange }) {
         </div>
       </div>
       <div className="mb-4 flex items-center gap-4 text-xs">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-surface-700 dark:bg-surface-300" /> Gym Revenue</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-surface-400 dark:bg-surface-600" /> Store Revenue</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-brand-600" /> Gym Revenue</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-blue-500" /> Store Revenue</span>
       </div>
       {uniqueDates.length > 0 ? (
         <div className="flex items-end gap-1 overflow-x-auto" style={{ minHeight: '180px' }}>
@@ -77,8 +77,8 @@ function RevenueChart({ analytics, period, onPeriodChange }) {
             return (
               <div key={date} className="flex min-w-[40px] flex-1 flex-col items-center gap-1">
                 <div className="flex w-full items-end justify-center gap-1" style={{ height: '160px' }}>
-                  <div className="w-3 rounded-t bg-surface-700 transition-all duration-300 dark:bg-surface-300" style={{ height: `${Math.max(2, gymH)}px` }} title={`Gym: ${formatCurrency(gym)}`} />
-                  <div className="w-3 rounded-t bg-surface-400 transition-all duration-300 dark:bg-surface-600" style={{ height: `${Math.max(2, storeH)}px` }} title={`Store: ${formatCurrency(store)}`} />
+                  <div className="w-3 rounded-t bg-brand-600 transition-all duration-300" style={{ height: `${Math.max(2, gymH)}px` }} title={`Gym: ${formatCurrency(gym)}`} />
+                  <div className="w-3 rounded-t bg-blue-500 transition-all duration-300" style={{ height: `${Math.max(2, storeH)}px` }} title={`Store: ${formatCurrency(store)}`} />
                 </div>
                 <span className="text-[10px] text-surface-500">{date.slice(-5)}</span>
               </div>
@@ -107,6 +107,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 px-5 py-4 text-white sm:px-6 sm:py-5">
+        <p className="text-xs text-surface-400 sm:text-sm">Welcome back</p>
+        <h1 className="mt-1 font-display text-xl font-bold text-white sm:text-2xl">Admin Dashboard</h1>
+        <p className="mt-1.5 text-xs text-surface-400 sm:text-sm">Business overview and analytics</p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={s.totalUsers} tone="info" />
         <StatCard icon={Dumbbell} label="Gym Members" value={s.totalAdmitted} tone="success" sublabel={`${s.notAdmitted} not admitted`} />
