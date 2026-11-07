@@ -26,7 +26,7 @@ function verifyWebhookSignature(rawBody, signature) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-export async function getPaymentsByUserId(userId) { return Payment.find({ user_id: userId }).sort({ createdAt: -1 }); }
+export async function getPaymentsByUserId(userId) { return Payment.find({ user_id: userId }).select('-razorpay_signature').sort({ createdAt: -1 }); }
 export async function getAllPayments({ page = 1, limit = 10, status = 'all', type = 'all', search = '' } = {}) {
   const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
   const safeLimit = Math.min(50, Math.max(5, Number.parseInt(limit, 10) || 10));
@@ -72,9 +72,41 @@ export async function createRazorpayOrder(userId, { orderId, membershipId }) {
     if (!order) throw new ApiError(404, 'Pending order not found');
     amount = order.total_amount; paymentType = 'order';
   } else {
-    const membership = await Membership.findOne({ _id: membershipId, user_id: userId, status: 'pending', payment_status: 'pending' });
+    const membership = await Membership.findOne({
+      _id: membershipId,
+      user_id: userId,
+      status: { $in: ['pending', 'active'] },
+      payment_status: 'pending',
+    });
     if (!membership) throw new ApiError(404, 'Pending membership not found');
-    amount = Number(membership.amount_due ?? membership.plan_price_snapshot); paymentType = 'membership_full';
+
+    const admissionFilter = membership.gym_admission_id
+      ? [{ gym_admission_id: membership.gym_admission_id, payment_type: 'membership_advance' }]
+      : [];
+    const membershipPayments = await Payment.find({
+      user_id: userId,
+      $or: [{ membership_id: membership._id }, ...admissionFilter],
+    }).select('membership_id amount allocated_amount payment_type status').lean();
+    const allocatedAdvance = membershipPayments
+      .filter((item) => item.payment_type === 'membership_advance'
+        && String(item.membership_id || '') === String(membership._id) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.allocated_amount || 0), 0);
+    const unallocatedAdvance = membership.membership_type === 'renewal' ? 0 : membershipPayments
+      .filter((item) => item.payment_type === 'membership_advance' && !item.membership_id && item.status === 'success')
+      .reduce((sum, item) => sum + Math.max(0, Number(item.amount || 0) - Number(item.allocated_amount || 0)), 0);
+    const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
+      Number(membership.advance_paid || 0),
+      allocatedAdvance + unallocatedAdvance,
+    );
+    const alreadyPaid = membershipPayments
+      .filter((item) => ['membership_full', 'membership_installment'].includes(item.payment_type) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    amount = Math.max(0, Number((Number(membership.plan_price_snapshot || 0) - advancePaid - alreadyPaid).toFixed(2)));
+    if (amount <= 0) throw new ApiError(409, 'This membership is already fully paid.');
+    membership.advance_paid = advancePaid;
+    membership.amount_due = amount;
+    await membership.save();
+    paymentType = alreadyPaid > 0 ? 'membership_installment' : 'membership_full';
   }
   if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Invalid payment amount');
   const targetFilter = orderId ? { order_id: orderId } : { membership_id: membershipId };
@@ -171,17 +203,38 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   await payment.save({ session });
 
   if (payment.membership_id) {
-    const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending', payment_status: 'pending' }).session(session);
+    const membership = await Membership.findOne({
+      _id: payment.membership_id,
+      user_id: payment.user_id,
+      status: { $in: ['pending', 'active'] },
+      payment_status: 'pending',
+    }).session(session);
     if (!membership) throw new ApiError(409, 'Pending membership not found');
-    // Settle only the amount actually received. A successful partial payment
-    // must not mark the entire membership as paid.
-    const storedDue = Number(membership.amount_due);
-    const expectedDue = Math.max(
-      0,
-      Number(membership.plan_price_snapshot || 0) - Number(membership.advance_paid || 0),
+
+    const admissionFilter = membership.gym_admission_id
+      ? [{ gym_admission_id: membership.gym_admission_id, payment_type: 'membership_advance' }]
+      : [];
+    const membershipPayments = await Payment.find({
+      user_id: payment.user_id,
+      $or: [{ membership_id: membership._id }, ...admissionFilter],
+    }).select('membership_id amount allocated_amount payment_type status').session(session).lean();
+    const allocatedAdvance = membershipPayments
+      .filter((item) => item.payment_type === 'membership_advance'
+        && String(item.membership_id || '') === String(membership._id) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.allocated_amount || 0), 0);
+    const unallocatedAdvance = membership.membership_type === 'renewal' ? 0 : membershipPayments
+      .filter((item) => item.payment_type === 'membership_advance' && !item.membership_id && item.status === 'success')
+      .reduce((sum, item) => sum + Math.max(0, Number(item.amount || 0) - Number(item.allocated_amount || 0)), 0);
+    membership.advance_paid = membership.membership_type === 'renewal' ? 0 : Math.max(
+      Number(membership.advance_paid || 0),
+      allocatedAdvance + unallocatedAdvance,
     );
-    const currentDue = Number.isFinite(storedDue) && storedDue > 0 ? storedDue : expectedDue;
-    membership.amount_due = Math.max(0, Number((currentDue - Number(payment.amount || 0)).toFixed(2)));
+    const received = membershipPayments
+      .filter((item) => ['membership_full', 'membership_installment'].includes(item.payment_type) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    membership.amount_due = Math.max(0, Number((
+      Number(membership.plan_price_snapshot || 0) - membership.advance_paid - received
+    ).toFixed(2)));
 
     if (membership.amount_due === 0) {
       await allocateMembershipAdvance(payment.user_id, membership, session);
