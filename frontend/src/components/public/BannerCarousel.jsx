@@ -23,7 +23,7 @@ export default function BannerCarousel({ section, children = null }) {
     if (banners.length < 2) return undefined;
     const timer = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % banners.length);
-    }, 4000);
+    }, 2500);
     return () => window.clearInterval(timer);
   }, [banners.length]);
 
