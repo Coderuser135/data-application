@@ -37,6 +37,7 @@ export default function Checkout() {
     let active = true;
     if (!items.length) { setStockIssue(''); setLatestProducts({}); setStockChecking(false); return () => { active = false; }; }
     setStockChecking(true);
+    setLatestProducts({});
     Promise.all(items.map(async (item) => {
       const id = item.product.id || item.product._id;
       try {
