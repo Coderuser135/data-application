@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList, UserRound, PanelsTopLeft, Dumbbell, ShoppingBag } from 'lucide-react';
+import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList, UserRound, PanelsTopLeft, ShoppingBag } from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
