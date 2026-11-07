@@ -16,7 +16,7 @@ const parsePayload = (body) => {
   const is_active = body.is_active === true || body.is_active === 'true';
   if (!title) throw new ApiError(400, 'Banner title is required');
   if (!Number.isInteger(sort_order) || sort_order < 0) throw new ApiError(400, 'Display order must be a non-negative whole number');
-  if (button_link && !button_link.startsWith('/') && !/^https?:\/\//i.test(button_link)) {
+  if (button_link && ((!button_link.startsWith('/') || button_link.startsWith('//')) && !/^https?:\/\//i.test(button_link))) {
     throw new ApiError(400, 'Button link must be an internal path or an HTTP(S) URL');
   }
   if (button_text && !button_link) throw new ApiError(400, 'Add a button link or remove the button text');
