@@ -40,6 +40,9 @@ import AdminBodyMeasurements from '@/pages/admin/AdminBodyMeasurements';
 import AdminMemberMeasurements from '@/pages/admin/AdminMemberMeasurements';
 import AdminProducts from '@/pages/admin/AdminProducts';
 import AdminOrders from '@/pages/admin/AdminOrders';
+import AdminSupplementSelling from '@/pages/admin/AdminSupplementSelling';
+import AdminSupplementSellingDetails from '@/pages/admin/AdminSupplementSellingDetails';
+import AdminSupplementBill from '@/pages/admin/AdminSupplementBill';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import AdminProfile from '@/pages/admin/AdminProfile';
@@ -75,6 +78,9 @@ export default function App() {
           <Route path="membership-plans" element={<AdminMembershipPlans />} /><Route path="memberships" element={<AdminMemberships />} />
           <Route path="payments" element={<AdminPayments />} /><Route path="body-measurements" element={<AdminBodyMeasurements />} /><Route path="body-measurements/:userId" element={<AdminMemberMeasurements />} />
           <Route path="products" element={<AdminProducts />} /><Route path="orders" element={<AdminOrders />} />
+          <Route path="supplement-selling" element={<AdminSupplementSelling />} />
+          <Route path="supplement-selling/:id" element={<AdminSupplementSellingDetails />} />
+          <Route path="supplement-selling/bill/:id" element={<AdminSupplementBill />} />
           <Route path="banners" element={<AdminBadges />} /><Route path="banners/:section" element={<AdminBadgeManager />} />
           <Route path="notifications" element={<AdminNotifications />} /><Route path="settings" element={<AdminSettings />} />
         </Route>
