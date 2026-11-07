@@ -419,7 +419,17 @@ async function createMembershipWithAdvance({ userId, admission, plan, startDate,
 }
 
 export async function purchaseMembership(userId, planId) {
-  const plan = await MembershipPlan.findOne({ _id: planId, is_active: true });
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const plan = await MembershipPlan.findOne({
+    _id: planId,
+    is_active: true,
+    $and: [
+      { $or: [{ is_offer: { $ne: true } }, { offer_start_date: null }, { offer_start_date: { $lte: now } }] },
+      { $or: [{ is_offer: { $ne: true } }, { offer_end_date: null }, { offer_end_date: { $gte: endOfToday } }] },
+    ],
+  });
   if (!plan) throw new ApiError(404, 'Plan not found');
   const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' });
   if (!admission) throw new ApiError(400, 'No active gym admission found. Ask gym staff to admit you first.');
