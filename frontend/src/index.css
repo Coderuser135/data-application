@@ -580,31 +580,31 @@ button, input, select, textarea { font: inherit; }
 .dark .admin-content [class*="bg-rose-"]:not(.inline-flex.rounded-full) {
   background-color: #202720 !important;
 }
-.admin-content [class*="text-brand-"],
-.admin-content [class*="text-emerald-"],
-.admin-content [class*="text-green-"],
-.admin-content [class*="text-teal-"],
-.admin-content [class*="text-blue-"],
-.admin-content [class*="text-indigo-"],
-.admin-content [class*="text-violet-"],
-.admin-content [class*="text-purple-"],
-.admin-content [class*="text-amber-"],
-.admin-content [class*="text-orange-"],
-.admin-content [class*="text-red-"],
+.admin-content [class*="text-brand-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-emerald-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-green-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-teal-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-blue-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-indigo-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-violet-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-purple-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-amber-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-orange-"]:not(.inline-flex.rounded-full),
+.admin-content [class*="text-red-"]:not(.inline-flex.rounded-full),
 .admin-content [class*="text-rose-"]:not(.inline-flex.rounded-full) {
   color: #475569 !important;
 }
-.dark .admin-content [class*="text-brand-"],
-.dark .admin-content [class*="text-emerald-"],
-.dark .admin-content [class*="text-green-"],
-.dark .admin-content [class*="text-teal-"],
-.dark .admin-content [class*="text-blue-"],
-.dark .admin-content [class*="text-indigo-"],
-.dark .admin-content [class*="text-violet-"],
-.dark .admin-content [class*="text-purple-"],
-.dark .admin-content [class*="text-amber-"],
-.dark .admin-content [class*="text-orange-"],
-.dark .admin-content [class*="text-red-"],
+.dark .admin-content [class*="text-brand-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-emerald-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-green-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-teal-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-blue-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-indigo-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-violet-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-purple-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-amber-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-orange-"]:not(.inline-flex.rounded-full),
+.dark .admin-content [class*="text-red-"]:not(.inline-flex.rounded-full),
 .dark .admin-content [class*="text-rose-"]:not(.inline-flex.rounded-full) {
   color: #c4cdc2 !important;
 }
