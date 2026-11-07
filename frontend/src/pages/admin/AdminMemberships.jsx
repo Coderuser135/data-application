@@ -109,7 +109,7 @@ function printPaymentReceipt(payment, membership) {
     @media print{body{padding:0;background:#fff}.sheet{max-width:none;border:0;border-radius:0}.actions{display:none}.brand,.amount-box,.status,.notice{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
   <main class="sheet">
-    <header class="brand"><div><h1>IRONFORGE</h1><p>GYM MEMBERSHIP · PAYMENT RECEIPT</p></div>
+    <header class="brand"><div><h1>HEAVEN GYM</h1><p>GYM MEMBERSHIP · PAYMENT RECEIPT</p></div>
       <div class="meta"><strong>RECEIPT</strong>No. ${safe(receiptNumber)}<br>Issued: ${safe(paymentDate)}</div>
     </header>
     <div class="content"><span class="status">PAYMENT SUCCESSFUL</span>
@@ -138,8 +138,8 @@ function printPaymentReceipt(payment, membership) {
         <div class="line"><span>Payment record ID</span><strong>${safe(payment._id || '—')}</strong></div>
         <div class="line"><span>Gateway order ID</span><strong>${safe(payment.razorpay_order_id || '—')}</strong></div>
       </div></section>
-      <div class="notice">This receipt confirms the successful payment recorded by IRONFORGE. Please retain it for your records. For payment queries, share the receipt number or transaction reference with the gym.</div>
-    </div><footer class="footer">Thank you for being a part of IRONFORGE.</footer>
+      <div class="notice">This receipt confirms the successful payment recorded by HEAVEN GYM. Please retain it for your records. For payment queries, share the receipt number or transaction reference with the gym.</div>
+    </div><footer class="footer">Thank you for being a part of HEAVEN GYM.</footer>
   </main><div class="actions"><button class="print" onclick="window.print()">Print / Save as PDF</button></div>
   </body></html>`);
   receiptWindow.document.close();
