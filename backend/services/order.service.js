@@ -24,8 +24,6 @@ export async function getOrdersByUserId(userId) {
 export async function getAllOrders({ search = '', status = 'all', page = 1, limit = 10 } = {}) {
   const filter = {};
   const safeSearch = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return Order.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 });
-}');
   if (safeSearch) {
     filter.$or = [
       { order_number: { $regex: safeSearch, $options: 'i' } },
