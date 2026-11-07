@@ -549,3 +549,16 @@ button, input, select, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .admin-shell .admin-content { animation: none !important; }
 }
+
+
+/* Admin content uses neutral surfaces; the branded accents remain in the shell and navigation. */
+.admin-content .admin-neutral-surface {
+  background: #f8faf8 !important;
+  border-color: #e2e8e2 !important;
+  color: #334155 !important;
+}
+.dark .admin-content .admin-neutral-surface {
+  background: #18201a !important;
+  border-color: #303a31 !important;
+  color: #e2e8e2 !important;
+}
