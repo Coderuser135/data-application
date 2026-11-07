@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Mail, MapPin, Phone, Save, UserRound, X } from 'lucide-react';
+import { Camera, Mail, Save, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
