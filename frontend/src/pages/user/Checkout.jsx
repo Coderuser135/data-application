@@ -19,7 +19,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const total = items.reduce((sum, item) => sum + (item.product.sale_price ?? item.product.price) * item.quantity, 0);
+  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   function update(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
 
@@ -55,7 +55,7 @@ export default function Checkout() {
           key: keyId,
           amount: razorpayOrder.amount,
           currency: razorpayOrder.currency || 'INR',
-          name: 'IronForge Store',
+          name: 'Heaven Gym',
           description: `Order ${order.order_number}`,
           order_id: razorpayOrder.id,
           handler: async (response) => {
@@ -125,7 +125,7 @@ export default function Checkout() {
             {items.map((item) => (
               <div key={item.product.id} className="flex justify-between text-sm">
                 <span className="text-surface-600 dark:text-surface-300">{item.product.name} × {item.quantity}</span>
-                <span className="font-medium">{formatCurrency((item.product.sale_price ?? item.product.price) * item.quantity)}</span>
+                <span className="font-medium">{formatCurrency(item.product.price * item.quantity)}</span>
               </div>
             ))}
             <div className="flex justify-between border-t border-surface-200 pt-3 dark:border-surface-800">
