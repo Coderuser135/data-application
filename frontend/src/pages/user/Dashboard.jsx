@@ -95,32 +95,32 @@ export default function UserDashboard() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/[0.04]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><Dumbbell size={20} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"><Dumbbell size={20} /></span>
             <Badge tone={activeMembership ? 'success' : 'neutral'}>{activeMembership ? 'Active' : 'None'}</Badge>
           </div>
           <p className="mt-4 text-xs text-surface-500">Membership</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{activeMembership ? activeMembership.plan_name_snapshot : 'Not active'}</p>
         </Card>
-        <Card>
+        <Card className="border-amber-200/80 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/[0.04]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><Calendar size={20} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"><Calendar size={20} /></span>
             <Badge tone={activeMembership ? (daysLeft < 7 ? 'warning' : 'success') : 'neutral'}>{activeMembership ? `${daysLeft}d` : '—'}</Badge>
           </div>
           <p className="mt-4 text-xs text-surface-500">Days Remaining</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{activeMembership ? `${daysLeft} days` : '—'}</p>
         </Card>
-        <Card>
+        <Card className="border-blue-200/80 bg-blue-50/50 dark:border-blue-500/20 dark:bg-blue-500/[0.04]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"><CreditCard size={20} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"><CreditCard size={20} /></span>
           </div>
           <p className="mt-4 text-xs text-surface-500">Total Paid</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{formatCurrency(totalPaid)}</p>
         </Card>
-        <Card>
+        <Card className="border-violet-200/80 bg-violet-50/50 dark:border-violet-500/20 dark:bg-violet-500/[0.04]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300"><ShoppingBag size={20} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400"><ShoppingBag size={20} /></span>
           </div>
           <p className="mt-4 text-xs text-surface-500">Total Orders</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{(data.orders || []).length}</p>
