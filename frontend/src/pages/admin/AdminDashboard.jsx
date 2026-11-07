@@ -107,12 +107,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 px-5 py-4 text-white sm:px-6 sm:py-5">
-        <p className="text-xs text-surface-400 sm:text-sm">Welcome back</p>
-        <h1 className="mt-1 font-display text-xl font-bold text-white sm:text-2xl">Admin Dashboard</h1>
-        <p className="mt-1.5 text-xs text-surface-400 sm:text-sm">Business overview and analytics</p>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={s.totalUsers} tone="info" />
         <StatCard icon={Dumbbell} label="Gym Members" value={s.totalAdmitted} tone="success" sublabel={`${s.notAdmitted} not admitted`} />
