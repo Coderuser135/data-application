@@ -6,12 +6,12 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
-import { fetchAllPayments } from '@/redux/slices/paymentSlice';
+import { confirmReconciliationRefund, fetchAllPayments } from '@/redux/slices/paymentSlice';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
 const STATUSES = ['all', 'success', 'pending', 'failed', 'reconciliation_required'];
 const TYPES = ['all', 'membership_advance', 'membership_installment', 'membership_full', 'order'];
-const STATUS_LABELS = { reconciliation_required: 'Reconciliation required', success: 'Successful', pending: 'Pending', failed: 'Failed' };
+const STATUS_LABELS = { reconciliation_required: 'Reconciliation required', success: 'Successful', pending: 'Pending', failed: 'Failed', refunded: 'Refunded' };
 const TYPE_LABELS = { membership_advance: 'Membership advance', membership_installment: 'Membership installment', membership_full: 'Membership payment', order: 'Supplement order' };
 
 function SummaryCard({ icon: Icon, label, value, tone = 'neutral' }) {
@@ -37,6 +37,9 @@ export default function AdminPayments() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [refundId, setRefundId] = useState('');
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundError, setRefundError] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -59,7 +62,23 @@ export default function AdminPayments() {
 
   if (loading && adminItems.length === 0) return <AdminLoadingSkeleton variant="section" />;
 
-  const statusTone = (value) => value === 'success' ? 'success' : value === 'pending' || value === 'reconciliation_required' ? 'warning' : 'danger';
+  const statusTone = (value) => value === 'success' || value === 'refunded' ? 'success' : value === 'pending' || value === 'reconciliation_required' ? 'warning' : 'danger';
+
+  const handleConfirmRefund = async () => {
+    if (!selectedPayment?._id || !refundId.trim()) return;
+    setRefundSubmitting(true);
+    setRefundError('');
+    try {
+      const updatedPayment = await dispatch(confirmReconciliationRefund({ paymentId: selectedPayment._id, refundId: refundId.trim() })).unwrap();
+      setSelectedPayment(updatedPayment);
+      setRefundId('');
+      dispatch(fetchAllPayments({ search, status, type, page, limit }));
+    } catch (error) {
+      setRefundError(error || 'Refund verification failed. Please check the refund ID and try again.');
+    } finally {
+      setRefundSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -102,7 +121,7 @@ export default function AdminPayments() {
         <div className="flex flex-wrap items-center gap-1"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="min-h-9 rounded-lg border border-surface-300 px-3 text-xs font-semibold disabled:opacity-40 dark:border-surface-700">‹ Previous</button>{pageNumbers.map((number) => <button key={number} type="button" aria-current={page === number ? 'page' : undefined} disabled={loading} onClick={() => setPage(number)} className={`h-9 min-w-9 rounded-lg px-2 text-xs font-bold ${page === number ? 'bg-brand-600 text-white' : 'border border-surface-300 dark:border-surface-700'}`}>{number}</button>)}<button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)} className="min-h-9 rounded-lg border border-surface-300 px-3 text-xs font-semibold disabled:opacity-40 dark:border-surface-700">Next ›</button></div>
       </div>
 
-      {selectedPayment && <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedPayment(null)}><div role="dialog" aria-modal="true" aria-label="Payment details" className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-surface-900" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800"><div className="flex items-center gap-2"><ReceiptText size={18} /><h2 className="font-semibold">Payment details</h2></div><button onClick={() => setSelectedPayment(null)} aria-label="Close details" className="rounded-lg p-2 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18} /></button></div><div className="space-y-4 p-5"><div className="flex items-center justify-between"><span className="text-sm text-surface-500">Status</span><Badge tone={statusTone(selectedPayment.status)}>{STATUS_LABELS[selectedPayment.status] || selectedPayment.status}</Badge></div>{[['Customer', selectedPayment.user_id?.full_name], ['Email', selectedPayment.user_id?.email], ['Amount', formatCurrency(selectedPayment.amount)], ['Payment type', TYPE_LABELS[selectedPayment.payment_type] || selectedPayment.payment_type], ['Method', selectedPayment.payment_method], ['Transaction ID', selectedPayment.transaction_id || '—'], ['Razorpay payment ID', selectedPayment.razorpay_payment_id || '—'], ['Razorpay order ID', selectedPayment.razorpay_order_id || '—'], ['Date', formatDate(selectedPayment.payment_date || selectedPayment.createdAt || selectedPayment.created_at)]].map(([label, value]) => <div key={label} className="flex flex-col gap-1 border-b border-surface-100 pb-3 text-sm dark:border-surface-800 sm:flex-row sm:justify-between"><span className="text-surface-500">{label}</span><span className="break-all font-medium text-ink-900 dark:text-white sm:max-w-[65%] sm:text-right">{value || '—'}</span></div>)}{selectedPayment.reference_note && <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"><strong>Admin note:</strong> {selectedPayment.reference_note}</div>}</div></div></div>}
+      {selectedPayment && <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedPayment(null)}><div role="dialog" aria-modal="true" aria-label="Payment details" className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-surface-900" onClick={(e) => e.stopPropagation()}><div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800"><div className="flex items-center gap-2"><ReceiptText size={18} /><h2 className="font-semibold">Payment details</h2></div><button onClick={() => setSelectedPayment(null)} aria-label="Close details" className="rounded-lg p-2 hover:bg-surface-100 dark:hover:bg-surface-800"><X size={18} /></button></div><div className="space-y-4 p-5"><div className="flex items-center justify-between"><span className="text-sm text-surface-500">Status</span><Badge tone={statusTone(selectedPayment.status)}>{STATUS_LABELS[selectedPayment.status] || selectedPayment.status}</Badge></div>{[['Customer', selectedPayment.user_id?.full_name], ['Email', selectedPayment.user_id?.email], ['Amount', formatCurrency(selectedPayment.amount)], ['Payment type', TYPE_LABELS[selectedPayment.payment_type] || selectedPayment.payment_type], ['Method', selectedPayment.payment_method], ['Transaction ID', selectedPayment.transaction_id || '—'], ['Razorpay payment ID', selectedPayment.razorpay_payment_id || '—'], ['Razorpay order ID', selectedPayment.razorpay_order_id || '—'], ['Date', formatDate(selectedPayment.payment_date || selectedPayment.createdAt || selectedPayment.created_at)]].map(([label, value]) => <div key={label} className="flex flex-col gap-1 border-b border-surface-100 pb-3 text-sm dark:border-surface-800 sm:flex-row sm:justify-between"><span className="text-surface-500">{label}</span><span className="break-all font-medium text-ink-900 dark:text-white sm:max-w-[65%] sm:text-right">{value || '—'}</span></div>)}{selectedPayment.reference_note && <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"><strong>Admin note:</strong> {selectedPayment.reference_note}</div>}{selectedPayment.razorpay_refund_id && <div className="rounded-xl border border-emerald-200 p-3 text-sm dark:border-emerald-500/30"><p className="font-semibold text-emerald-700 dark:text-emerald-300">Verified refund</p><p className="mt-1 break-all text-xs text-surface-600 dark:text-surface-300">Refund ID: {selectedPayment.razorpay_refund_id}</p>{selectedPayment.refund_date && <p className="mt-1 text-xs text-surface-500">Refund date: {formatDate(selectedPayment.refund_date)}</p>}</div>}{selectedPayment.status === 'reconciliation_required' && selectedPayment.payment_type === 'order' && selectedPayment.payment_method === 'online' && <div className="space-y-3 rounded-xl border border-amber-300 p-4 dark:border-amber-500/40"><div><h3 className="font-semibold text-ink-900 dark:text-white">Resolve captured payment</h3><p className="mt-1 text-xs leading-5 text-surface-600 dark:text-surface-300">If the gym has already completed a full refund, enter its Razorpay refund ID. The server checks the refund, payment reference, INR currency, full amount and processed status before updating this record. This form does not initiate a refund.</p></div><input value={refundId} onChange={(e) => { setRefundId(e.target.value); setRefundError(''); }} placeholder="Razorpay refund ID (rfnd_...)" aria-label="Razorpay refund ID" className="min-h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm outline-none focus:border-brand-500 dark:border-surface-700 dark:bg-surface-950 dark:text-white" />{refundError && <p role="alert" className="text-xs text-red-600">{refundError}</p>}<Button block disabled={!refundId.trim() || refundSubmitting} onClick={handleConfirmRefund}>{refundSubmitting ? 'Verifying refund…' : 'Verify full refund and resolve'}</Button></div>}</div></div></div>}
     </div>
   );
 }
