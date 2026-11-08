@@ -7,7 +7,7 @@ import EmailOtp from '../models/emailOtp.model.js';
 import PasswordResetToken from '../models/passwordResetToken.model.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, hashToken } from '../utils/jwt.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
-import { sendEmailVerificationOtp, sendPasswordResetEmail } from '../utils/email.utils.js';
+import { sendEmailVerificationOtp, sendPasswordResetOtp } from '../utils/email.utils.js';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const OTP_DURATION_MS = 5 * 60 * 1000;
@@ -205,26 +205,52 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
 }
 export async function requestPasswordReset({ email }) {
   const normalizedEmail = normalizeEmail(email);
-  const user = await User.findOne({ email: normalizedEmail });
-  if (!user) return { message: 'If that email is registered, a password reset link will be sent.' };
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const tokenHash = hashToken(rawToken);
-  await PasswordResetToken.deleteMany({ user_id: user._id, used_at: null });
-  await PasswordResetToken.create({ user_id: user._id, token_hash: tokenHash, expires_at: new Date(Date.now() + 60 * 60 * 1000) });
+  if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    throw new ApiError(400, 'Enter a valid email address');
+  }
+
+  const user = await User.findOne({ email: normalizedEmail, email_verified: true });
+  // Use the same response for known and unknown accounts.
+  if (!user) return { message: 'If this account is registered and verified, a password reset code will be sent.' };
+
+  const now = new Date();
+  const current = await EmailOtp.findOne({
+    user_id: user._id,
+    purpose: 'reset_password',
+    consumed_at: null,
+  }).sort({ createdAt: -1 });
+
+  if (current && now.getTime() - current.last_sent_at.getTime() < OTP_RESEND_WAIT_MS) {
+    throw new ApiError(429, 'Please wait 60 seconds before requesting another code');
+  }
+
+  await EmailOtp.deleteMany({ user_id: user._id, purpose: 'reset_password' });
+  const otp = String(crypto.randomInt(100000, 1000000));
+  await EmailOtp.create({
+    user_id: user._id,
+    email: user.email,
+    purpose: 'reset_password',
+    otp_hash: otpHash(otp),
+    expires_at: new Date(now.getTime() + OTP_DURATION_MS),
+    last_sent_at: now,
+  });
+
   try {
-    await sendPasswordResetEmail({ to: user.email, token: rawToken });
+    await sendPasswordResetOtp({ to: user.email, otp, fullName: user.full_name });
   } catch (error) {
-    console.error('[email] Password reset email failed:', {
+    console.error('[email] Password reset OTP email failed:', {
       code: error?.code,
       message: error?.message,
       responseCode: error?.responseCode,
       command: error?.command,
     });
-    await PasswordResetToken.deleteOne({ token_hash: tokenHash });
-    throw new ApiError(503, 'Password reset email service is temporarily unavailable');
+    await EmailOtp.deleteMany({ user_id: user._id, purpose: 'reset_password' });
+    throw new ApiError(503, 'Password reset code could not be sent. Please try again later.');
   }
-  return { message: 'If that email is registered, a password reset link will be sent.' };
+
+  return { message: 'If this account is registered and verified, a password reset code will be sent.' };
 }
+
 export async function verifyPasswordResetOtp({ email, otp }) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !/^\d{6}$/.test(String(otp || ''))) {
