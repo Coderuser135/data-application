@@ -564,7 +564,7 @@ export default function AdminAdmissions() {
                     <div>
                       <label className="mb-2 block text-sm font-medium text-ink-700 dark:text-surface-200">Received Via</label>
                       <div className="flex gap-2">
-                        {['cash', 'online', 'other'].map((method) => (
+                        {['cash', 'other'].map((method) => (
                           <button key={method} type="button" onClick={() => updateField('payment_method', method)} className={`flex-1 rounded-xl border py-3 text-sm font-medium capitalize transition ${formData.payment_method === method ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-surface-200 text-surface-500 dark:border-surface-700'}`}>{method}</button>
                         ))}
                       </div>
