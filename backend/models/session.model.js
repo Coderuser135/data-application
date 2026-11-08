@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const sessionSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   family_id: { type: String, required: true, index: true },
+  device_id: { type: String, default: '', index: true },
   refresh_token_hash: { type: String, required: true },
   used_refresh_token_hashes: { type: [String], default: [] },
   expires_at: { type: Date, required: true },

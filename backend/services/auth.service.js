@@ -22,7 +22,7 @@ function validatePassword(password) {
   }
 }
 function sessionMetadata(metadata = {}) {
-  return { user_agent: String(metadata.userAgent || '').slice(0, 500), ip_address: String(metadata.ipAddress || '').slice(0, 64) };
+  return { user_agent: String(metadata.userAgent || '').slice(0, 500), ip_address: String(metadata.ipAddress || '').slice(0, 64), device_id: String(metadata.deviceId || '').slice(0, 100) };
 }
 function otpHash(otp) {
   const secret = process.env.OTP_SECRET || process.env.JWT_REFRESH_SECRET;
@@ -60,6 +60,13 @@ async function issueEmailVerificationOtp(user) {
 }
 async function createSession(user, metadata) {
   const familyId = crypto.randomUUID();
+  // A browser/device keeps one current login session. Re-login replaces its older session records.
+  if (metadata?.deviceId) {
+    await Session.updateMany(
+      { user_id: user._id, device_id: metadata.deviceId, revoked_at: null },
+      { $set: { revoked_at: new Date(), revoke_reason: 'replaced-on-device-login' } }
+    );
+  }
   const sessionObjectId = new mongoose.Types.ObjectId();
   const refreshToken = generateRefreshToken(user, sessionObjectId);
   const session = await Session.create({
@@ -184,8 +191,17 @@ export async function revokeSession(sessionId, userId, reason = 'logout') {
   if (!sessionId) return;
   await Session.updateOne({ _id: sessionId, user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
 }
-export async function getActiveSessionCount(userId) {
-  return Session.countDocuments({ user_id: userId, revoked_at: null, expires_at: { $gt: new Date() } });
+export async function getActiveDeviceCount(userId) {
+  const activeSessions = await Session.aggregate([
+    { $match: { user_id: new mongoose.Types.ObjectId(userId), revoked_at: null, expires_at: { $gt: new Date() } } },
+    { $group: { _id: { $cond: [
+      { $and: [{ $ne: ['$device_id', null] }, { $ne: ['$device_id', ''] }] },
+      '$device_id',
+      { $concat: ['legacy:', { $ifNull: ['$user_agent', ''] }, '|', { $ifNull: ['$ip_address', ''] }] }
+    ] } } },
+    { $count: 'total' },
+  ]);
+  return activeSessions[0]?.total || 0;
 }
 export async function revokeAllSessions(userId, reason = 'logout-all') {
   await Session.updateMany({ user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });

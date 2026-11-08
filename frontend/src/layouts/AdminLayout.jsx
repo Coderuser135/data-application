@@ -31,7 +31,7 @@ export default function AdminLayout() {
   const location = useLocation();
   const [readyPath, setReadyPath] = useState('');
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [sessionInfo, setSessionInfo] = useState({ activeSessions: 0, loading: false, error: '' });
+  const [sessionInfo, setSessionInfo] = useState({ activeDevices: 0, loading: false, error: '' });
   const [logoutSubmitting, setLogoutSubmitting] = useState(false);
 
   useEffect(() => {
@@ -48,9 +48,9 @@ export default function AdminLayout() {
     setSessionInfo({ activeSessions: 0, loading: true, error: '' });
     try {
       const result = await authService.sessionSummary();
-      setSessionInfo({ activeSessions: result.activeSessions || 1, loading: false, error: '' });
+      setSessionInfo({ activeDevices: result.activeDevices || 1, loading: false, error: '' });
     } catch (error) {
-      setSessionInfo({ activeSessions: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
+      setSessionInfo({ activeDevices: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
     }
   }
   async function handleSignOut() { setLogoutSubmitting(true); await dispatch(signOut()); navigate('/'); }

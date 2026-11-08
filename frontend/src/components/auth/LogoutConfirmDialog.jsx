@@ -1,6 +1,6 @@
 import { AlertTriangle, LoaderCircle, LogOut, MonitorSmartphone, X } from 'lucide-react';
 
-export default function LogoutConfirmDialog({ open, activeSessions, loading, error, submitting, onCancel, onRetry, onLogout, onLogoutAll }) {
+export default function LogoutConfirmDialog({ open, activeDevices, loading, error, submitting, onCancel, onRetry, onLogout, onLogoutAll }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) onCancel(); }}>
@@ -18,7 +18,7 @@ export default function LogoutConfirmDialog({ open, activeSessions, loading, err
         ) : (
           <>
             <div className="mt-5 flex items-center gap-3 rounded-xl bg-surface-50 p-3 dark:bg-surface-800"><MonitorSmartphone size={20} className="text-surface-500" /><div><p className="text-sm font-semibold text-ink-900 dark:text-white">{activeSessions} active {activeSessions === 1 ? 'device session' : 'device sessions'}</p><p className="text-xs text-surface-500">Includes this device</p></div></div>
-            {activeSessions > 1 && <div className="mt-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertTriangle size={16} className="mt-0.5 shrink-0" /> Logout all will end every active session, including this device.</div>}
+            {activeSessions > 1 && <div className="mt-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertTriangle size={16} className="mt-0.5 shrink-0" /> Logout all will end every active device session, including this device.</div>}
           </>
         )}
         <div className="mt-6 grid grid-cols-2 gap-3">

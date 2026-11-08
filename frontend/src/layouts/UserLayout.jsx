@@ -32,7 +32,7 @@ export default function UserLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [sessionInfo, setSessionInfo] = useState({ activeSessions: 0, loading: false, error: '' });
+  const [sessionInfo, setSessionInfo] = useState({ activeDevices: 0, loading: false, error: '' });
   const [logoutSubmitting, setLogoutSubmitting] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -57,9 +57,9 @@ export default function UserLayout() {
     setSessionInfo({ activeSessions: 0, loading: true, error: '' });
     try {
       const result = await authService.sessionSummary();
-      setSessionInfo({ activeSessions: result.activeSessions || 1, loading: false, error: '' });
+      setSessionInfo({ activeDevices: result.activeDevices || 1, loading: false, error: '' });
     } catch (error) {
-      setSessionInfo({ activeSessions: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
+      setSessionInfo({ activeDevices: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
     }
   }
   async function handleSignOut() { setLogoutSubmitting(true); await dispatch(signOut()); navigate('/'); }
