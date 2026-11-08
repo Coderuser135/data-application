@@ -54,10 +54,10 @@ export default function UserLayout() {
   }, [location.pathname]);
 
   async function loadSessionInfo() {
-    setSessionInfo({ activeSessions: 0, loading: true, error: '' });
+    setSessionInfo({ activeDevices: 0, loading: true, error: '' });
     try {
       const result = await authService.sessionSummary();
-      setSessionInfo({ activeDevices: result.activeDevices || 1, loading: false, error: '' });
+      setSessionInfo({ activeDevices: result.activeDevices ?? 1, loading: false, error: '' });
     } catch (error) {
       setSessionInfo({ activeDevices: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
     }
@@ -71,7 +71,7 @@ export default function UserLayout() {
 
   return (
     <div className="min-h-screen bg-surface-50 text-ink-800 selection:bg-brand-500/20 dark:bg-[#08090c] dark:text-white">
-      <LogoutConfirmDialog open={logoutOpen} activeSessions={sessionInfo.activeSessions} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
+      <LogoutConfirmDialog open={logoutOpen} activeDevices={sessionInfo.activeDevices} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
       <aside className={`user-sidebar fixed inset-y-0 left-0 z-50 hidden border-r border-surface-200 bg-white lg:flex lg:flex-col dark:border-white/[0.08] dark:bg-[#11131b] ${collapsed ? 'w-[84px]' : 'w-[286px]'}`}>
         <div className={`flex h-[72px] shrink-0 items-center border-b border-surface-200 dark:border-white/[0.08] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           <Link to="/user/dashboard" className="group flex min-w-0 items-center gap-3">

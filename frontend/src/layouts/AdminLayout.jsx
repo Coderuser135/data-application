@@ -45,10 +45,10 @@ export default function AdminLayout() {
   const profile = useSelector((state) => state.auth.profile);
 
   async function loadSessionInfo() {
-    setSessionInfo({ activeSessions: 0, loading: true, error: '' });
+    setSessionInfo({ activeDevices: 0, loading: true, error: '' });
     try {
       const result = await authService.sessionSummary();
-      setSessionInfo({ activeDevices: result.activeDevices || 1, loading: false, error: '' });
+      setSessionInfo({ activeDevices: result.activeDevices ?? 1, loading: false, error: '' });
     } catch (error) {
       setSessionInfo({ activeDevices: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
     }
@@ -75,7 +75,7 @@ export default function AdminLayout() {
           </div>
         </div>
       </header>
-      <LogoutConfirmDialog open={logoutOpen} activeSessions={sessionInfo.activeSessions} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
+      <LogoutConfirmDialog open={logoutOpen} activeDevices={sessionInfo.activeDevices} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
       <div className="mx-auto flex w-full max-w-7xl min-w-0">
         <aside className={`admin-sidebar fixed inset-y-0 left-0 z-30 mt-14 w-64 transform border-r border-surface-200 bg-white transition-transform dark:border-surface-800 dark:bg-surface-900 lg:sticky lg:top-14 lg:mt-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="admin-nav space-y-1 overflow-y-auto p-4 pt-6" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
