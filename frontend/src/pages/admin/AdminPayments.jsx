@@ -9,7 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { confirmReconciliationRefund, fetchAllPayments } from '@/redux/slices/paymentSlice';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
-const STATUSES = ['all', 'success', 'pending', 'failed', 'reconciliation_required'];
+const STATUSES = ['all', 'success', 'pending', 'failed', 'reconciliation_required', 'refunded'];
 const TYPES = ['all', 'membership_advance', 'membership_installment', 'membership_full', 'order'];
 const STATUS_LABELS = { reconciliation_required: 'Reconciliation required', success: 'Successful', pending: 'Pending', failed: 'Failed', refunded: 'Refunded' };
 const TYPE_LABELS = { membership_advance: 'Membership advance', membership_installment: 'Membership installment', membership_full: 'Membership payment', order: 'Supplement order' };
