@@ -348,8 +348,11 @@ export async function createAdmission(data) {
     }
   }
 
-  if (amount > 0 && !['cash', 'online', 'other'].includes(payment_method)) {
-    throw new ApiError(400, 'Select a valid payment method for the advance received');
+  // Admission advances are recorded as received funds, not as a gateway checkout.
+  // Only accept payment methods that staff can confirm at the gym; online must
+  // go through the verified Razorpay payment flow instead.
+  if (amount > 0 && !['cash', 'other'].includes(payment_method)) {
+    throw new ApiError(400, 'Select cash or other for an advance already received');
   }
 
   const details = personal_details && typeof personal_details === 'object' && !Array.isArray(personal_details) ? personal_details : {};
