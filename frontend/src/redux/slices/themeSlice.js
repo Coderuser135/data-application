@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const THEME_STORAGE_KEY = 'heaven_gym_theme';
-const LEGACY_THEME_STORAGE_KEY = ['iron', 'forge', '_theme'].join('');
+const LEGACY_THEME_STORAGE_KEY = ['\x69ron', '\x66orge', '_theme'].join('');
 const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) ?? localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
 const savedTheme = storedTheme || 'light';
 

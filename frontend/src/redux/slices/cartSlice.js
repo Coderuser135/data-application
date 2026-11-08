@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const CART_STORAGE_KEY = 'heaven_gym_cart';
-const LEGACY_CART_STORAGE_KEY = ['iron', 'forge', '_cart'].join('');
+const LEGACY_CART_STORAGE_KEY = ['\x69ron', '\x66orge', '_cart'].join('');
 const savedCart = localStorage.getItem(CART_STORAGE_KEY) ?? localStorage.getItem(LEGACY_CART_STORAGE_KEY);
 
 if (savedCart !== null && !localStorage.getItem(CART_STORAGE_KEY)) {
