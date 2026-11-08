@@ -8,7 +8,11 @@ export default function useOtpResendCountdown(initialSeconds = 0) {
 
   useEffect(() => {
     if (deadline <= Date.now()) return undefined;
-    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    const intervalId = window.setInterval(() => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      if (currentTime >= deadline) window.clearInterval(intervalId);
+    }, 1000);
     return () => window.clearInterval(intervalId);
   }, [deadline]);
 

@@ -44,9 +44,8 @@ export default function VerifyEmail() {
     } finally { setResending(false); }
   }
 
-  const resendLabel = secondsRemaining > 0
-    ? `Resend code in 00:${String(secondsRemaining).padStart(2, '0')}`
-    : 'Resend verification code';
+  const formattedCountdown = `${String(Math.floor(secondsRemaining / 60)).padStart(2, '0')}:${String(secondsRemaining % 60).padStart(2, '0')}`;
+  const resendLabel = secondsRemaining > 0 ? `Resend code in ${formattedCountdown}` : 'Resend verification code';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-50 px-5 py-12 dark:bg-surface-950">
