@@ -10,5 +10,6 @@ export const authService = {
   me: () => api.get('/auth/me').then((r) => r.data),
   changePassword: (data) => api.post('/auth/change-password', data).then((r) => r.data),
   forgotPassword: (data) => api.post('/auth/forgot-password', data).then((r) => r.data),
-  verifyPasswordResetOtp: (data) => api.post('/auth/verify-password-reset-otp', data).then((r) => r.data),\n  resetPassword: (data) => api.post('/auth/reset-password', data).then((r) => r.data),
+  verifyPasswordResetOtp: (data) => api.post('/auth/verify-password-reset-otp', data).then((r) => r.data),
+  resetPassword: (data) => api.post('/auth/reset-password', data).then((r) => r.data),
 };

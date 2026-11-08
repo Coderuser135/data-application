@@ -69,7 +69,11 @@ export const changePassword = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try { res.json(await authService.requestPasswordReset(req.body)); } catch (err) { next(err); }
 };
-export const verifyPasswordResetOtp = async (req, res, next) => {\n  try { res.set('Cache-Control', 'no-store'); res.json(await authService.verifyPasswordResetOtp(req.body)); }\n  catch (err) { next(err); }\n};\nexport const resetPassword = async (req, res, next) => {
+export const verifyPasswordResetOtp = async (req, res, next) => {
+  try { res.set('Cache-Control', 'no-store'); res.json(await authService.verifyPasswordResetOtp(req.body)); }
+  catch (err) { next(err); }
+};
+export const resetPassword = async (req, res, next) => {
   try { const result = await authService.resetPassword(req.body); clearAuthCookies(res); res.json(result); }
   catch (err) { next(err); }
 };
