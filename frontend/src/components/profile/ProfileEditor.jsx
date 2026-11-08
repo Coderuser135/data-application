@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Mail, Save, X } from 'lucide-react';
+import { Camera, KeyRound, Mail, Save, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { userService } from '@/services/userService';
-import { setProfile } from '@/redux/slices/authSlice';
+import { clearAuth, setProfile } from '@/redux/slices/authSlice';
+import { authService } from '@/services/authService';
 
 export default function ProfileEditor({ title = 'My Profile', subtitle = 'Manage your personal information and profile photo.' }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const profile = useSelector((state) => state.auth.profile);
   const fileRef = useRef(null);
   const [form, setForm] = useState({ full_name: '', phone: '', address: '' });
@@ -20,6 +23,10 @@ export default function ProfileEditor({ title = 'My Profile', subtitle = 'Manage
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -87,6 +94,30 @@ export default function ProfileEditor({ title = 'My Profile', subtitle = 'Manage
     }
   }
 
+  async function handlePasswordChange(event) {
+    event.preventDefault();
+    setPasswordError('');
+
+    if (newPassword.length < 12) {
+      setPasswordError('New password must be at least 12 characters long.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const result = await authService.changePassword({ currentPassword, newPassword });
+      dispatch(clearAuth());
+      navigate('/login', {
+        replace: true,
+        state: { message: result.message || 'Password changed successfully. Please log in again.' },
+      });
+    } catch (requestError) {
+      setPasswordError(requestError.response?.data?.error || 'We could not change your password. Please try again.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
   if (loading) return <UserLoadingSkeleton variant="profile" />;
 
   const image = previewUrl || avatarUrl;
@@ -131,6 +162,41 @@ export default function ProfileEditor({ title = 'My Profile', subtitle = 'Manage
           {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</p>}
           {message && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">{message}</p>}
           <div className="flex justify-end"><Button type="submit" loading={saving}><Save size={16} /> Save profile</Button></div>
+        </form>
+      </Card>
+
+      <Card>
+        <div className="mb-5 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><KeyRound size={19} /></span>
+          <div>
+            <h2 className="font-semibold text-ink-900 dark:text-white">Change password</h2>
+            <p className="mt-1 text-sm text-surface-500">Enter your current password and choose a new one.</p>
+          </div>
+        </div>
+        <form onSubmit={handlePasswordChange} className="space-y-5">
+          <Input
+            label="Current password"
+            type="password"
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+          <Input
+            label="New password"
+            type="password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            autoComplete="new-password"
+            minLength={12}
+            maxLength={72}
+            required
+          />
+          <p className="text-xs text-surface-500">Use at least 12 characters. Your password must not exceed 72 UTF-8 bytes.</p>
+          {passwordError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{passwordError}</p>}
+          <div className="flex justify-end">
+            <Button type="submit" loading={passwordSaving}><KeyRound size={16} /> Change password</Button>
+          </div>
         </form>
       </Card>
     </div>
