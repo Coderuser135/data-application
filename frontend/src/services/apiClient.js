@@ -33,8 +33,11 @@ api.interceptors.response.use(
   (response) => { response.data = mapKeys(response.data); return response; },
   async (error) => {
     const originalRequest = error.config;
-    const isAuthRequest = originalRequest?.url?.includes('/auth/');
-    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry || isAuthRequest) return Promise.reject(error);
+    const requestUrl = originalRequest?.url || '';
+    const isAuthRequest = requestUrl.includes('/auth/');
+    const canRefreshCurrentUser = originalRequest?.method?.toLowerCase() === 'get'
+      && /(?:^|\/)auth\/me(?:\?|$)/.test(requestUrl);
+    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry || (isAuthRequest && !canRefreshCurrentUser)) return Promise.reject(error);
     originalRequest._retry = true;
     refreshPromise ||= refreshWithCrossTabLock().finally(() => { refreshPromise = null; });
     try {
