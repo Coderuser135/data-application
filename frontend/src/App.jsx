@@ -19,6 +19,7 @@ import VerifyEmail from '@/pages/auth/VerifyEmail';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import TermsAndConditions from '@/pages/auth/TermsAndConditions';
+import PrivacyPolicy from '@/pages/public/PrivacyPolicy';
 import Dashboard from '@/pages/user/Dashboard';
 import Profile from '@/pages/user/Profile';
 import MyGym from '@/pages/user/MyGym';
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/verify-email" element={<GuestRoute><VerifyEmail /></GuestRoute>} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
         <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
