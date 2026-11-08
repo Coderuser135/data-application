@@ -17,7 +17,7 @@ export default function LogoutConfirmDialog({ open, activeDevices, loading, erro
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"><p>{error}</p><button type="button" onClick={onRetry} className="mt-2 font-semibold underline underline-offset-2">Try again</button></div>
         ) : (
           <>
-            <div className="mt-5 flex items-center gap-3 rounded-xl bg-surface-50 p-3 dark:bg-surface-800"><MonitorSmartphone size={20} className="text-surface-500" /><div><p className="text-sm font-semibold text-ink-900 dark:text-white">{activeDevices} active {activeDevices === 1 ? 'device session' : 'device sessions'}</p><p className="text-xs text-surface-500">Includes this device</p></div></div>
+            <div className="mt-5 flex items-center gap-3 rounded-xl bg-surface-50 p-3 dark:bg-surface-800"><MonitorSmartphone size={20} className="text-surface-500" /><div><p className="text-sm font-semibold text-ink-900 dark:text-white">{activeDevices} active {activeDevices === 1 ? 'device' : 'devices'}</p><p className="text-xs text-surface-500">Includes this device</p></div></div>
             {activeDevices > 1 && <div className="mt-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertTriangle size={16} className="mt-0.5 shrink-0" /> Logout all will end every active device session, including this device.</div>}
           </>
         )}
