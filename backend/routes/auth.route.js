@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   register, verifyEmail, resendVerificationOtp, login, refresh, logout, logoutAll, me,
-  changePassword, forgotPassword, resetPassword,
+  changePassword, forgotPassword, verifyPasswordResetOtp, resetPassword,
 } from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 
@@ -14,7 +14,7 @@ router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.post('/logout-all', authMiddleware, logoutAll);
 router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/verify-password-reset-otp', verifyPasswordResetOtp);\nrouter.post('/reset-password', resetPassword);
 router.get('/me', authMiddleware, me);
 router.post('/change-password', authMiddleware, changePassword);
 export default router;

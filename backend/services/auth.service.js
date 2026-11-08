@@ -225,20 +225,79 @@ export async function requestPasswordReset({ email }) {
   }
   return { message: 'If that email is registered, a password reset link will be sent.' };
 }
+export async function verifyPasswordResetOtp({ email, otp }) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !/^\d{6}$/.test(String(otp || ''))) {
+    throw new ApiError(400, 'Enter a valid email and 6-digit reset code');
+  }
+
+  const user = await User.findOne({ email: normalizedEmail, email_verified: true });
+  if (!user) throw new ApiError(400, 'Invalid or expired reset code');
+
+  const record = await EmailOtp.findOne({
+    user_id: user._id,
+    purpose: 'reset_password',
+    consumed_at: null,
+    expires_at: { $gt: new Date() },
+  }).sort({ createdAt: -1 });
+
+  if (!record) throw new ApiError(400, 'Reset code expired. Request a new code.');
+  if (record.attempts >= MAX_OTP_ATTEMPTS) {
+    await EmailOtp.deleteOne({ _id: record._id });
+    throw new ApiError(429, 'Too many incorrect attempts. Request a new reset code.');
+  }
+
+  const submittedHash = otpHash(otp);
+  if (record.otp_hash !== submittedHash) {
+    await EmailOtp.updateOne({ _id: record._id, consumed_at: null }, { $inc: { attempts: 1 } });
+    throw new ApiError(400, 'Incorrect reset code');
+  }
+
+  const consumed = await EmailOtp.updateOne(
+    {
+      _id: record._id,
+      consumed_at: null,
+      expires_at: { $gt: new Date() },
+      attempts: { $lt: MAX_OTP_ATTEMPTS },
+      otp_hash: submittedHash,
+    },
+    { $set: { consumed_at: new Date() } }
+  );
+  if (consumed.modifiedCount !== 1) {
+    throw new ApiError(400, 'Reset code is invalid, expired, or already used');
+  }
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  await PasswordResetToken.deleteMany({ user_id: user._id });
+  await PasswordResetToken.create({
+    user_id: user._id,
+    token_hash: hashToken(rawToken),
+    expires_at: new Date(Date.now() + 10 * 60 * 1000),
+  });
+  return { resetToken: rawToken, message: 'Code verified. You can now choose a new password.' };
+}
+
 export async function resetPassword({ token, newPassword }) {
   validatePassword(newPassword);
-  if (typeof token !== 'string' || token.length < 32 || token.length > 256) throw new ApiError(400, 'Invalid or expired reset token');
+  if (typeof token !== 'string' || token.length < 32 || token.length > 256) {
+    throw new ApiError(400, 'Invalid or expired password reset session');
+  }
+
   const tokenHash = hashToken(token);
   const resetToken = await PasswordResetToken.findOneAndUpdate(
     { token_hash: tokenHash, used_at: null, expires_at: { $gt: new Date() } },
-    { $set: { used_at: new Date() } }, { new: true }
+    { $set: { used_at: new Date() } },
+    { new: true }
   );
-  if (!resetToken) throw new ApiError(400, 'Invalid or expired reset token');
+  if (!resetToken) throw new ApiError(400, 'Password reset session expired. Verify your email code again.');
+
   const user = await User.findById(resetToken.user_id).select('+password');
-  if (!user) throw new ApiError(400, 'Invalid or expired reset token');
+  if (!user || !user.email_verified) throw new ApiError(400, 'Unable to reset this account password');
+
   user.password = await bcrypt.hash(newPassword, 12);
   await user.save();
   await revokeAllSessions(user._id, 'password-reset');
-  await PasswordResetToken.deleteMany({ user_id: user._id, _id: { $ne: resetToken._id } });
-  return { message: 'Password reset successfully. Please log in again.' };
+  await EmailOtp.deleteMany({ user_id: user._id, purpose: 'reset_password' });
+  await PasswordResetToken.deleteMany({ user_id: user._id });
+  return { message: 'Password reset successfully. Please log in with your new password.' };
 }
