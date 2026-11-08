@@ -116,7 +116,7 @@ export default function ForgotPassword() {
 
           {step === 'otp' && (
             <form onSubmit={handleVerifyCode} className="mt-7 space-y-5">
-              <Input label="6-digit reset code" inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\\D/g, '').slice(0, 6))} placeholder="000000" maxLength={6} autoComplete="one-time-code" required />
+              <Input label="6-digit reset code" inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" maxLength={6} autoComplete="one-time-code" required />
               <Button type="submit" loading={loading} disabled={otp.length !== 6} className="w-full" size="lg">Verify code</Button>
               <button type="button" onClick={() => { setStep('email'); setOtp(''); setError(''); setMessage(''); }} className="w-full text-sm font-medium text-brand-600 hover:text-brand-700">Change email address</button>
             </form>
