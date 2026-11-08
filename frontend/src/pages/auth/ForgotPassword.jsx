@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Dumbbell, LockKeyRound, Mail } from 'lucide-react';
+import { ArrowLeft, Dumbbell, Lock, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '@/services/authService';
 import Button from '@/components/ui/Button';
@@ -95,7 +95,7 @@ export default function ForgotPassword() {
         </Link>
         <div className="rounded-2xl border border-surface-200 bg-white p-8 shadow-sm dark:border-surface-800 dark:bg-surface-900">
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-            {step === 'email' ? <Mail size={22} /> : step === 'otp' ? <Mail size={22} /> : <LockKeyRound size={22} />}
+            {step === 'email' ? <Mail size={22} /> : step === 'otp' ? <Mail size={22} /> : <Lock size={22} />}
           </div>
           <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">{stepTitle}</h1>
           <p className="mt-2 text-sm text-surface-500">
