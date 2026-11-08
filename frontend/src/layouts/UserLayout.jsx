@@ -3,7 +3,9 @@ import { Dumbbell, Menu, X, LayoutDashboard, User, CreditCard, Ruler, ShoppingBa
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import { signOut } from '@/redux/slices/authSlice';
+import { signOut, signOutAll } from '@/redux/slices/authSlice';
+import { authService } from '@/services/authService';
+import LogoutConfirmDialog from '@/components/auth/LogoutConfirmDialog';
 import { fetchUnreadCount } from '@/redux/slices/notificationSlice';
 
 const navItems = [
@@ -29,6 +31,9 @@ export default function UserLayout() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState({ activeSessions: 0, loading: false, error: '' });
+  const [logoutSubmitting, setLogoutSubmitting] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,10 +53,17 @@ export default function UserLayout() {
     setProfileOpen(false);
   }, [location.pathname]);
 
-  async function handleSignOut() {
-    await dispatch(signOut());
-    navigate('/');
+  async function loadSessionInfo() {
+    setSessionInfo({ activeSessions: 0, loading: true, error: '' });
+    try {
+      const result = await authService.sessionSummary();
+      setSessionInfo({ activeSessions: result.activeSessions || 1, loading: false, error: '' });
+    } catch (error) {
+      setSessionInfo({ activeSessions: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
+    }
   }
+  async function handleSignOut() { setLogoutSubmitting(true); await dispatch(signOut()); navigate('/'); }
+  async function handleSignOutAll() { setLogoutSubmitting(true); await dispatch(signOutAll()); navigate('/'); }
 
   const navLinkClass = ({ isActive }) => `group relative flex items-center rounded-xl transition-all duration-200 ${collapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-3'} ${isActive
     ? 'bg-brand-500 text-white shadow-[0_8px_24px_rgba(220,38,38,0.18)]'
@@ -59,6 +71,7 @@ export default function UserLayout() {
 
   return (
     <div className="min-h-screen bg-surface-50 text-ink-800 selection:bg-brand-500/20 dark:bg-[#08090c] dark:text-white">
+      <LogoutConfirmDialog open={logoutOpen} activeSessions={sessionInfo.activeSessions} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
       <aside className={`user-sidebar fixed inset-y-0 left-0 z-50 hidden border-r border-surface-200 bg-white lg:flex lg:flex-col dark:border-white/[0.08] dark:bg-[#11131b] ${collapsed ? 'w-[84px]' : 'w-[286px]'}`}>
         <div className={`flex h-[72px] shrink-0 items-center border-b border-surface-200 dark:border-white/[0.08] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           <Link to="/" className="group flex min-w-0 items-center gap-3">
@@ -116,7 +129,7 @@ export default function UserLayout() {
               <Link to="/user/cart" aria-label="Cart" className="relative rounded-xl p-2.5 text-surface-500 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"><ShoppingCart size={19} />{cartCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[9px] font-extrabold text-white">{cartCount}</span>}</Link>
               <div className="relative ml-1 border-l border-surface-200 pl-2 sm:pl-3 dark:border-white/[0.08]">
                 <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-surface-100 dark:hover:bg-white/[0.06]"><span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-sm font-extrabold text-white">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" /> : initials}</span><span className="hidden max-w-[110px] truncate text-sm font-bold text-ink-900 md:block dark:text-white">{displayName}</span><ChevronDown size={16} className={`hidden text-surface-400 transition md:block dark:text-slate-500 ${profileOpen ? 'rotate-180' : ''}`} /></button>
-                {profileOpen && <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-surface-200 bg-white p-1.5 shadow-2xl dark:border-white/[0.09] dark:bg-[#151821]"><Link to="/user/profile" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-surface-600 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white"><User size={17} /> Profile</Link><button type="button" onClick={handleSignOut} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"><LogOut size={17} /> Sign out</button></div>}
+                {profileOpen && <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-surface-200 bg-white p-1.5 shadow-2xl dark:border-white/[0.09] dark:bg-[#151821]"><Link to="/user/profile" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-surface-600 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white"><User size={17} /> Profile</Link><button type="button" onClick={() => { setProfileOpen(false); setLogoutOpen(true); loadSessionInfo(); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"><LogOut size={17} /> Sign out</button></div>}
               </div>
             </div>
           </div>

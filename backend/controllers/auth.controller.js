@@ -1,5 +1,4 @@
 import * as authService from '../services/auth.service.js';
-import { verifyRefreshToken } from '../utils/jwt.utils.js';
 
 const cookieOptions = (maxAge) => {
   const production = process.env.NODE_ENV === 'production';
@@ -45,12 +44,20 @@ export const refresh = async (req, res, next) => {
     res.json({ user: result.user });
   } catch (err) { clearAuthCookies(res); next(err); }
 };
-export const logout = async (req, res) => {
+export const sessionSummary = async (req, res, next) => {
   try {
-    const rawToken = req.cookies?.refreshToken;
-    if (rawToken) { const payload = verifyRefreshToken(rawToken); await authService.revokeSession(payload.sid, payload.id, 'logout'); }
-  } catch { /* Clear invalid cookies as well. */ }
-  clearAuthCookies(res); res.set('Cache-Control', 'no-store'); res.json({ message: 'Logged out successfully' });
+    const activeSessions = await authService.getActiveSessionCount(req.user._id);
+    res.set('Cache-Control', 'no-store');
+    res.json({ activeSessions });
+  } catch (err) { next(err); }
+};
+export const logout = async (req, res, next) => {
+  try {
+    await authService.revokeSession(req.session?._id, req.user._id, 'logout');
+    clearAuthCookies(res);
+    res.set('Cache-Control', 'no-store');
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) { next(err); }
 };
 export const logoutAll = async (req, res, next) => {
   try {

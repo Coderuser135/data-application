@@ -5,7 +5,9 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
-import { signOut } from '@/redux/slices/authSlice';
+import { signOut, signOutAll } from '@/redux/slices/authSlice';
+import { authService } from '@/services/authService';
+import LogoutConfirmDialog from '@/components/auth/LogoutConfirmDialog';
 
 const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -28,6 +30,9 @@ export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const [readyPath, setReadyPath] = useState('');
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState({ activeSessions: 0, loading: false, error: '' });
+  const [logoutSubmitting, setLogoutSubmitting] = useState(false);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => setReadyPath(location.pathname), 180);
@@ -39,7 +44,17 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const profile = useSelector((state) => state.auth.profile);
 
-  async function handleSignOut() { await dispatch(signOut()); navigate('/'); }
+  async function loadSessionInfo() {
+    setSessionInfo({ activeSessions: 0, loading: true, error: '' });
+    try {
+      const result = await authService.sessionSummary();
+      setSessionInfo({ activeSessions: result.activeSessions || 1, loading: false, error: '' });
+    } catch (error) {
+      setSessionInfo({ activeSessions: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
+    }
+  }
+  async function handleSignOut() { setLogoutSubmitting(true); await dispatch(signOut()); navigate('/'); }
+  async function handleSignOutAll() { setLogoutSubmitting(true); await dispatch(signOutAll()); navigate('/'); }
 
   return (
     <div className="admin-shell min-h-screen bg-surface-50 dark:bg-surface-950">
@@ -56,10 +71,11 @@ export default function AdminLayout() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link to="/admin/profile" aria-label="Admin profile" className="rounded-full"><AdminAvatar name={profile?.full_name || 'Administrator'} src={profile?.avatar_url} className="h-9 w-9 text-sm" /></Link>
-            <button onClick={handleSignOut} className="rounded-xl p-2.5 text-surface-300 hover:bg-red-500/10 hover:text-red-400"><LogOut size={18} /></button>
+            <button onClick={() => { setLogoutOpen(true); loadSessionInfo(); }} className="rounded-xl p-2.5 text-surface-300 hover:bg-red-500/10 hover:text-red-400"><LogOut size={18} /></button>
           </div>
         </div>
       </header>
+      <LogoutConfirmDialog open={logoutOpen} activeSessions={sessionInfo.activeSessions} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
       <div className="mx-auto flex w-full max-w-7xl min-w-0">
         <aside className={`admin-sidebar fixed inset-y-0 left-0 z-30 mt-14 w-64 transform border-r border-surface-200 bg-white transition-transform dark:border-surface-800 dark:bg-surface-900 lg:sticky lg:top-14 lg:mt-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="admin-nav space-y-1 overflow-y-auto p-4 pt-6" style={{ maxHeight: 'calc(100vh - 4rem)' }}>

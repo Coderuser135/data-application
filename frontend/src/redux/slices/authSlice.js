@@ -15,6 +15,9 @@ export const signUp = createAsyncThunk('auth/signUp', async (data, { rejectWithV
 export const signOut = createAsyncThunk('auth/signOut', async (_, { rejectWithValue }) => {
   try { return await authService.logout(); } catch (error) { return rejectWithValue(errorMessage(error, 'Logout failed')); }
 });
+export const signOutAll = createAsyncThunk('auth/signOutAll', async (_, { rejectWithValue }) => {
+  try { return await authService.logoutAll(); } catch (error) { return rejectWithValue(errorMessage(error, 'Logout from all devices failed')); }
+});
 
 const authSlice = createSlice({
   name: 'auth',
@@ -35,7 +38,9 @@ const authSlice = createSlice({
       .addCase(signUp.fulfilled, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; })
       .addCase(signUp.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(signOut.fulfilled, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; })
-      .addCase(signOut.rejected, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; });
+      .addCase(signOut.rejected, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; })
+      .addCase(signOutAll.fulfilled, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; })
+      .addCase(signOutAll.rejected, (state) => { state.user = null; state.profile = null; state.isAuthenticated = false; state.loading = false; });
   },
 });
 export const { clearAuth, setProfile } = authSlice.actions;

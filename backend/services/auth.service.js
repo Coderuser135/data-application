@@ -184,6 +184,9 @@ export async function revokeSession(sessionId, userId, reason = 'logout') {
   if (!sessionId) return;
   await Session.updateOne({ _id: sessionId, user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
 }
+export async function getActiveSessionCount(userId) {
+  return Session.countDocuments({ user_id: userId, revoked_at: null, expires_at: { $gt: new Date() } });
+}
 export async function revokeAllSessions(userId, reason = 'logout-all') {
   await Session.updateMany({ user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
 }
