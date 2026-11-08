@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const gymSettingsSchema = new mongoose.Schema({
-  gym_name: { type: String, default: 'Heaven Gym Gym' },
+  gym_name: { type: String, default: 'Heaven Gym' },
   contact_phone: { type: String, default: '' },
   contact_email: { type: String, default: '' },
   address: { type: String, default: '' },

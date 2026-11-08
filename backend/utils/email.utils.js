@@ -34,7 +34,7 @@ export async function sendEmailVerificationOtp({ to, otp, fullName }) {
 
   await transporter.sendMail({
     from: {
-      name: 'Heaven Gym Gym',
+      name: 'Heaven Gym',
       address: from,
     },
     to,
@@ -51,7 +51,7 @@ export async function sendPasswordResetEmail({ to, token }) {
 
   await transporter.sendMail({
     from: {
-      name: 'Heaven Gym Gym',
+      name: 'Heaven Gym',
       address: getSenderAddress(),
     },
     to,
