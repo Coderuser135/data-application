@@ -322,3 +322,70 @@ export async function handleRazorpayWebhook(rawBody, signature, eventPayload) {
   finally { await session.endSession(); }
   return { received: true, processed: true };
 }
+
+
+export async function confirmReconciliationRefund(paymentId, refundId) {
+  if (!mongoose.isValidObjectId(paymentId)) throw new ApiError(400, 'Invalid payment ID');
+  if (typeof refundId !== 'string' || !/^rfnd_[A-Za-z0-9]+$/.test(refundId.trim())) {
+    throw new ApiError(400, 'Enter a valid Razorpay refund ID');
+  }
+
+  const payment = await Payment.findById(paymentId);
+  if (!payment) throw new ApiError(404, 'Payment not found');
+  if (payment.status === 'refunded' && payment.razorpay_refund_id === refundId.trim()) return payment;
+  if (payment.status !== 'reconciliation_required' || payment.payment_method !== 'online'
+    || !payment.order_id || !payment.razorpay_payment_id) {
+    throw new ApiError(409, 'Only captured online order payments requiring reconciliation can be resolved as refunded');
+  }
+
+  let refund;
+  try {
+    refund = await gateway().refunds.fetch(refundId.trim());
+  } catch {
+    throw new ApiError(400, 'Razorpay could not verify this refund ID');
+  }
+
+  if (refund.payment_id !== payment.razorpay_payment_id || refund.currency !== 'INR') {
+    throw new ApiError(400, 'This refund does not belong to the selected payment');
+  }
+  if (Number(refund.amount) !== Math.round(Number(payment.amount) * 100)) {
+    throw new ApiError(409, 'Only a full refund matching the original payment amount can close this reconciliation');
+  }
+  if (refund.status !== 'processed') {
+    throw new ApiError(409, 'Razorpay has not marked this refund as processed yet');
+  }
+
+  const session = await mongoose.startSession();
+  let resolvedPayment;
+  try {
+    await session.withTransaction(async () => {
+      const current = await Payment.findById(paymentId).session(session);
+      if (!current) throw new ApiError(404, 'Payment not found');
+      if (current.status === 'refunded' && current.razorpay_refund_id === refund.id) {
+        resolvedPayment = current;
+        return;
+      }
+      if (current.status !== 'reconciliation_required'
+        || current.razorpay_payment_id !== refund.payment_id
+        || String(current.order_id) !== String(payment.order_id)) {
+        throw new ApiError(409, 'Payment changed while the refund was being verified. Refresh and review it again.');
+      }
+
+      current.status = 'refunded';
+      current.razorpay_refund_id = refund.id;
+      current.refund_date = refund.created_at ? new Date(refund.created_at * 1000) : new Date();
+      current.reference_note = `Full refund verified in Razorpay (${refund.id}).`;
+      await current.save({ session });
+
+      await Order.updateOne(
+        { _id: current.order_id, payment_id: { $in: [null, current._id] } },
+        { $set: { payment_status: 'refunded', payment_id: current._id } },
+        { session },
+      );
+      resolvedPayment = current;
+    });
+    return resolvedPayment;
+  } finally {
+    await session.endSession();
+  }
+}
