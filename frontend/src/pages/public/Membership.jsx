@@ -18,7 +18,7 @@ export default function Membership() {
       <section className="relative overflow-hidden bg-ink-950 pb-16 pt-32 text-white sm:pb-20 sm:pt-36">
         <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-brand-500/15 blur-3xl" />
         <div className="relative mx-auto max-w-7xl px-5 lg:px-8">
-          <p className="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-brand-300"><Dumbbell size={13} /> IronForge memberships</p>
+          <p className="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-brand-300"><Dumbbell size={13} /> Heaven Gym memberships</p>
           <h1 className="mt-5 max-w-3xl font-display text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-6xl">Choose your plan.<br /><span className="text-brand-400">Own your progress.</span></h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-surface-300 sm:text-lg">Straightforward membership options, clear benefits and no confusing surprises. Find the plan that fits your training routine.</p>
         </div>
