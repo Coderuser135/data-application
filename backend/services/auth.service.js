@@ -64,7 +64,7 @@ async function createSession(user, metadata) {
   if (metadata?.deviceId) {
     await Session.updateMany(
       { user_id: user._id, device_id: metadata.deviceId, revoked_at: null },
-      { $set: { revoked_at: new Date(), revoke_reason: 'replaced-on-device-login' } }
+      { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'replaced-on-device-login' } }
     );
   }
   const sessionObjectId = new mongoose.Types.ObjectId();
@@ -165,13 +165,13 @@ export async function refreshAccessToken(rawRefreshToken, metadata) {
   const presentedHash = hashToken(rawRefreshToken);
   if (session.refresh_token_hash !== presentedHash) {
     if (session.used_refresh_token_hashes.includes(presentedHash)) {
-      await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
+      await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
     }
     throw new ApiError(401, 'Invalid or reused refresh token. Please log in again');
   }
   const user = await User.findById(payload.id);
   if (!user || !user.email_verified) {
-    await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: 'user-not-verified-or-not-found' } });
+    await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'user-not-verified-or-not-found' } });
     throw new ApiError(401, 'Authentication required');
   }
   const nextRefreshToken = generateRefreshToken(user, session._id);
@@ -181,7 +181,7 @@ export async function refreshAccessToken(rawRefreshToken, metadata) {
     { $set: { refresh_token_hash: nextHash, last_used_at: new Date(), ...sessionMetadata(metadata) }, $addToSet: { used_refresh_token_hashes: presentedHash } }
   );
   if (rotation.modifiedCount !== 1) {
-    await Session.updateOne({ _id: session._id, used_refresh_token_hashes: presentedHash, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
+    await Session.updateOne({ _id: session._id, used_refresh_token_hashes: presentedHash, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
     throw new ApiError(401, 'Session changed. Please log in again');
   }
   return { user, accessToken: generateAccessToken(user, session._id), refreshToken: nextRefreshToken };
@@ -189,7 +189,7 @@ export async function refreshAccessToken(rawRefreshToken, metadata) {
 
 export async function revokeSession(sessionId, userId, reason = 'logout') {
   if (!sessionId) return;
-  await Session.updateOne({ _id: sessionId, user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
+  await Session.updateOne({ _id: sessionId, user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: reason } });
 }
 export async function getActiveDeviceCount(userId) {
   const activeSessions = await Session.aggregate([
@@ -204,7 +204,7 @@ export async function getActiveDeviceCount(userId) {
   return activeSessions[0]?.total || 0;
 }
 export async function revokeAllSessions(userId, reason = 'logout-all') {
-  await Session.updateMany({ user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
+  await Session.updateMany({ user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: reason } });
 }
 export async function getMe(userId) {
   const user = await User.findById(userId);

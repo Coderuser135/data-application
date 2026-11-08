@@ -3,13 +3,13 @@ import { AlertTriangle, LoaderCircle, LogOut, MonitorSmartphone, X } from 'lucid
 export default function LogoutConfirmDialog({ open, activeDevices, loading, error, submitting, onCancel, onRetry, onLogout, onLogoutAll }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) onCancel(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" className="w-full max-w-md rounded-2xl border border-surface-200 bg-white p-6 shadow-2xl dark:border-surface-700 dark:bg-surface-900">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/55 px-3 py-4 backdrop-blur-sm sm:px-5 sm:py-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) onCancel(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" className="my-auto max-h-[min(82dvh,34rem)] w-full max-w-[26rem] overflow-y-auto overscroll-contain rounded-2xl border border-surface-200 bg-white p-4 shadow-2xl sm:p-5 dark:border-surface-700 dark:bg-surface-900">
         <div className="flex items-start justify-between gap-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"><LogOut size={21} /></div>
           <button type="button" onClick={onCancel} disabled={submitting} aria-label="Close logout confirmation" className="rounded-lg p-2 text-surface-400 transition hover:bg-surface-100 hover:text-surface-700 disabled:opacity-50 dark:hover:bg-surface-800"><X size={18} /></button>
         </div>
-        <h2 id="logout-dialog-title" className="mt-4 font-display text-xl font-bold text-ink-950 dark:text-white">Confirm logout</h2>
+        <h2 id="logout-dialog-title" className="mt-3 font-display text-lg font-bold text-ink-950 dark:text-white">Confirm logout</h2>
         <p className="mt-2 text-sm leading-6 text-surface-500 dark:text-surface-400">Choose whether to sign out from this device only or from every device using this account.</p>
         {loading ? (
           <div className="mt-6 flex items-center gap-2 rounded-xl bg-surface-50 px-4 py-3 text-sm text-surface-500 dark:bg-surface-800"><LoaderCircle size={17} className="animate-spin" /> Checking your active devices…</div>
@@ -21,10 +21,10 @@ export default function LogoutConfirmDialog({ open, activeDevices, loading, erro
             {activeDevices > 1 && <div className="mt-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertTriangle size={16} className="mt-0.5 shrink-0" /> Logout all will end every active device session, including this device.</div>}
           </>
         )}
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button type="button" onClick={onCancel} disabled={submitting} className="rounded-xl border border-surface-200 px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50 disabled:opacity-50 dark:border-surface-700 dark:text-surface-200 dark:hover:bg-surface-800">Cancel</button>
-          <button type="button" onClick={onLogout} disabled={loading || Boolean(error) || submitting} className="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? 'Logging out…' : 'Logout'}</button>
-          {activeDevices > 1 && !loading && !error && <button type="button" onClick={onLogoutAll} disabled={submitting} className="col-span-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10">{submitting ? 'Please wait…' : 'Logout all devices'}</button>}
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+          <button type="button" onClick={onCancel} disabled={submitting} className="rounded-xl border border-surface-200 px-3 py-2.5 text-sm font-semibold text-surface-700 transition hover:bg-surface-50 disabled:opacity-50 dark:border-surface-700 dark:text-surface-200 dark:hover:bg-surface-800">Cancel</button>
+          <button type="button" onClick={onLogout} disabled={loading || Boolean(error) || submitting} className="rounded-xl bg-red-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? 'Logging out…' : 'Logout'}</button>
+          {activeDevices > 1 && !loading && !error && <button type="button" onClick={onLogoutAll} disabled={submitting} className="col-span-2 rounded-xl border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10">{submitting ? 'Please wait…' : 'Logout all devices'}</button>}
         </div>
       </section>
     </div>
