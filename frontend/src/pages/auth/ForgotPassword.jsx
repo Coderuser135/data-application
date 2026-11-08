@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '@/services/authService';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import useOtpResendCountdown from '@/hooks/useOtpResendCountdown';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -14,11 +15,20 @@ export default function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [step, setStep] = useState('email');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const { secondsRemaining, startCooldown } = useOtpResendCountdown();
 
   function getError(requestError, fallback) {
     return requestError.response?.data?.error || requestError.message || fallback;
+  }
+
+  function applyCooldownFromError(requestError) {
+    if (requestError.response?.status !== 429) return;
+    const text = getError(requestError, '');
+    const match = text.match(/(\d+)\s*seconds?/i);
+    startCooldown(match ? Number(match[1]) : 60);
   }
 
   async function handleSendCode(event) {
@@ -29,11 +39,31 @@ export default function ForgotPassword() {
     try {
       const result = await authService.forgotPassword({ email });
       setStep('otp');
+      setOtp('');
+      startCooldown(60);
       setMessage(result.message || 'If this account is registered and verified, a reset code will be sent.');
     } catch (requestError) {
+      applyCooldownFromError(requestError);
       setError(getError(requestError, 'Could not send the reset code. Please try again.'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendCode() {
+    setResending(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await authService.forgotPassword({ email });
+      setOtp('');
+      startCooldown(60);
+      setMessage(result.message || 'If this account is registered and verified, a new reset code will be sent.');
+    } catch (requestError) {
+      applyCooldownFromError(requestError);
+      setError(getError(requestError, 'Could not resend the reset code. Please try again.'));
+    } finally {
+      setResending(false);
     }
   }
 
@@ -86,6 +116,10 @@ export default function ForgotPassword() {
       ? 'Verify your email'
       : 'Create a new password';
 
+  const resendLabel = secondsRemaining > 0
+    ? `Resend code in 00:${String(secondsRemaining).padStart(2, '0')}`
+    : 'Resend code';
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-50 px-5 dark:bg-surface-950">
       <div className="w-full max-w-md">
@@ -118,7 +152,15 @@ export default function ForgotPassword() {
             <form onSubmit={handleVerifyCode} className="mt-7 space-y-5">
               <Input label="6-digit reset code" inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" maxLength={6} autoComplete="one-time-code" required />
               <Button type="submit" loading={loading} disabled={otp.length !== 6} className="w-full" size="lg">Verify code</Button>
-              <button type="button" onClick={() => { setStep('email'); setOtp(''); setError(''); setMessage(''); }} className="w-full text-sm font-medium text-brand-600 hover:text-brand-700">Change email address</button>
+              <button
+                type="button"
+                onClick={handleResendCode}
+                disabled={resending || loading || secondsRemaining > 0}
+                className="w-full text-sm font-medium text-brand-600 transition hover:text-brand-700 disabled:cursor-not-allowed disabled:text-surface-400"
+              >
+                {resending ? 'Sending new code…' : resendLabel}
+              </button>
+              <button type="button" onClick={() => { setStep('email'); setOtp(''); setError(''); setMessage(''); }} className="w-full text-sm font-medium text-surface-500 hover:text-ink-900 dark:hover:text-white">Change email address</button>
             </form>
           )}
 
