@@ -78,7 +78,9 @@ async function createSession(user, metadata) {
   return { user, session, accessToken: generateAccessToken(user, session._id), refreshToken };
 }
 
-export async function registerUser({ email, password, full_name, fullName, phone }) {
+export async function registerUser({ email, password, full_name, fullName, phone, isAdult, acceptedTerms }) {
+  if (isAdult !== true) throw new ApiError(400, 'You must confirm that you are 18 years or older to create an account');
+  if (acceptedTerms !== true) throw new ApiError(400, 'You must accept the Terms & Conditions to create an account');
   const normalizedEmail = normalizeEmail(email);
   validatePassword(password);
   if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) throw new ApiError(400, 'A valid email is required');
@@ -91,6 +93,10 @@ export async function registerUser({ email, password, full_name, fullName, phone
       full_name: String(full_name ?? fullName ?? '').trim().slice(0, 100),
       phone: String(phone || '').trim().slice(0, 30),
       email_verified: false,
+      is_18_plus: true,
+      age_confirmed_at: new Date(),
+      terms_accepted_at: new Date(),
+      terms_version: '2026-11-08',
     });
   } catch (error) {
     if (error?.code === 11000) throw new ApiError(409, 'Email already registered. If you have not verified it, use resend verification code.');
