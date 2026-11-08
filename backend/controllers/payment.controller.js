@@ -26,3 +26,11 @@ export const razorpayWebhook = async (req, res, next) => {
     res.json(await paymentService.handleRazorpayWebhook(rawBody, signature, payload));
   } catch (err) { next(err); }
 };
+export const confirmReconciliationRefund = async (req, res, next) => {
+  try {
+    const payment = await paymentService.confirmReconciliationRefund(req.params.paymentId, req.body.refundId);
+    const safePayment = payment?.toObject ? payment.toObject() : { ...payment };
+    delete safePayment.razorpay_signature;
+    res.json(safePayment);
+  } catch (err) { next(err); }
+};
