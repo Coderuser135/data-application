@@ -7,6 +7,7 @@ import UserLayout from '@/layouts/UserLayout';
 import AdminLayout from '@/layouts/AdminLayout';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import AdminRoute from '@/routes/AdminRoute';
+import GuestRoute from '@/routes/GuestRoute';
 import Home from '@/pages/public/Home';
 import About from '@/pages/public/About';
 import Membership from '@/pages/public/Membership';
@@ -61,9 +62,11 @@ export default function App() {
           <Route path="/membership" element={<Membership />} /><Route path="/store" element={<Store />} />
           <Route path="/contact" element={<Contact />} />
         </Route>
-        <Route path="/login" element={<Login />} /><Route path="/register" element={<Register />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /><Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+        <Route path="/verify-email" element={<GuestRoute><VerifyEmail /></GuestRoute>} />
+        <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+        <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
         <Route path="/user" element={<ProtectedRoute><UserLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/user/dashboard" />} /><Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<Profile />} /><Route path="gym" element={<MyGym />} />

@@ -74,7 +74,7 @@ export default function UserLayout() {
       <LogoutConfirmDialog open={logoutOpen} activeSessions={sessionInfo.activeSessions} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
       <aside className={`user-sidebar fixed inset-y-0 left-0 z-50 hidden border-r border-surface-200 bg-white lg:flex lg:flex-col dark:border-white/[0.08] dark:bg-[#11131b] ${collapsed ? 'w-[84px]' : 'w-[286px]'}`}>
         <div className={`flex h-[72px] shrink-0 items-center border-b border-surface-200 dark:border-white/[0.08] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
-          <Link to="/" className="group flex min-w-0 items-center gap-3">
+          <Link to="/user/dashboard" className="group flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[0_0_24px_rgba(220,38,38,0.20)] transition group-hover:scale-105"><Dumbbell size={20} strokeWidth={2.5} /></span>
             {!collapsed && <span className="font-display whitespace-nowrap text-[17px] font-extrabold tracking-tight text-ink-900 dark:text-white">Heaven<span className="text-brand-500"> Gym</span></span>}
           </Link>
@@ -107,7 +107,7 @@ export default function UserLayout() {
 
       <aside className={`fixed inset-y-0 left-0 z-[60] w-[286px] transform border-r border-surface-200 bg-white transition-transform duration-300 lg:hidden dark:border-white/[0.08] dark:bg-[#11131b] ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-[72px] items-center justify-between border-b border-surface-200 px-5 dark:border-white/[0.08]">
-          <Link to="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={20} /></span><span className="font-display text-[17px] font-extrabold text-ink-900 dark:text-white">Heaven<span className="text-brand-500"> Gym</span></span></Link>
+          <Link to="/user/dashboard" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={20} /></span><span className="font-display text-[17px] font-extrabold text-ink-900 dark:text-white">Heaven<span className="text-brand-500"> Gym</span></span></Link>
           <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-2 text-surface-500 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white" aria-label="Close menu"><X size={20} /></button>
         </div>
         <nav className="custom-scrollbar overflow-y-auto px-3 py-5" style={{ maxHeight: 'calc(100vh - 72px)' }}>
