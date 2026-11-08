@@ -267,6 +267,8 @@ export default function AdminUsers() {
   const startItem = results.total === 0 ? 0 : ((page - 1) * limit) + 1;
   const endItem = Math.min(page * limit, results.total);
 
+  if (loading && rows.length === 0) return <AdminLoadingSkeleton variant="section" />;
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <div>

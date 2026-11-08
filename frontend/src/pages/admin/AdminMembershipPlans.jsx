@@ -126,6 +126,8 @@ export default function AdminMembershipPlans() {
     dispatch(deleteMembershipPlan(id));
   }
 
+  if (loading && items.length === 0) return <AdminLoadingSkeleton variant="section" />;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

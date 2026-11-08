@@ -34,6 +34,8 @@ export default function AdminOrders() {
     return Array.from({ length: Math.min(5, totalPages) }, (_, index) => first + index);
   }, [page, totalPages]);
 
+  if (loading && adminItems.length === 0) return <AdminLoadingSkeleton variant="section" />;
+
   async function handleStatusChange(orderId, newStatus) {
     try {
       await dispatch(updateOrderStatus({ id: orderId, status: newStatus })).unwrap();

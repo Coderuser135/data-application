@@ -82,6 +82,8 @@ export default function AdminSupplementSelling() {
   const first = result.total ? (page - 1) * PAGE_SIZE + 1 : 0;
   const last = Math.min(page * PAGE_SIZE, result.total || 0);
 
+  if (loading && products.length === 0) return <AdminLoadingSkeleton variant="section" />;
+
   async function completeSale() {
     if (!selectedItems.length || selling) return;
     setSelling(true);

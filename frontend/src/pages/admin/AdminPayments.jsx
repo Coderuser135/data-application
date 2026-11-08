@@ -57,6 +57,8 @@ export default function AdminPayments() {
   }, [page, totalPages]);
   const summary = adminSummary || {};
 
+  if (loading && adminItems.length === 0) return <AdminLoadingSkeleton variant="section" />;
+
   const statusTone = (value) => value === 'success' ? 'success' : value === 'pending' || value === 'reconciliation_required' ? 'warning' : 'danger';
 
   return (

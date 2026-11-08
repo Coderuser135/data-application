@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminAvatar from '@/components/admin/AdminAvatar';
 import { Dumbbell, Menu, X, LayoutDashboard, Users, UserPlus, CreditCard, Ruler, Package, ShoppingCart, Bell, Settings, LogOut, ClipboardList, UserRound, PanelsTopLeft } from 'lucide-react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import { signOut } from '@/redux/slices/authSlice';
 
 const navItems = [
@@ -25,6 +26,15 @@ const navItems = [
 
 export default function AdminLayout() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const [readyPath, setReadyPath] = useState('');
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setReadyPath(location.pathname), 180);
+    return () => clearTimeout(timeoutId);
+  }, [location.pathname]);
+
+  const isSectionLoading = readyPath !== location.pathname;
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const profile = useSelector((state) => state.auth.profile);
@@ -61,7 +71,7 @@ export default function AdminLayout() {
           </nav>
         </aside>
         {open && <div onClick={() => setOpen(false)} className="fixed inset-0 z-20 bg-black/30 lg:hidden" />}
-        <main className="admin-content w-full min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-8"><Outlet /></main>
+        <main className="admin-content w-full min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-8">{isSectionLoading ? <AdminLoadingSkeleton variant="section" /> : <Outlet />}</main>
       </div>
     </div>
   );

@@ -17,8 +17,11 @@ export default function AdminBodyMeasurements() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  useEffect(() => { dispatch(fetchAdmittedMembers()); }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchAdmittedMembers()).finally(() => setInitialLoading(false));
+  }, [dispatch]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -36,6 +39,8 @@ export default function AdminBodyMeasurements() {
   const pages = Array.from({ length: Math.min(5, pageCount) }, (_, index) => firstPage + index);
   const start = filtered.length ? (currentPage - 1) * limit + 1 : 0;
   const end = Math.min(currentPage * limit, filtered.length);
+
+  if (initialLoading || (loading && !members.length)) return <AdminLoadingSkeleton variant="measurement" />;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -59,7 +64,7 @@ export default function AdminBodyMeasurements() {
         </div>
       </Card>
 
-      {loading && !members.length ? <AdminLoadingSkeleton variant="cards" rows={6} /> : visible.length ? (
+      {visible.length ? (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((member) => (

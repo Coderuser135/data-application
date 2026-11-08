@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Camera, ImagePlus, Pencil, Trash2, Eye, EyeOff, Save, X } from 'lucide-react';
 import Card from '@/components/ui/Card';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { bannerService } from '@/services/bannerService';
@@ -29,6 +30,8 @@ export default function AdminBadgeManager() {
   }, [section]);
 
   useEffect(() => { loadItems(); }, [loadItems]);
+
+  if (loading && items.length === 0) return <AdminLoadingSkeleton variant="section" />;
 
   function resetForm() {
     setEditingId('');

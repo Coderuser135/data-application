@@ -88,6 +88,7 @@ export default function AdminAdmissions() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [initialLoading, setInitialLoading] = useState(true);
   const [measurementSkipped, setMeasurementSkipped] = useState(false);
   const [viewingAdmission, setViewingAdmission] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
@@ -105,7 +106,7 @@ export default function AdminAdmissions() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, admissionFilter })); }, 300);
+    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, admissionFilter })).finally(() => setInitialLoading(false)); }, 300);
     return () => clearTimeout(timer);
   }, [dispatch, query, page, limit, admissionFilter]);
 
@@ -253,6 +254,8 @@ export default function AdminAdmissions() {
   }
 
   const rows = searchResults.rows || [];
+
+  if (initialLoading) return <AdminLoadingSkeleton variant="section" />;
 
   return (
     <div className="space-y-6">
