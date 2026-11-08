@@ -30,7 +30,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={21} /></span>
-          <span className="font-display text-lg font-bold text-ink-950 dark:text-white">IRON<span className="text-brand-500">FORGE</span></span>
+          <span className="font-display text-lg font-bold text-ink-950 dark:text-white">HEAVEN<span className="text-brand-500">GYM</span></span>
         </Link>
         <div className="rounded-2xl border border-surface-200 bg-white p-8 shadow-sm dark:border-surface-800 dark:bg-surface-900">
           {sent ? (
