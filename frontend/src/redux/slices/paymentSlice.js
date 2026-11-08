@@ -19,6 +19,10 @@ export const verifyRazorpayPayment = createAsyncThunk('payments/verifyRazorpayPa
   try { return await paymentService.verifyRazorpayPayment(data); } catch (error) { return rejectWithValue(errorMessage(error, 'Payment verification failed')); }
 });
 
+export const confirmReconciliationRefund = createAsyncThunk('payments/confirmReconciliationRefund', async ({ paymentId, refundId }, { rejectWithValue }) => {
+  try { return await paymentService.confirmReconciliationRefund(paymentId, { refundId }); } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to verify refund')); }
+});
+
 const paymentSlice = createSlice({
   name: 'payments',
   initialState: { items: [], adminItems: [], adminPagination: null, adminSummary: null, loading: false, error: null },
