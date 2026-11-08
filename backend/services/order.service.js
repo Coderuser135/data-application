@@ -180,6 +180,9 @@ export async function releaseExpiredOrderReservations() {
         }
         order.inventory_status = 'released';
         order.status = 'cancelled';
+        // Free the idempotency key only after stock is safely released. A retry
+        // from the still-open checkout page can then create a fresh reservation.
+        order.checkout_request_id = undefined;
         await order.save({ session });
         await Payment.updateMany(
           { order_id: order._id, status: 'pending' },
