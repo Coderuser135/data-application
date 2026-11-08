@@ -49,7 +49,7 @@ button, input, select, textarea { font: inherit; }
 .dark .text-surface-400 { color: #98a2b3 !important; }
 .dark .text-surface-300 { color: #b9c1ce !important; }
 
-/* IRONFORGE admin visual system: graphite surfaces, crisp type and crimson accents. */
+/* Heaven Gym admin visual system: graphite surfaces, crisp type and crimson accents. */
 .admin-shell{--admin-border:#e4e7ec;color:#20242d;background:#f4f6f8;font-family:'DM Sans',sans-serif}
 .dark .admin-shell{--admin-border:#252b36;color:#edf0f4;background:#0d1117}
 .admin-shell h1,.admin-shell h2,.admin-shell h3{letter-spacing:-.035em}
@@ -422,4 +422,15 @@ button, input, select, textarea { font: inherit; }
   .admin-content { padding-left: 9px; padding-right: 9px; }
   .admin-content .grid.grid-cols-2 { gap: 8px; }
   .admin-shell table.admin-mobile-cards tbody td::before { flex-basis: 72px; }
+}
+
+
+/* Banner carousel: gentle cross-fade and subtle zoom between images. */
+@keyframes banner-change {
+  from { opacity: .55; transform: scale(1.025); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-banner-change { animation: banner-change .7s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-banner-change { animation: none !important; }
 }

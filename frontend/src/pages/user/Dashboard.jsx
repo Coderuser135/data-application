@@ -1,11 +1,13 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, CreditCard, Ruler, ShoppingBag, ArrowRight, Dumbbell, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
+import { Calendar, CreditCard, ShoppingBag, ArrowRight, Dumbbell, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
+import BannerCarousel from '@/components/public/BannerCarousel';
 import { fetchUserDashboard } from '@/redux/slices/dashboardSlice';
 import { formatCurrency, formatDate, getDaysRemaining } from '@/utils/formatters';
 
@@ -41,11 +43,14 @@ export default function UserDashboard() {
 
   useEffect(() => { dispatch(fetchUserDashboard()); }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="dashboard" />;
   if (!data) return <EmptyState title="Unable to load dashboard" />;
 
-  const activeMembership = (data.memberships || []).find((m) => m.status === 'active');
-  const daysLeft = getDaysRemaining(activeMembership?.end_date);
+  const activeMembership = (data.memberships || []).find((m) => (m.effective_status || m.status) === 'active' && m.payment_status === 'paid');
+  const scheduledMembership = (data.memberships || []).find((m) => (m.effective_status || m.status) === 'scheduled' && m.payment_status === 'paid');
+  const pendingMembership = (data.memberships || []).find((m) => m.payment_status === 'pending' && Number(m.amount_due) > 0);
+  const currentMembership = activeMembership || scheduledMembership || pendingMembership;
+  const daysLeft = getDaysRemaining(currentMembership?.end_date);
   const totalPaid = (data.payments || []).filter((p) => p.status === 'success').reduce((sum, p) => sum + Number(p.amount), 0);
   const latestMeasurement = (data.measurements || [])[0];
   const previousMeasurement = (data.measurements || [])[1];
@@ -60,10 +65,12 @@ export default function UserDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white sm:p-8">
-        <p className="text-sm text-surface-400">Welcome back</p>
-        <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{profile?.full_name || 'Athlete'}</h1>
-        <p className="mt-2 text-sm text-surface-400">Here's your training overview at a glance.</p>
+      <BannerCarousel section="gym" />
+
+      <div className="rounded-2xl bg-gradient-to-br from-ink-900 to-ink-950 px-5 py-4 text-white sm:px-6 sm:py-5">
+        <p className="text-xs text-surface-400 sm:text-sm">Welcome back</p>
+        <h1 className="mt-1 font-display text-xl font-bold sm:text-2xl">{profile?.full_name || 'Athlete'}</h1>
+        <p className="mt-1.5 text-xs text-surface-400 sm:text-sm">Here's your training overview at a glance.</p>
       </div>
 
       {showRenewalBanner && (
@@ -73,7 +80,7 @@ export default function UserDashboard() {
               <AlertCircle size={24} className={daysLeft <= 2 ? 'text-red-500' : 'text-amber-500'} />
               <div>
                 <p className="font-semibold text-ink-900 dark:text-white">{daysLeft <= 0 ? 'Membership Expired' : `Membership expires in ${daysLeft} days`}</p>
-                <p className="text-sm text-surface-500">{activeMembership.plan_name_snapshot} · Renew now to keep your gym access active</p>
+                <p className="text-sm text-surface-500">{currentMembership.plan_name_snapshot} · Renew now to keep your gym access active</p>
               </div>
             </div>
             <Link to="/user/membership"><Button size="sm">Renew Now</Button></Link>
@@ -94,32 +101,32 @@ export default function UserDashboard() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><Dumbbell size={20} /></span>
-            <Badge tone={activeMembership ? 'success' : 'neutral'}>{activeMembership ? 'Active' : 'None'}</Badge>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"><Dumbbell size={20} /></span>
+            <Badge tone={pendingMembership ? 'warning' : currentMembership ? (scheduledMembership ? 'info' : 'success') : 'neutral'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Upcoming' : activeMembership ? 'Active' : 'None'}</Badge>
           </div>
           <p className="mt-4 text-xs text-surface-500">Membership</p>
-          <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{activeMembership ? activeMembership.plan_name_snapshot : 'Not active'}</p>
+          <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{currentMembership ? currentMembership.plan_name_snapshot : 'Not active'}</p>
         </Card>
-        <Card>
+        <Card className="!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><Calendar size={20} /></span>
-            <Badge tone={activeMembership ? (daysLeft < 7 ? 'warning' : 'success') : 'neutral'}>{activeMembership ? `${daysLeft}d` : '—'}</Badge>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"><Calendar size={20} /></span>
+            <Badge tone={currentMembership ? (scheduledMembership ? 'info' : daysLeft < 7 ? 'warning' : 'success') : 'neutral'}>{pendingMembership ? 'Due' : scheduledMembership ? 'Soon' : activeMembership ? `${daysLeft}d` : '—'}</Badge>
           </div>
-          <p className="mt-4 text-xs text-surface-500">Days Remaining</p>
-          <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{activeMembership ? `${daysLeft} days` : '—'}</p>
+          <p className="mt-4 text-xs text-surface-500">{pendingMembership ? 'Payment Status' : scheduledMembership ? 'Starts On' : 'Days Remaining'}</p>
+          <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{pendingMembership ? 'Payment pending' : scheduledMembership ? formatDate(scheduledMembership.start_date) : activeMembership ? `${daysLeft} days` : '—'}</p>
         </Card>
-        <Card>
+        <Card className="!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"><CreditCard size={20} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"><CreditCard size={20} /></span>
           </div>
           <p className="mt-4 text-xs text-surface-500">Total Paid</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{formatCurrency(totalPaid)}</p>
         </Card>
-        <Card>
+        <Card className="!border-violet-200/80 !bg-violet-50/70 dark:!border-violet-500/20 dark:!bg-violet-500/[0.08]">
           <div className="flex items-center justify-between">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300"><ShoppingBag size={20} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400"><ShoppingBag size={20} /></span>
           </div>
           <p className="mt-4 text-xs text-surface-500">Total Orders</p>
           <p className="mt-1 font-display text-lg font-bold text-ink-950 dark:text-white">{(data.orders || []).length}</p>
@@ -161,14 +168,14 @@ export default function UserDashboard() {
             <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Membership Status</h3>
             <Link to="/user/membership"><Button variant="ghost" size="sm">View <ArrowRight size={14} /></Button></Link>
           </div>
-          {activeMembership ? (
+          {currentMembership ? (
             <div className="space-y-3">
-              <div className="flex justify-between text-sm"><span className="text-surface-500">Plan</span><span className="font-semibold text-ink-900 dark:text-white">{activeMembership.plan_name_snapshot}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-surface-500">Start date</span><span className="font-medium">{formatDate(activeMembership.start_date)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-surface-500">End date</span><span className="font-medium">{formatDate(activeMembership.end_date)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-surface-500">Status</span><Badge tone="success">Active</Badge></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">Plan</span><span className="font-semibold text-ink-900 dark:text-white">{currentMembership.plan_name_snapshot}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">Start date</span><span className="font-medium">{formatDate(currentMembership.start_date)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">End date</span><span className="font-medium">{formatDate(currentMembership.end_date)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">Status</span><Badge tone={pendingMembership ? 'warning' : scheduledMembership ? 'info' : 'success'}>{pendingMembership ? 'Payment Due' : scheduledMembership ? 'Scheduled' : 'Active'}</Badge></div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-800">
-                <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.min(100, (daysLeft / activeMembership.duration_days) * 100)}%` }} />
+                <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.min(100, (daysLeft / currentMembership.duration_days) * 100)}%` }} />
               </div>
             </div>
           ) : data.admission ? (

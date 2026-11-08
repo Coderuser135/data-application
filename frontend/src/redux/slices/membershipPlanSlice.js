@@ -16,7 +16,12 @@ export const updateMembershipPlan = createAsyncThunk('membershipPlans/update', a
 });
 
 export const deleteMembershipPlan = createAsyncThunk('membershipPlans/delete', async (id, { rejectWithValue }) => {
-  try { return await membershipPlanService.delete(id); return id; } catch (error) { return rejectWithValue(errorMessage(error, 'Failed to delete plan')); }
+  try {
+    await membershipPlanService.delete(id);
+    return id;
+  } catch (error) {
+    return rejectWithValue(errorMessage(error, 'Failed to delete plan'));
+  }
 });
 
 const membershipPlanSlice = createSlice({

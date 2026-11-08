@@ -1,6 +1,7 @@
+import UserLoadingSkeleton from '@/components/ui/UserLoadingSkeleton';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Ruler, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 import { fetchMyMeasurements } from '@/redux/slices/measurementSlice';
@@ -72,7 +73,7 @@ export default function BodyProgress() {
     dispatch(fetchMyAdmission());
   }, [dispatch]);
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading) return <UserLoadingSkeleton variant="details" />;
 
   const latest = measurements[0];
   const previous = measurements[1];
@@ -105,7 +106,13 @@ export default function BodyProgress() {
             {FIELDS.slice(0, 5).map((f) => {
               const d = delta(f.key);
               return (
-                <Card key={f.key}>
+                <Card key={f.key} className={[
+                  'border-blue-200/80 bg-blue-50/50 dark:border-blue-500/20 dark:bg-blue-500/[0.04]',
+                  'border-teal-200/80 bg-teal-50/50 dark:border-teal-500/20 dark:bg-teal-500/[0.04]',
+                  'border-violet-200/80 bg-violet-50/50 dark:border-violet-500/20 dark:bg-violet-500/[0.04]',
+                  'border-amber-200/80 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/[0.04]',
+                  'border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/[0.04]',
+                ][FIELDS.indexOf(f) % 5]}>
                   <p className="text-xs text-surface-500">{f.label}</p>
                   <p className="mt-2 font-display text-xl font-bold text-ink-950 dark:text-white">{latest[f.key] || '—'}{latest[f.key] && <span className="ml-1 text-xs text-surface-400">{f.unit}</span>}</p>
                   {d !== null && (

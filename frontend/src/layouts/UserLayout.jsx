@@ -3,7 +3,9 @@ import { Dumbbell, Menu, X, LayoutDashboard, User, CreditCard, Ruler, ShoppingBa
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import { signOut } from '@/redux/slices/authSlice';
+import { signOut, signOutAll } from '@/redux/slices/authSlice';
+import { authService } from '@/services/authService';
+import LogoutConfirmDialog from '@/components/auth/LogoutConfirmDialog';
 import { fetchUnreadCount } from '@/redux/slices/notificationSlice';
 
 const navItems = [
@@ -11,7 +13,7 @@ const navItems = [
   { to: '/user/gym', icon: Dumbbell, label: 'My Gym' },
   { to: '/user/membership', icon: CreditCard, label: 'Membership' },
   { to: '/user/body-progress', icon: Ruler, label: 'Body Progress' },
-  { to: '/user/store', icon: ShoppingBag, label: 'Store' },
+  { to: '/user/store', icon: ShoppingBag, label: 'Supplement Store' },
   { to: '/user/cart', icon: ShoppingCart, label: 'Cart' },
   { to: '/user/orders', icon: Package, label: 'Orders' },
   { to: '/user/payments', icon: CreditCard, label: 'Payments' },
@@ -29,6 +31,9 @@ export default function UserLayout() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState({ activeDevices: 0, loading: false, error: '' });
+  const [logoutSubmitting, setLogoutSubmitting] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,10 +53,17 @@ export default function UserLayout() {
     setProfileOpen(false);
   }, [location.pathname]);
 
-  async function handleSignOut() {
-    await dispatch(signOut());
-    navigate('/');
+  async function loadSessionInfo() {
+    setSessionInfo({ activeDevices: 0, loading: true, error: '' });
+    try {
+      const result = await authService.sessionSummary();
+      setSessionInfo({ activeDevices: result.activeDevices ?? 1, loading: false, error: '' });
+    } catch (error) {
+      setSessionInfo({ activeDevices: 0, loading: false, error: error.response?.data?.error || 'Could not check active devices. Please try again.' });
+    }
   }
+  async function handleSignOut() { setLogoutSubmitting(true); await dispatch(signOut()); navigate('/'); }
+  async function handleSignOutAll() { setLogoutSubmitting(true); await dispatch(signOutAll()); navigate('/'); }
 
   const navLinkClass = ({ isActive }) => `group relative flex items-center rounded-xl transition-all duration-200 ${collapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-3'} ${isActive
     ? 'bg-brand-500 text-white shadow-[0_8px_24px_rgba(220,38,38,0.18)]'
@@ -59,11 +71,12 @@ export default function UserLayout() {
 
   return (
     <div className="min-h-screen bg-surface-50 text-ink-800 selection:bg-brand-500/20 dark:bg-[#08090c] dark:text-white">
+      <LogoutConfirmDialog open={logoutOpen} activeDevices={sessionInfo.activeDevices} loading={sessionInfo.loading} error={sessionInfo.error} submitting={logoutSubmitting} onCancel={() => setLogoutOpen(false)} onRetry={loadSessionInfo} onLogout={handleSignOut} onLogoutAll={handleSignOutAll} />
       <aside className={`user-sidebar fixed inset-y-0 left-0 z-50 hidden border-r border-surface-200 bg-white lg:flex lg:flex-col dark:border-white/[0.08] dark:bg-[#11131b] ${collapsed ? 'w-[84px]' : 'w-[286px]'}`}>
         <div className={`flex h-[72px] shrink-0 items-center border-b border-surface-200 dark:border-white/[0.08] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
-          <Link to="/" className="group flex min-w-0 items-center gap-3">
+          <Link to="/user/dashboard" className="group flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[0_0_24px_rgba(220,38,38,0.20)] transition group-hover:scale-105"><Dumbbell size={20} strokeWidth={2.5} /></span>
-            {!collapsed && <span className="font-display whitespace-nowrap text-[17px] font-extrabold tracking-tight text-ink-900 dark:text-white">IRON<span className="text-brand-500">FORGE</span></span>}
+            {!collapsed && <span className="font-display whitespace-nowrap text-[17px] font-extrabold tracking-tight text-ink-900 dark:text-white">Heaven<span className="text-brand-500"> Gym</span></span>}
           </Link>
           {!collapsed && <button type="button" onClick={() => setCollapsed(true)} aria-label="Collapse sidebar" className="rounded-lg p-2 text-surface-400 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-white"><PanelLeftClose size={17} /></button>}
         </div>
@@ -86,7 +99,7 @@ export default function UserLayout() {
 
         <div className="border-t border-surface-200 p-3 dark:border-white/[0.08]">
           <div className={`flex items-center rounded-xl bg-surface-100 dark:bg-white/[0.035] ${collapsed ? 'justify-center p-2' : 'gap-3 p-3'}`}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-sm font-extrabold text-white">{initials}</span>
+            <Link to="/user/profile" aria-label="Open profile" className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-sm font-extrabold text-white">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" /> : initials}</Link>
             {!collapsed && <div className="min-w-0"><p className="truncate text-sm font-bold text-ink-900 dark:text-white">{displayName}</p><p className="text-[11px] text-surface-500 dark:text-slate-500">Member account</p></div>}
           </div>
         </div>
@@ -94,7 +107,7 @@ export default function UserLayout() {
 
       <aside className={`fixed inset-y-0 left-0 z-[60] w-[286px] transform border-r border-surface-200 bg-white transition-transform duration-300 lg:hidden dark:border-white/[0.08] dark:bg-[#11131b] ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-[72px] items-center justify-between border-b border-surface-200 px-5 dark:border-white/[0.08]">
-          <Link to="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={20} /></span><span className="font-display text-[17px] font-extrabold text-ink-900 dark:text-white">IRON<span className="text-brand-500">FORGE</span></span></Link>
+          <Link to="/user/dashboard" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={20} /></span><span className="font-display text-[17px] font-extrabold text-ink-900 dark:text-white">Heaven<span className="text-brand-500"> Gym</span></span></Link>
           <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-2 text-surface-500 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white" aria-label="Close menu"><X size={20} /></button>
         </div>
         <nav className="custom-scrollbar overflow-y-auto px-3 py-5" style={{ maxHeight: 'calc(100vh - 72px)' }}>
@@ -108,22 +121,22 @@ export default function UserLayout() {
           <div className="flex h-full items-center justify-between px-4 sm:px-6 lg:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <button type="button" onClick={() => setOpen(true)} className="rounded-xl border border-surface-200 bg-surface-50 p-2.5 text-surface-500 hover:bg-surface-100 hover:text-ink-900 lg:hidden dark:border-white/[0.08] dark:bg-white/[0.025] dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white" aria-label="Open menu"><Menu size={20} /></button>
-              <div className="min-w-0"><p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500 sm:block">IronForge Gym</p><h1 className="truncate font-display text-lg font-extrabold tracking-tight text-ink-900 sm:text-xl dark:text-white">{pageTitle}</h1></div>
+              <div className="min-w-0"><p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500 sm:block">Heaven Gym</p><h1 className="truncate font-display text-lg font-extrabold tracking-tight text-ink-900 sm:text-xl dark:text-white">{pageTitle}</h1></div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <ThemeToggle />
               <Link to="/user/notifications" aria-label="Notifications" className="relative rounded-xl p-2.5 text-surface-500 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"><Bell size={19} />{unreadCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[9px] font-extrabold text-white">{unreadCount}</span>}</Link>
               <Link to="/user/cart" aria-label="Cart" className="relative rounded-xl p-2.5 text-surface-500 transition hover:bg-surface-100 hover:text-ink-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white"><ShoppingCart size={19} />{cartCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[9px] font-extrabold text-white">{cartCount}</span>}</Link>
               <div className="relative ml-1 border-l border-surface-200 pl-2 sm:pl-3 dark:border-white/[0.08]">
-                <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-surface-100 dark:hover:bg-white/[0.06]"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-sm font-extrabold text-white">{initials}</span><span className="hidden max-w-[110px] truncate text-sm font-bold text-ink-900 md:block dark:text-white">{displayName}</span><ChevronDown size={16} className={`hidden text-surface-400 transition md:block dark:text-slate-500 ${profileOpen ? 'rotate-180' : ''}`} /></button>
-                {profileOpen && <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-surface-200 bg-white p-1.5 shadow-2xl dark:border-white/[0.09] dark:bg-[#151821]"><Link to="/user/profile" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-surface-600 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white"><User size={17} /> Profile</Link><button type="button" onClick={handleSignOut} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"><LogOut size={17} /> Sign out</button></div>}
+                <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-surface-100 dark:hover:bg-white/[0.06]"><span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-sm font-extrabold text-white">{profile?.avatar_url ? <img src={profile.avatar_url} alt="Profile" className="h-full w-full object-cover" /> : initials}</span><span className="hidden max-w-[110px] truncate text-sm font-bold text-ink-900 md:block dark:text-white">{displayName}</span><ChevronDown size={16} className={`hidden text-surface-400 transition md:block dark:text-slate-500 ${profileOpen ? 'rotate-180' : ''}`} /></button>
+                {profileOpen && <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-surface-200 bg-white p-1.5 shadow-2xl dark:border-white/[0.09] dark:bg-[#151821]"><Link to="/user/profile" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-surface-600 hover:bg-surface-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white"><User size={17} /> Profile</Link><button type="button" onClick={() => { setProfileOpen(false); setLogoutOpen(true); loadSessionInfo(); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"><LogOut size={17} /> Sign out</button></div>}
               </div>
             </div>
           </div>
         </header>
 
         <main className="min-h-[calc(100vh-72px)] bg-surface-50 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 dark:bg-[#08090c]"><div className="mx-auto w-full max-w-[1440px]"><Outlet /></div></main>
-        <footer className="border-t border-surface-200 bg-white px-4 py-5 text-center text-xs text-surface-500 sm:px-6 dark:border-white/[0.08] dark:bg-[#08090c] dark:text-slate-500">© {new Date().getFullYear()} IronForge Gym · Secure payments powered by Razorpay</footer>
+        <footer className="border-t border-surface-200 bg-white px-4 py-5 text-center text-xs text-surface-500 sm:px-6 dark:border-white/[0.08] dark:bg-[#08090c] dark:text-slate-500">© {new Date().getFullYear()} Heaven Gym · Secure payments powered by Razorpay</footer>
       </div>
     </div>
   );

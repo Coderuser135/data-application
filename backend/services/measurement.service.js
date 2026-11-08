@@ -4,9 +4,7 @@ import User from '../models/user.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 
 export async function getMeasurementsByUserId(userId) {
-  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
-  if (!admission) return [];
-  return BodyMeasurement.find({ user_id: userId, gym_admission_id: admission._id }).sort({ measurement_date: -1 });
+  return BodyMeasurement.find({ user_id: userId }).sort({ measurement_date: -1 });
 }
 
 export async function getAllMeasurements() {
@@ -80,7 +78,7 @@ export async function deleteMeasurement(measurementId) {
 
 export async function getAdmittedUsers() {
   const admissions = await GymAdmission.find({})
-    .populate({ path: 'user_id', select: 'full_name email phone role' })
+    .populate({ path: 'user_id', select: 'full_name email phone role avatar_url' })
     .select('user_id member_id createdAt status')
     .sort({ createdAt: -1 })
     .lean();
@@ -90,6 +88,7 @@ export async function getAdmittedUsers() {
     .map((admission) => ({
       user_id: admission.user_id._id,
       full_name: admission.user_id.full_name || '',
+      avatar_url: admission.user_id.avatar_url || '',
       email: admission.user_id.email || '',
       phone: admission.user_id.phone || '',
       member_id: admission.member_id || '',

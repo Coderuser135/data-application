@@ -9,14 +9,14 @@ const paymentSchema = new mongoose.Schema({
   allocated_amount: { type: Number, default: 0, min: 0 },
   payment_type: { type: String, enum: ['membership_advance', 'membership_installment', 'membership_full', 'order'], required: true },
   payment_method: { type: String, enum: ['online', 'cash', 'other'], default: 'online' },
-  status: { type: String, enum: ['pending', 'success', 'failed', 'refunded'], default: 'pending' },
+  // A payment is marked refunded only after the matching full refund is verified with Razorpay.
+  status: { type: String, enum: ['pending', 'success', 'failed', 'refunded', 'reconciliation_required'], default: 'pending' },
   transaction_id: { type: String, default: '' },
   razorpay_order_id: { type: String, default: '', index: true },
   razorpay_payment_id: { type: String, default: '' },
-  razorpay_signature: { type: String, default: '' },
-  refund_id: { type: String, default: '' },
-  refunded_amount: { type: Number, default: 0, min: 0 },
+  razorpay_refund_id: { type: String, default: '' },
   refund_date: { type: Date, default: null },
+  razorpay_signature: { type: String, default: '' },
   reference_note: { type: String, default: '' },
   payment_date: { type: Date, default: Date.now },
 }, { timestamps: true });

@@ -64,10 +64,12 @@ export async function getProducts({
       ],
     };
   } else if (stock === 'in') {
-    filter.$expr = { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, '$low_stock_threshold'] };
+    filter.$expr = { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] };
   }
 
-  if (expiry === 'expired') {
+  if (expiry === 'not_expired') {
+    filter.$and = [...(filter.$and || []), { $or: [{ expiry_date: null }, { expiry_date: { $gt: now } }] }];
+  } else if (expiry === 'expired') {
     filter.expiry_date = { $lt: now };
   } else if (expiry === '30') {
     filter.expiry_date = { $gte: now, $lte: new Date(now.getTime() + 30 * 86400000) };
@@ -146,20 +148,101 @@ export async function getProducts({
     stats: stats[0] || { total: 0, low: 0, out: 0 },
   };
 }
-export async function getActiveProducts() {
-  const products = await Product.find({ is_active: true, is_deleted: { $ne: true }, $or: [{ expiry_date: null }, { expiry_date: { $gt: new Date() } }] })
-    .populate({ path: 'category_id', match: { is_active: true } }).sort({ is_featured: -1, createdAt: -1 });
-  return products.map((product) => {
-    const data = product.toObject();
-    data.available_quantity = Math.max(0, data.stock_quantity - data.reserved_quantity);
-    data.stock_status = data.available_quantity <= 0 ? 'out_of_stock' : data.available_quantity <= data.low_stock_threshold ? 'low_stock' : 'in_stock';
-    delete data.cost_price;
-    delete data.reserved_quantity;
-    delete data.image_public_id;
-    if (Array.isArray(data.images)) data.images = data.images.map(({ url, alt_text, is_primary }) => ({ url, alt_text, is_primary }));
-    return data;
-  });
+function publicProductData(product) {
+  const data = product.toObject ? product.toObject() : { ...product };
+  data.id = String(data._id);
+  data.available_quantity = Math.max(0, Number(data.stock_quantity || 0) - Number(data.reserved_quantity || 0));
+  data.stock_status = data.available_quantity <= 0
+    ? 'out_of_stock'
+    : data.available_quantity <= Number(data.low_stock_threshold || 0) ? 'low_stock' : 'in_stock';
+  delete data.cost_price;
+  delete data.stock_quantity;
+  delete data.low_stock_threshold;
+  delete data.reserved_quantity;
+  delete data.image_public_id;
+  if (Array.isArray(data.images)) {
+    data.images = data.images.map(({ url, alt_text, is_primary }) => ({ url, alt_text, is_primary }));
+  }
+  return data;
 }
+
+export async function getActiveProducts({
+  search = '',
+  category = 'all',
+  stock = 'all',
+  sort = 'featured',
+  page = 1,
+  limit = 12,
+  minPrice,
+  maxPrice,
+} = {}) {
+  const now = new Date();
+  const filter = {
+    is_active: true,
+    is_deleted: { $ne: true },
+    $or: [{ expiry_date: null }, { expiry_date: { $gt: now } }],
+  };
+
+  if (String(search).trim()) {
+    const safeSearch = String(search).trim().replace(/[.*+?^\${}()|[\]\\]/g, '\\$&');
+    filter.$and = [
+      ...(filter.$and || []),
+      { $or: [
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { brand: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
+      ] },
+    ];
+  }
+  if (category && category !== 'all') filter.category_id = category;
+  if (stock === 'in') filter.$expr = { $gt: [{ $subtract: ['$stock_quantity', '$reserved_quantity'] }, 0] };
+  if (minPrice !== undefined && minPrice !== '') filter.price = { ...(filter.price || {}), $gte: Math.max(0, Number(minPrice) || 0) };
+  if (maxPrice !== undefined && maxPrice !== '') filter.price = { ...(filter.price || {}), $lte: Math.max(0, Number(maxPrice) || 0) };
+
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(24, Math.max(1, Number(limit) || 12));
+  const sortOptions = {
+    featured: { is_featured: -1, createdAt: -1 },
+    newest: { createdAt: -1 },
+    name_asc: { name: 1 },
+    price_low: { price: 1 },
+    price_high: { price: -1 },
+  };
+
+  const [products, total] = await Promise.all([
+    Product.find(filter)
+      .populate({ path: 'category_id', match: { is_active: true } })
+      .sort(sortOptions[sort] || sortOptions.featured)
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .lean({ virtuals: true }),
+    Product.countDocuments(filter),
+  ]);
+
+  return {
+    rows: products.map(publicProductData),
+    total,
+    page: safePage,
+    pages: Math.max(1, Math.ceil(total / safeLimit)),
+    limit: safeLimit,
+  };
+}
+
+export async function getActiveProductById(id) {
+  const product = await Product.findOne({
+    _id: id,
+    is_active: true,
+    is_deleted: { $ne: true },
+    $or: [{ expiry_date: null }, { expiry_date: { $gt: new Date() } }],
+  }).populate({ path: 'category_id', match: { is_active: true } });
+  if (!product || (product.category_id === null && product.category_id !== undefined)) {
+    // Uncategorized supplements are valid; only a referenced inactive category is hidden.
+    const raw = product ? await Product.findById(id).select('category_id').lean() : null;
+    if (!product || raw?.category_id) return null;
+  }
+  return product ? publicProductData(product) : null;
+}
+
 export async function getProductById(id) {
   return Product.findOne({ _id: id, is_active: true, is_deleted: { $ne: true } }).populate('category_id');
 }

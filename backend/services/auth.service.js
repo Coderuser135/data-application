@@ -7,7 +7,7 @@ import EmailOtp from '../models/emailOtp.model.js';
 import PasswordResetToken from '../models/passwordResetToken.model.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, hashToken } from '../utils/jwt.utils.js';
 import { ApiError } from '../utils/errors.utils.js';
-import { sendEmailVerificationOtp, sendPasswordResetEmail } from '../utils/email.utils.js';
+import { sendEmailVerificationOtp, sendPasswordResetOtp } from '../utils/email.utils.js';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const OTP_DURATION_MS = 5 * 60 * 1000;
@@ -22,7 +22,7 @@ function validatePassword(password) {
   }
 }
 function sessionMetadata(metadata = {}) {
-  return { user_agent: String(metadata.userAgent || '').slice(0, 500), ip_address: String(metadata.ipAddress || '').slice(0, 64) };
+  return { user_agent: String(metadata.userAgent || '').slice(0, 500), ip_address: String(metadata.ipAddress || '').slice(0, 64), device_id: String(metadata.deviceId || '').slice(0, 100) };
 }
 function otpHash(otp) {
   const secret = process.env.OTP_SECRET || process.env.JWT_REFRESH_SECRET;
@@ -60,6 +60,13 @@ async function issueEmailVerificationOtp(user) {
 }
 async function createSession(user, metadata) {
   const familyId = crypto.randomUUID();
+  // A browser/device keeps one current login session. Re-login replaces its older session records.
+  if (metadata?.deviceId) {
+    await Session.updateMany(
+      { user_id: user._id, device_id: metadata.deviceId, revoked_at: null },
+      { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'replaced-on-device-login' } }
+    );
+  }
   const sessionObjectId = new mongoose.Types.ObjectId();
   const refreshToken = generateRefreshToken(user, sessionObjectId);
   const session = await Session.create({
@@ -71,7 +78,9 @@ async function createSession(user, metadata) {
   return { user, session, accessToken: generateAccessToken(user, session._id), refreshToken };
 }
 
-export async function registerUser({ email, password, full_name, fullName, phone }) {
+export async function registerUser({ email, password, full_name, fullName, phone, isAdult, acceptedTerms }) {
+  if (isAdult !== true) throw new ApiError(400, 'You must confirm that you are 18 years or older to create an account');
+  if (acceptedTerms !== true) throw new ApiError(400, 'You must accept the Terms & Conditions to create an account');
   const normalizedEmail = normalizeEmail(email);
   validatePassword(password);
   if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) throw new ApiError(400, 'A valid email is required');
@@ -84,6 +93,10 @@ export async function registerUser({ email, password, full_name, fullName, phone
       full_name: String(full_name ?? fullName ?? '').trim().slice(0, 100),
       phone: String(phone || '').trim().slice(0, 30),
       email_verified: false,
+      is_18_plus: true,
+      age_confirmed_at: new Date(),
+      terms_accepted_at: new Date(),
+      terms_version: '2026-11-08',
     });
   } catch (error) {
     if (error?.code === 11000) throw new ApiError(409, 'Email already registered. If you have not verified it, use resend verification code.');
@@ -158,13 +171,13 @@ export async function refreshAccessToken(rawRefreshToken, metadata) {
   const presentedHash = hashToken(rawRefreshToken);
   if (session.refresh_token_hash !== presentedHash) {
     if (session.used_refresh_token_hashes.includes(presentedHash)) {
-      await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
+      await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
     }
     throw new ApiError(401, 'Invalid or reused refresh token. Please log in again');
   }
   const user = await User.findById(payload.id);
   if (!user || !user.email_verified) {
-    await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: 'user-not-verified-or-not-found' } });
+    await Session.updateOne({ _id: session._id, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'user-not-verified-or-not-found' } });
     throw new ApiError(401, 'Authentication required');
   }
   const nextRefreshToken = generateRefreshToken(user, session._id);
@@ -174,7 +187,7 @@ export async function refreshAccessToken(rawRefreshToken, metadata) {
     { $set: { refresh_token_hash: nextHash, last_used_at: new Date(), ...sessionMetadata(metadata) }, $addToSet: { used_refresh_token_hashes: presentedHash } }
   );
   if (rotation.modifiedCount !== 1) {
-    await Session.updateOne({ _id: session._id, used_refresh_token_hashes: presentedHash, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
+    await Session.updateOne({ _id: session._id, used_refresh_token_hashes: presentedHash, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: 'refresh-token-reuse-detected' } });
     throw new ApiError(401, 'Session changed. Please log in again');
   }
   return { user, accessToken: generateAccessToken(user, session._id), refreshToken: nextRefreshToken };
@@ -182,10 +195,22 @@ export async function refreshAccessToken(rawRefreshToken, metadata) {
 
 export async function revokeSession(sessionId, userId, reason = 'logout') {
   if (!sessionId) return;
-  await Session.updateOne({ _id: sessionId, user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
+  await Session.updateOne({ _id: sessionId, user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: reason } });
+}
+export async function getActiveDeviceCount(userId) {
+  const activeSessions = await Session.aggregate([
+    { $match: { user_id: new mongoose.Types.ObjectId(userId), revoked_at: null, expires_at: { $gt: new Date() } } },
+    { $group: { _id: { $cond: [
+      { $and: [{ $ne: ['$device_id', null] }, { $ne: ['$device_id', ''] }] },
+      '$device_id',
+      { $concat: ['legacy:', { $ifNull: ['$user_agent', ''] }, '|', { $ifNull: ['$ip_address', ''] }] }
+    ] } } },
+    { $count: 'total' },
+  ]);
+  return activeSessions[0]?.total || 0;
 }
 export async function revokeAllSessions(userId, reason = 'logout-all') {
-  await Session.updateMany({ user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), revoke_reason: reason } });
+  await Session.updateMany({ user_id: userId, revoked_at: null }, { $set: { revoked_at: new Date(), expires_at: new Date(), revoke_reason: reason } });
 }
 export async function getMe(userId) {
   const user = await User.findById(userId);
@@ -205,40 +230,125 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
 }
 export async function requestPasswordReset({ email }) {
   const normalizedEmail = normalizeEmail(email);
-  const user = await User.findOne({ email: normalizedEmail });
-  if (!user) return { message: 'If that email is registered, a password reset link will be sent.' };
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const tokenHash = hashToken(rawToken);
-  await PasswordResetToken.deleteMany({ user_id: user._id, used_at: null });
-  await PasswordResetToken.create({ user_id: user._id, token_hash: tokenHash, expires_at: new Date(Date.now() + 60 * 60 * 1000) });
+  if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    throw new ApiError(400, 'Enter a valid email address');
+  }
+
+  const user = await User.findOne({ email: normalizedEmail, email_verified: true });
+  // Use the same response for known and unknown accounts.
+  if (!user) return { message: 'If this account is registered and verified, a password reset code will be sent.' };
+
+  const now = new Date();
+  const current = await EmailOtp.findOne({
+    user_id: user._id,
+    purpose: 'reset_password',
+    consumed_at: null,
+  }).sort({ createdAt: -1 });
+
+  if (current && now.getTime() - current.last_sent_at.getTime() < OTP_RESEND_WAIT_MS) {
+    throw new ApiError(429, 'Please wait 60 seconds before requesting another code');
+  }
+
+  await EmailOtp.deleteMany({ user_id: user._id, purpose: 'reset_password' });
+  const otp = String(crypto.randomInt(100000, 1000000));
+  await EmailOtp.create({
+    user_id: user._id,
+    email: user.email,
+    purpose: 'reset_password',
+    otp_hash: otpHash(otp),
+    expires_at: new Date(now.getTime() + OTP_DURATION_MS),
+    last_sent_at: now,
+  });
+
   try {
-    await sendPasswordResetEmail({ to: user.email, token: rawToken });
+    await sendPasswordResetOtp({ to: user.email, otp, fullName: user.full_name });
   } catch (error) {
-    console.error('[email] Password reset email failed:', {
+    console.error('[email] Password reset OTP email failed:', {
       code: error?.code,
       message: error?.message,
       responseCode: error?.responseCode,
       command: error?.command,
     });
-    await PasswordResetToken.deleteOne({ token_hash: tokenHash });
-    throw new ApiError(503, 'Password reset email service is temporarily unavailable');
+    await EmailOtp.deleteMany({ user_id: user._id, purpose: 'reset_password' });
+    throw new ApiError(503, 'Password reset code could not be sent. Please try again later.');
   }
-  return { message: 'If that email is registered, a password reset link will be sent.' };
+
+  return { message: 'If this account is registered and verified, a password reset code will be sent.' };
 }
+
+export async function verifyPasswordResetOtp({ email, otp }) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !/^\d{6}$/.test(String(otp || ''))) {
+    throw new ApiError(400, 'Enter a valid email and 6-digit reset code');
+  }
+
+  const user = await User.findOne({ email: normalizedEmail, email_verified: true });
+  if (!user) throw new ApiError(400, 'Invalid or expired reset code');
+
+  const record = await EmailOtp.findOne({
+    user_id: user._id,
+    purpose: 'reset_password',
+    consumed_at: null,
+    expires_at: { $gt: new Date() },
+  }).sort({ createdAt: -1 });
+
+  if (!record) throw new ApiError(400, 'Reset code expired. Request a new code.');
+  if (record.attempts >= MAX_OTP_ATTEMPTS) {
+    await EmailOtp.deleteOne({ _id: record._id });
+    throw new ApiError(429, 'Too many incorrect attempts. Request a new reset code.');
+  }
+
+  const submittedHash = otpHash(otp);
+  if (record.otp_hash !== submittedHash) {
+    await EmailOtp.updateOne({ _id: record._id, consumed_at: null }, { $inc: { attempts: 1 } });
+    throw new ApiError(400, 'Incorrect reset code');
+  }
+
+  const consumed = await EmailOtp.updateOne(
+    {
+      _id: record._id,
+      consumed_at: null,
+      expires_at: { $gt: new Date() },
+      attempts: { $lt: MAX_OTP_ATTEMPTS },
+      otp_hash: submittedHash,
+    },
+    { $set: { consumed_at: new Date() } }
+  );
+  if (consumed.modifiedCount !== 1) {
+    throw new ApiError(400, 'Reset code is invalid, expired, or already used');
+  }
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  await PasswordResetToken.deleteMany({ user_id: user._id });
+  await PasswordResetToken.create({
+    user_id: user._id,
+    token_hash: hashToken(rawToken),
+    expires_at: new Date(Date.now() + 10 * 60 * 1000),
+  });
+  return { resetToken: rawToken, message: 'Code verified. You can now choose a new password.' };
+}
+
 export async function resetPassword({ token, newPassword }) {
   validatePassword(newPassword);
-  if (typeof token !== 'string' || token.length < 32 || token.length > 256) throw new ApiError(400, 'Invalid or expired reset token');
+  if (typeof token !== 'string' || token.length < 32 || token.length > 256) {
+    throw new ApiError(400, 'Invalid or expired password reset session');
+  }
+
   const tokenHash = hashToken(token);
   const resetToken = await PasswordResetToken.findOneAndUpdate(
     { token_hash: tokenHash, used_at: null, expires_at: { $gt: new Date() } },
-    { $set: { used_at: new Date() } }, { new: true }
+    { $set: { used_at: new Date() } },
+    { new: true }
   );
-  if (!resetToken) throw new ApiError(400, 'Invalid or expired reset token');
+  if (!resetToken) throw new ApiError(400, 'Password reset session expired. Verify your email code again.');
+
   const user = await User.findById(resetToken.user_id).select('+password');
-  if (!user) throw new ApiError(400, 'Invalid or expired reset token');
+  if (!user || !user.email_verified) throw new ApiError(400, 'Unable to reset this account password');
+
   user.password = await bcrypt.hash(newPassword, 12);
   await user.save();
   await revokeAllSessions(user._id, 'password-reset');
-  await PasswordResetToken.deleteMany({ user_id: user._id, _id: { $ne: resetToken._id } });
-  return { message: 'Password reset successfully. Please log in again.' };
+  await EmailOtp.deleteMany({ user_id: user._id, purpose: 'reset_password' });
+  await PasswordResetToken.deleteMany({ user_id: user._id });
+  return { message: 'Password reset successfully. Please log in with your new password.' };
 }

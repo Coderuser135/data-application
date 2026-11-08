@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Membership from '../models/membership.model.js';
 import Notification from '../models/notification.model.js';
+import { releaseExpiredOrderReservations } from '../services/order.service.js';
 
 export async function activateScheduledMemberships() {
   const result = await Membership.updateMany(
@@ -44,7 +45,8 @@ export async function runMembershipExpiry() {
   const activated = await activateScheduledMemberships();
   const expired = await expireMemberships();
   const reminders = await sendExpiryReminders();
-  return { ...activated, ...expired, ...reminders };
+  const orders = await releaseExpiredOrderReservations();
+  return { ...activated, ...expired, ...reminders, ...orders };
 }
 
 export function startMembershipExpiryJob() {

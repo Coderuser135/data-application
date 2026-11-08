@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Pencil, Trash2, X, Package, Search, ImagePlus, Boxes, AlertTriangle, History, ArrowDownUp } from 'lucide-react';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
@@ -49,7 +49,7 @@ export default function AdminProducts() {
   const [historyTarget, setHistoryTarget] = useState(null);
   const [error, setError] = useState('');
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoadError('');
     try {
       const result = await productService.getAll({
@@ -73,7 +73,7 @@ export default function AdminProducts() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [query, categoryFilter, statusFilter, stockFilter, expiryFilter, sort, pageNumber, pageSize]);
 
   useEffect(() => {
     categoryService.getAll().then((result) => setCategories(result || [])).catch(() => setCategories([]));
@@ -82,7 +82,7 @@ export default function AdminProducts() {
   useEffect(() => {
     const timer = setTimeout(loadData, 300);
     return () => clearTimeout(timer);
-  }, [query, categoryFilter, statusFilter, stockFilter, expiryFilter, sort, pageNumber, pageSize]);
+  }, [loadData]);
 
   const stockStats = productData.stats || { total: 0, low: 0, out: 0 };
   const totalPages = Math.max(1, Number(productData.pages) || 1);
@@ -351,7 +351,7 @@ export default function AdminProducts() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Supplements</h1><p className="mt-1 text-sm text-surface-500">Catalogue, pricing and inventory control</p></div><div className="flex flex-col gap-2 sm:flex-row"><Button variant="secondary" onClick={() => { setCategoryError(''); setCategoryModalOpen(true); }}>Manage categories</Button><Button onClick={openCreate}><Plus size={16} /> Add supplement</Button></div></div>
-      <div className="grid gap-3 sm:grid-cols-3"><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Catalogue items</p><Package className="text-brand-600" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.total}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Low stock</p><AlertTriangle className="text-amber-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.low}</p></Card><Card><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Out of stock</p><Boxes className="text-red-500" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.out}</p></Card></div>
+      <div className="grid gap-3 sm:grid-cols-3"><Card className="!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Catalogue items</p><Package className="text-blue-600 dark:text-blue-400" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.total}</p></Card><Card className="!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Low stock</p><AlertTriangle className="text-amber-600 dark:text-amber-400" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.low}</p></Card><Card className="!border-red-200/80 !bg-red-50/70 dark:!border-red-500/20 dark:!bg-red-500/[0.08]"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Out of stock</p><Boxes className="text-red-600 dark:text-red-400" size={18} /></div><p className="mt-2 text-2xl font-bold">{stockStats.out}</p></Card></div>
       <Card>
         <div className="space-y-3">
           <div className="relative"><Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" /><input value={query} onChange={(e) => updateFilter(setQuery, e.target.value)} placeholder="Search supplement, brand or SKU..." className="min-h-11 w-full rounded-xl border border-surface-300 bg-white py-3 pl-12 pr-4 text-sm dark:border-surface-700 dark:bg-surface-950 dark:text-white" /></div>

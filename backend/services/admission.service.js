@@ -14,7 +14,7 @@ export async function getAllAdmissions() {
   const customerIds = await User.distinct('_id', { role: 'user' });
 
   return GymAdmission.find({ user_id: { $in: customerIds } })
-    .populate({ path: 'user_id', select: 'full_name email phone address role' })
+    .populate({ path: 'user_id', select: 'full_name email phone address role avatar_url' })
     .populate({ path: 'selected_plan_id', select: 'name' })
     .sort({ createdAt: -1 });
 }
@@ -25,7 +25,7 @@ export async function getAdmissionDetails(admissionId) {
   }
 
   const admission = await GymAdmission.findById(admissionId)
-    .populate({ path: 'user_id', select: 'full_name email phone address role email_verified createdAt' })
+    .populate({ path: 'user_id', select: 'full_name email phone address role email_verified createdAt avatar_url' })
     .populate({ path: 'selected_plan_id', select: 'name description price duration_days' })
     .lean();
 
@@ -180,6 +180,7 @@ export async function searchUsers(query, page = 1, limit = 10, {
     return {
       _id: user._id,
       full_name: user.full_name,
+      avatar_url: user.avatar_url || '',
       email: user.email,
       phone: user.phone,
       address: user.address,
@@ -215,7 +216,7 @@ export async function searchUsers(query, page = 1, limit = 10, {
 export async function getMemberOverview(userId) {
   if (!/^[a-f\d]{24}$/i.test(String(userId))) throw new ApiError(400, 'Invalid user ID');
   const user = await User.findOne({ _id: userId, role: 'user' })
-    .select('full_name email phone address email_verified createdAt')
+    .select('full_name email phone address email_verified createdAt avatar_url')
     .lean();
   if (!user) throw new ApiError(404, 'Customer not found');
 
@@ -347,8 +348,11 @@ export async function createAdmission(data) {
     }
   }
 
-  if (amount > 0 && !['cash', 'online', 'other'].includes(payment_method)) {
-    throw new ApiError(400, 'Select a valid payment method for the advance received');
+  // Admission advances are recorded as received funds, not as a gateway checkout.
+  // Only accept payment methods that staff can confirm at the gym; online must
+  // go through the verified Razorpay payment flow instead.
+  if (amount > 0 && !['cash', 'other'].includes(payment_method)) {
+    throw new ApiError(400, 'Select cash or other for an advance already received');
   }
 
   const details = personal_details && typeof personal_details === 'object' && !Array.isArray(personal_details) ? personal_details : {};

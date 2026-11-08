@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Ruler, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
+import { Search, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
@@ -16,8 +17,11 @@ export default function AdminBodyMeasurements() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  useEffect(() => { dispatch(fetchAdmittedMembers()); }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchAdmittedMembers()).finally(() => setInitialLoading(false));
+  }, [dispatch]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -35,6 +39,8 @@ export default function AdminBodyMeasurements() {
   const pages = Array.from({ length: Math.min(5, pageCount) }, (_, index) => firstPage + index);
   const start = filtered.length ? (currentPage - 1) * limit + 1 : 0;
   const end = Math.min(currentPage * limit, filtered.length);
+
+  if (initialLoading || (loading && !members.length)) return <AdminLoadingSkeleton variant="measurement" />;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -58,16 +64,14 @@ export default function AdminBodyMeasurements() {
         </div>
       </Card>
 
-      {loading && !members.length ? <AdminLoadingSkeleton variant="cards" rows={6} /> : visible.length ? (
+      {visible.length ? (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((member) => (
               <Link key={member.user_id} to={`/admin/body-measurements/${member.user_id}`}
                 className="group block rounded-2xl border border-surface-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md dark:border-surface-800 dark:bg-surface-900 dark:hover:border-brand-600">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-lg font-bold text-brand-600 dark:text-brand-400">
-                    {(member.full_name || 'M').charAt(0).toUpperCase()}
-                  </span>
+                  <AdminAvatar name={member.full_name} src={member.avatar_url} className="h-12 w-12 rounded-xl text-lg" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="truncate font-semibold text-ink-950 dark:text-white">{member.full_name || 'Unnamed member'}</p>

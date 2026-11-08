@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Building, Phone, Mail } from 'lucide-react';
+import { Save, Building } from 'lucide-react';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -24,7 +24,7 @@ export default function AdminSettings() {
       await gymSettingsService.update(settings);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err) { alert('Failed to save settings'); }
+    } catch { alert('Failed to save settings'); }
     setSaving(false);
   }
 
@@ -43,7 +43,7 @@ export default function AdminSettings() {
           <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Gym Information</h3>
         </div>
         <div className="space-y-4">
-          <Input label="Gym Name" value={settings.gym_name || ''} onChange={(e) => update('gym_name', e.target.value)} placeholder="IronForge Gym" />
+          <Input label="Gym Name" value={settings.gym_name || ''} onChange={(e) => update('gym_name', e.target.value)} placeholder="Heaven Gym" />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Contact Phone" value={settings.contact_phone || ''} onChange={(e) => update('contact_phone', e.target.value)} placeholder="Phone number" />
             <Input label="Contact Email" value={settings.contact_email || ''} onChange={(e) => update('contact_email', e.target.value)} placeholder="email@gym.com" />

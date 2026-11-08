@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import AdminAvatar from '@/components/admin/AdminAvatar';
 import { createPortal } from 'react-dom';
-import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft, User, Phone, Mail, CreditCard, Ruler, IndianRupee } from 'lucide-react';
+import { Search, UserPlus, X, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
@@ -69,9 +70,8 @@ function Stepper({ current }) {
   );
 }
 
-function Avatar({ name }) {
-  const initial = name?.charAt(0)?.toUpperCase() || '?';
-  return <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/10 text-sm font-bold text-brand-500">{initial}</span>;
+function Avatar({ name, avatarUrl }) {
+  return <AdminAvatar name={name} src={avatarUrl} className="h-9 w-9 text-sm" />;
 }
 
 export default function AdminAdmissions() {
@@ -88,6 +88,7 @@ export default function AdminAdmissions() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [initialLoading, setInitialLoading] = useState(true);
   const [measurementSkipped, setMeasurementSkipped] = useState(false);
   const [viewingAdmission, setViewingAdmission] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
@@ -105,7 +106,7 @@ export default function AdminAdmissions() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, admissionFilter })); }, 300);
+    const timer = setTimeout(() => { dispatch(searchUsers({ q: query, page, limit, admissionFilter })).finally(() => setInitialLoading(false)); }, 300);
     return () => clearTimeout(timer);
   }, [dispatch, query, page, limit, admissionFilter]);
 
@@ -254,6 +255,8 @@ export default function AdminAdmissions() {
 
   const rows = searchResults.rows || [];
 
+  if (initialLoading) return <AdminLoadingSkeleton variant="section" />;
+
   return (
     <div className="space-y-6">
       <div>
@@ -316,7 +319,7 @@ export default function AdminAdmissions() {
                   <tr key={u._id || u.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
                     <td data-label="User" className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar name={u.full_name} />
+                        <Avatar name={u.full_name} avatarUrl={u.avatar_url} />
                         <div>
                           <p className="font-medium text-ink-900 dark:text-white">{u.full_name || '—'}</p>
                           
@@ -504,7 +507,7 @@ export default function AdminAdmissions() {
               {step === 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
-                    <Avatar name={selectedUser.full_name} />
+                    <Avatar name={selectedUser.full_name} avatarUrl={selectedUser.avatar_url} />
                     <div>
                       <p className="font-semibold text-ink-900 dark:text-white">{selectedUser.full_name}</p>
                       <p className="text-sm text-surface-500">{selectedUser.email}</p>
@@ -561,7 +564,7 @@ export default function AdminAdmissions() {
                     <div>
                       <label className="mb-2 block text-sm font-medium text-ink-700 dark:text-surface-200">Received Via</label>
                       <div className="flex gap-2">
-                        {['cash', 'online', 'other'].map((method) => (
+                        {['cash', 'other'].map((method) => (
                           <button key={method} type="button" onClick={() => updateField('payment_method', method)} className={`flex-1 rounded-xl border py-3 text-sm font-medium capitalize transition ${formData.payment_method === method ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-surface-200 text-surface-500 dark:border-surface-700'}`}>{method}</button>
                         ))}
                       </div>

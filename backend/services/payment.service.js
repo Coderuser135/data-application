@@ -5,6 +5,7 @@ import Payment from '../models/payment.model.js';
 import Membership from '../models/membership.model.js';
 import Order from '../models/order.model.js';
 import Product from '../models/product.model.js';
+import InventoryMovement from '../models/inventoryMovement.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 import { allocateMembershipAdvance } from './membership.service.js';
 
@@ -25,29 +26,140 @@ function verifyWebhookSignature(rawBody, signature) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-export async function getPaymentsByUserId(userId) { return Payment.find({ user_id: userId }).sort({ createdAt: -1 }); }
-export async function getAllPayments() { return Payment.find().populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1 }); }
+export async function getPaymentsByUserId(userId) { return Payment.find({ user_id: userId }).select('-razorpay_signature').sort({ createdAt: -1 }); }
+export async function getAllPayments({ page = 1, limit = 10, status = 'all', type = 'all', search = '' } = {}) {
+  const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const safeLimit = Math.min(50, Math.max(5, Number.parseInt(limit, 10) || 10));
+  const filter = {};
+  if (status !== 'all') filter.status = status;
+  if (type !== 'all') filter.payment_type = type;
+  if (search.trim()) {
+    const escapedSearch = search.trim().replace(/[.*+?^\${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedSearch, 'i');
+    const User = (await import('../models/user.model.js')).default;
+    const matchingUsers = await User.find({ $or: [{ full_name: regex }, { email: regex }] }).select('_id').lean();
+    filter.$or = [
+      { transaction_id: regex },
+      { razorpay_payment_id: regex },
+      { razorpay_order_id: regex },
+      { user_id: { $in: matchingUsers.map((user) => user._id) } },
+    ];
+  }
+  const [items, total, summary] = await Promise.all([
+    Payment.find(filter).populate({ path: 'user_id', select: 'full_name email' }).sort({ createdAt: -1, _id: -1 }).skip((safePage - 1) * safeLimit).limit(safeLimit),
+    Payment.countDocuments(filter),
+    Payment.aggregate([{ $group: {
+      _id: null,
+      gymRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $ne: ['$payment_type', 'order'] }] }, '$amount', 0] } },
+      storeRevenue: { $sum: { $cond: [{ $and: [{ $eq: ['$status', 'success'] }, { $eq: ['$payment_type', 'order'] }] }, '$amount', 0] } },
+      pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+      reconciliationRequired: { $sum: { $cond: [{ $eq: ['$status', 'reconciliation_required'] }, 1, 0] } },
+      totalTransactions: { $sum: 1 },
+    } }]),
+  ]);
+  return {
+    items,
+    pagination: { page: safePage, limit: safeLimit, total, pages: Math.max(1, Math.ceil(total / safeLimit)) },
+    summary: summary[0] || { gymRevenue: 0, storeRevenue: 0, pending: 0, reconciliationRequired: 0, totalTransactions: 0 },
+  };
+}
 
 export async function createRazorpayOrder(userId, { orderId, membershipId }) {
   if ((orderId && membershipId) || (!orderId && !membershipId)) throw new ApiError(400, 'A single payment target is required');
   let amount; let paymentType;
   if (orderId) {
-    const order = await Order.findOne({ _id: orderId, user_id: userId, payment_status: 'pending', status: 'pending' });
+    const order = await Order.findOne({ _id: orderId, user_id: userId, payment_status: 'pending', status: 'pending', inventory_status: 'reserved', reservation_expires_at: { $gt: new Date() } });
     if (!order) throw new ApiError(404, 'Pending order not found');
     amount = order.total_amount; paymentType = 'order';
   } else {
-    const membership = await Membership.findOne({ _id: membershipId, user_id: userId, status: 'pending', payment_status: 'pending' });
+    const membership = await Membership.findOne({
+      _id: membershipId,
+      user_id: userId,
+      status: { $in: ['pending', 'active'] },
+      payment_status: 'pending',
+    });
     if (!membership) throw new ApiError(404, 'Pending membership not found');
-    amount = Number(membership.amount_due ?? membership.plan_price_snapshot); paymentType = 'membership_full';
+
+    const admissionFilter = membership.gym_admission_id
+      ? [{ gym_admission_id: membership.gym_admission_id, payment_type: 'membership_advance' }]
+      : [];
+    const membershipPayments = await Payment.find({
+      user_id: userId,
+      $or: [{ membership_id: membership._id }, ...admissionFilter],
+    }).select('membership_id amount allocated_amount payment_type status').lean();
+    const allocatedAdvance = membershipPayments
+      .filter((item) => item.payment_type === 'membership_advance'
+        && String(item.membership_id || '') === String(membership._id) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.allocated_amount || 0), 0);
+    const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
+      Number(membership.advance_paid || 0),
+      allocatedAdvance,
+    );
+    const alreadyPaid = membershipPayments
+      .filter((item) => ['membership_full', 'membership_installment'].includes(item.payment_type) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    amount = Math.max(0, Number((Number(membership.plan_price_snapshot || 0) - advancePaid - alreadyPaid).toFixed(2)));
+    if (amount <= 0) throw new ApiError(409, 'This membership is already fully paid.');
+    membership.advance_paid = advancePaid;
+    membership.amount_due = amount;
+    await membership.save();
+    paymentType = alreadyPaid > 0 ? 'membership_installment' : 'membership_full';
   }
   if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Invalid payment amount');
   const targetFilter = orderId ? { order_id: orderId } : { membership_id: membershipId };
+
+  // Never create a second chargeable Razorpay order while an earlier order
+  // for the same gym-store order may already have captured the customer's money.
+  if (orderId) {
+    const completedPayment = await Payment.findOne({
+      user_id: userId,
+      order_id: orderId,
+      status: { $in: ['success', 'reconciliation_required'] },
+    });
+    if (completedPayment?.status === 'success') {
+      throw new ApiError(409, 'This order already has a successful payment. Please refresh your orders.');
+    }
+    if (completedPayment?.status === 'reconciliation_required') {
+      throw new ApiError(409, 'A payment was received for this order and requires Heaven Gym admin reconciliation. Do not pay again.');
+    }
+  }
+
   const existing = await Payment.findOne({ user_id: userId, ...targetFilter, status: 'pending', razorpay_order_id: { $ne: '' } });
   if (existing) {
+    if (!orderId && Number(existing.amount) !== Number(amount)) {
+      throw new ApiError(409, 'An earlier membership payment request exists for a different balance. Please contact Heaven Gym before retrying.');
+    }
     const existingOrder = await gateway().orders.fetch(existing.razorpay_order_id).catch(() => null);
+    if (!existingOrder) {
+      throw new ApiError(409, 'The earlier payment request could not be checked. Please contact Heaven Gym before retrying.');
+    }
+    if (existingOrder?.status === 'paid') {
+      throw new ApiError(409, 'The previous payment appears captured and is being verified. Do not make another payment; please contact Heaven Gym if your order does not update.');
+    }
     if (existingOrder && existingOrder.status !== 'paid') return { payment: existing, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder: existingOrder };
   }
-  const razorpayOrder = await gateway().orders.create({ amount: Math.round(amount * 100), currency: 'INR', receipt: `${paymentType}-${Date.now()}` });
+  // Razorpay Orders API does not support the Payment Links-only `expire_by` field.
+  // The gym app enforces its own stock reservation expiry before creating payments.
+  let razorpayOrder;
+  try {
+    razorpayOrder = await gateway().orders.create({
+      amount: Math.round(amount * 100),
+      currency: 'INR',
+      receipt: `${paymentType}-${Date.now()}`,
+    });
+  } catch (error) {
+    const providerError = error?.error || error?.response?.data?.error || {};
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'razorpay_order_creation_failed',
+      providerStatus: error?.statusCode || error?.status || error?.response?.status || null,
+      providerCode: providerError.code || error?.code || null,
+      providerDescription: providerError.description || error?.description || error?.message || 'Unknown Razorpay error',
+      providerField: providerError.field || null,
+      providerReason: providerError.reason || null,
+    }));
+    throw new ApiError(502, 'Online payment is temporarily unavailable. Please try again shortly.');
+  }
   const payment = await Payment.create({ user_id: userId, order_id: orderId || null, membership_id: membershipId || null, amount, payment_type: paymentType, payment_method: 'online', status: 'pending', razorpay_order_id: razorpayOrder.id });
   return { payment, keyId: process.env.RAZORPAY_KEY_ID, razorpayOrder };
 }
@@ -58,6 +170,35 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   if (!payment) throw new ApiError(404, 'Payment not found');
   if (payment.status === 'success') return payment;
   if (payment.status === 'refunded') throw new ApiError(409, 'Payment has already been refunded');
+
+  // Validate stock reservation inside this transaction before fulfillment.
+  // If Razorpay captured money after the reservation expired, preserve the
+  // captured payment as an exception for admin reconciliation; never fulfill
+  // an order whose stock has already been released.
+  let reservedOrder = null;
+  if (payment.order_id) {
+    reservedOrder = await Order.findOne({
+      _id: payment.order_id,
+      user_id: payment.user_id,
+      payment_status: 'pending',
+      status: 'pending',
+      inventory_status: 'reserved',
+      reservation_expires_at: { $gt: new Date() },
+    }).session(session);
+    if (!reservedOrder) {
+      payment.status = 'reconciliation_required';
+      if (razorpayPaymentId) {
+        payment.razorpay_payment_id = razorpayPaymentId;
+        payment.transaction_id = razorpayPaymentId;
+      }
+      if (signature) payment.razorpay_signature = signature;
+      payment.payment_date = new Date();
+      payment.reference_note = 'Payment captured after order stock reservation expired. Do not fulfill automatically; admin reconciliation required.';
+      await payment.save({ session });
+      return payment;
+    }
+  }
+
   payment.status = 'success';
   if (razorpayPaymentId) { payment.razorpay_payment_id = razorpayPaymentId; payment.transaction_id = razorpayPaymentId; }
   if (signature) payment.razorpay_signature = signature;
@@ -65,17 +206,35 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
   await payment.save({ session });
 
   if (payment.membership_id) {
-    const membership = await Membership.findOne({ _id: payment.membership_id, user_id: payment.user_id, status: 'pending', payment_status: 'pending' }).session(session);
+    const membership = await Membership.findOne({
+      _id: payment.membership_id,
+      user_id: payment.user_id,
+      status: { $in: ['pending', 'active'] },
+      payment_status: 'pending',
+    }).session(session);
     if (!membership) throw new ApiError(409, 'Pending membership not found');
-    // Settle only the amount actually received. A successful partial payment
-    // must not mark the entire membership as paid.
-    const storedDue = Number(membership.amount_due);
-    const expectedDue = Math.max(
-      0,
-      Number(membership.plan_price_snapshot || 0) - Number(membership.advance_paid || 0),
+
+    const admissionFilter = membership.gym_admission_id
+      ? [{ gym_admission_id: membership.gym_admission_id, payment_type: 'membership_advance' }]
+      : [];
+    const membershipPayments = await Payment.find({
+      user_id: payment.user_id,
+      $or: [{ membership_id: membership._id }, ...admissionFilter],
+    }).select('membership_id amount allocated_amount payment_type status').session(session).lean();
+    const allocatedAdvance = membershipPayments
+      .filter((item) => item.payment_type === 'membership_advance'
+        && String(item.membership_id || '') === String(membership._id) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.allocated_amount || 0), 0);
+    membership.advance_paid = membership.membership_type === 'renewal' ? 0 : Math.max(
+      Number(membership.advance_paid || 0),
+      allocatedAdvance,
     );
-    const currentDue = Number.isFinite(storedDue) && storedDue > 0 ? storedDue : expectedDue;
-    membership.amount_due = Math.max(0, Number((currentDue - Number(payment.amount || 0)).toFixed(2)));
+    const received = membershipPayments
+      .filter((item) => ['membership_full', 'membership_installment'].includes(item.payment_type) && item.status === 'success')
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    membership.amount_due = Math.max(0, Number((
+      Number(membership.plan_price_snapshot || 0) - membership.advance_paid - received
+    ).toFixed(2)));
 
     if (membership.amount_due === 0) {
       await allocateMembershipAdvance(payment.user_id, membership, session);
@@ -93,14 +252,34 @@ async function finalizeSuccessfulPayment(paymentId, userId, razorpayPaymentId, s
     }
     await membership.save({ session });
   }
-  if (payment.order_id) {
-    const order = await Order.findOne({ _id: payment.order_id, user_id: payment.user_id, payment_status: 'pending', status: 'pending' }).session(session);
-    if (!order) throw new ApiError(409, 'Pending order not found');
+  if (reservedOrder) {
+    const order = reservedOrder;
+
     for (const item of order.order_items) {
-      const result = await Product.updateOne({ _id: item.product_id, is_active: true, stock_quantity: { $gte: item.quantity } }, { $inc: { stock_quantity: -item.quantity } }, { session });
-      if (result.modifiedCount !== 1) throw new ApiError(409, 'Stock changed while payment was processing. Payment will be reconciled by webhook/admin.');
+      const product = await Product.findOneAndUpdate(
+        { _id: item.product_id, is_active: true, stock_quantity: { $gte: item.quantity }, reserved_quantity: { $gte: item.quantity } },
+        { $inc: { stock_quantity: -item.quantity, reserved_quantity: -item.quantity } },
+        { new: false, session },
+      );
+      if (!product) throw new ApiError(409, 'Reserved stock is inconsistent. Payment requires reconciliation.');
+      await InventoryMovement.create([{
+        product_id: product._id,
+        movement_type: 'order_sale',
+        quantity: -item.quantity,
+        stock_before: product.stock_quantity,
+        stock_after: product.stock_quantity - item.quantity,
+        reserved_before: product.reserved_quantity,
+        reserved_after: product.reserved_quantity - item.quantity,
+        reason: `Paid order ${order.order_number}; reserved stock converted to sale`,
+        reference_id: order._id,
+      }], { session });
     }
-    order.payment_status = 'success'; order.payment_id = payment._id; order.status = 'confirmed'; await order.save({ session });
+
+    order.payment_status = 'success';
+    order.payment_id = payment._id;
+    order.inventory_status = 'committed';
+    order.status = 'processing';
+    await order.save({ session });
   }
   return payment;
 }
@@ -125,43 +304,6 @@ export async function verifyRazorpayPayment(userId, payload) {
   } finally { await session.endSession(); }
 }
 
-export async function refundPayment(paymentId, { note = '' } = {}) {
-  const payment = await Payment.findById(paymentId);
-  if (!payment) throw new ApiError(404, 'Payment not found');
-  if (payment.status !== 'success') throw new ApiError(409, 'Only successful payments can be refunded');
-  if (payment.payment_type === 'membership_advance' && Number(payment.allocated_amount || 0) > 0) {
-    throw new ApiError(409, 'This advance has already been applied to a membership. Reverse the membership adjustment before refunding it.');
-  }
-  if (payment.refund_id) throw new ApiError(409, 'Payment is already refunded');
-  if (payment.payment_method !== 'online' || !payment.razorpay_payment_id) throw new ApiError(400, 'Only Razorpay payments can be refunded automatically');
-
-  const refund = await gateway().payments.refund(payment.razorpay_payment_id, { amount: Math.round(payment.amount * 100) });
-  const session = await mongoose.startSession();
-  try {
-    let updated;
-    await session.withTransaction(async () => {
-      updated = await Payment.findOneAndUpdate(
-        { _id: payment._id, status: 'success', refund_id: '' },
-        { $set: { status: 'refunded', refund_id: refund.id, refunded_amount: payment.amount, refund_date: new Date(), reference_note: note || payment.reference_note } },
-        { new: true, session }
-      );
-      if (!updated) throw new ApiError(409, 'Payment refund state changed. Please refresh and try again.');
-
-      if (payment.order_id) {
-        const order = await Order.findOne({ _id: payment.order_id, payment_id: payment._id }).session(session);
-        if (order && order.status !== 'delivered') {
-          for (const item of order.order_items) await Product.updateOne({ _id: item.product_id }, { $inc: { stock_quantity: item.quantity } }, { session });
-          order.payment_status = 'refunded'; order.status = 'cancelled'; await order.save({ session });
-        }
-      }
-      if (payment.membership_id) {
-        await Membership.updateOne({ _id: payment.membership_id, user_id: payment.user_id, payment_status: 'paid', status: { $in: ['active', 'scheduled'] } }, { $set: { status: 'cancelled', payment_status: 'refunded' } }, { session });
-      }
-    });
-    return updated;
-  } finally { await session.endSession(); }
-}
-
 export async function handleRazorpayWebhook(rawBody, signature, eventPayload) {
   if (!verifyWebhookSignature(rawBody, signature)) throw new ApiError(400, 'Invalid webhook signature');
   const event = eventPayload?.event;
@@ -179,4 +321,71 @@ export async function handleRazorpayWebhook(rawBody, signature, eventPayload) {
   try { await session.withTransaction(async () => { await finalizeSuccessfulPayment(payment._id, null, entity.id, null, session); }); }
   finally { await session.endSession(); }
   return { received: true, processed: true };
+}
+
+
+export async function confirmReconciliationRefund(paymentId, refundId) {
+  if (!mongoose.isValidObjectId(paymentId)) throw new ApiError(400, 'Invalid payment ID');
+  if (typeof refundId !== 'string' || !/^rfnd_[A-Za-z0-9]+$/.test(refundId.trim())) {
+    throw new ApiError(400, 'Enter a valid Razorpay refund ID');
+  }
+
+  const payment = await Payment.findById(paymentId);
+  if (!payment) throw new ApiError(404, 'Payment not found');
+  if (payment.status === 'refunded' && payment.razorpay_refund_id === refundId.trim()) return payment;
+  if (payment.status !== 'reconciliation_required' || payment.payment_method !== 'online'
+    || !payment.order_id || !payment.razorpay_payment_id) {
+    throw new ApiError(409, 'Only captured online order payments requiring reconciliation can be resolved as refunded');
+  }
+
+  let refund;
+  try {
+    refund = await gateway().refunds.fetch(refundId.trim());
+  } catch {
+    throw new ApiError(400, 'Razorpay could not verify this refund ID');
+  }
+
+  if (refund.payment_id !== payment.razorpay_payment_id || refund.currency !== 'INR') {
+    throw new ApiError(400, 'This refund does not belong to the selected payment');
+  }
+  if (Number(refund.amount) !== Math.round(Number(payment.amount) * 100)) {
+    throw new ApiError(409, 'Only a full refund matching the original payment amount can close this reconciliation');
+  }
+  if (refund.status !== 'processed') {
+    throw new ApiError(409, 'Razorpay has not marked this refund as processed yet');
+  }
+
+  const session = await mongoose.startSession();
+  let resolvedPayment;
+  try {
+    await session.withTransaction(async () => {
+      const current = await Payment.findById(paymentId).session(session);
+      if (!current) throw new ApiError(404, 'Payment not found');
+      if (current.status === 'refunded' && current.razorpay_refund_id === refund.id) {
+        resolvedPayment = current;
+        return;
+      }
+      if (current.status !== 'reconciliation_required'
+        || current.razorpay_payment_id !== refund.payment_id
+        || String(current.order_id) !== String(payment.order_id)) {
+        throw new ApiError(409, 'Payment changed while the refund was being verified. Refresh and review it again.');
+      }
+
+      current.status = 'refunded';
+      current.razorpay_refund_id = refund.id;
+      current.refund_date = refund.created_at ? new Date(refund.created_at * 1000) : new Date();
+      current.reference_note = `Full refund verified in Razorpay (${refund.id}).`;
+      await current.save({ session });
+
+      await Order.updateOne(
+        { _id: current.order_id, payment_id: { $in: [null, current._id] } },
+        { $set: { payment_status: 'refunded', payment_id: current._id } },
+        { session },
+      );
+      resolvedPayment = current;
+    });
+    return resolvedPayment;
+  } finally {
+    await session.endSession();
+  }
 }

@@ -18,9 +18,58 @@ function nextStartDate(membership) {
 }
 
 export async function getMembershipsByUserId(userId) {
-  const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id');
-  if (!admission) return [];
-  return Membership.find({ user_id: userId, gym_admission_id: admission._id }).sort({ createdAt: -1 });
+  const memberships = await Membership.find({ user_id: userId }).sort({ createdAt: -1 }).lean();
+  if (!memberships.length) return [];
+
+  const membershipIds = memberships.map((membership) => membership._id);
+  const admissionIds = memberships.map((membership) => membership.gym_admission_id).filter(Boolean);
+  const payments = await Payment.find({
+    user_id: userId,
+    $or: [
+      { membership_id: { $in: membershipIds } },
+      ...(admissionIds.length ? [{ gym_admission_id: { $in: admissionIds }, payment_type: 'membership_advance' }] : []),
+    ],
+  }).select('membership_id gym_admission_id amount allocated_amount payment_type status').lean();
+
+  const now = new Date();
+  return memberships.map((membership) => {
+    const related = payments.filter((payment) =>
+      String(payment.membership_id || '') === String(membership._id)
+      || (payment.payment_type === 'membership_advance'
+        && String(payment.gym_admission_id || '') === String(membership.gym_admission_id || ''))
+    );
+    const allocatedAdvance = related
+      .filter((payment) => payment.payment_type === 'membership_advance'
+        && String(payment.membership_id || '') === String(membership._id)
+        && payment.status === 'success')
+      .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
+    // The membership stores its advance allocation at creation. Only use
+    // advances explicitly allocated to this membership as a ledger fallback.
+    const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
+      Number(membership.advance_paid || 0),
+      allocatedAdvance,
+    );
+    const received = related
+      .filter((payment) => ['membership_full', 'membership_installment'].includes(payment.payment_type)
+        && payment.status === 'success')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const amountDue = Math.max(0, Number((
+      Number(membership.plan_price_snapshot || 0) - advancePaid - received
+    ).toFixed(2)));
+    const paymentStatus = membership.payment_status === 'refunded' || related.some((payment) => payment.status === 'refunded')
+      ? 'refunded'
+      : amountDue === 0 ? 'paid' : 'pending';
+
+    return {
+      ...membership,
+      id: String(membership._id),
+      advance_paid: advancePaid,
+      amount_due: amountDue,
+      payment_status: paymentStatus,
+      effective_status: membership.end_date && new Date(membership.end_date) < now
+        && ['active', 'scheduled'].includes(membership.status) ? 'expired' : membership.status,
+    };
+  });
 }
 export async function getAllMemberships({
   search = '',
@@ -76,7 +125,7 @@ export async function getAllMemberships({
   const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
   const [rows, total, plans, counts] = await Promise.all([
     Membership.find(filter)
-      .populate({ path: 'user_id', select: 'full_name email phone role' })
+      .populate({ path: 'user_id', select: 'full_name email phone role avatar_url' })
       .sort({ createdAt: -1 })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit)
@@ -116,13 +165,9 @@ export async function getAllMemberships({
       .filter((payment) => payment.payment_type === 'membership_advance'
         && String(payment.membership_id || '') === String(item._id))
       .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-    const unallocatedAdmissionAdvance = item.membership_type === 'renewal' ? 0 : relatedPayments
-      .filter((payment) => payment.payment_type === 'membership_advance'
-        && !payment.membership_id && payment.status === 'success')
-      .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
     const advancePaid = item.membership_type === 'renewal' ? 0 : Math.max(
       Number(item.advance_paid || 0),
-      allocatedAdvance + unallocatedAdmissionAdvance,
+      allocatedAdvance,
     );
     const membershipPayments = relatedPayments.filter((payment) =>
       payment.payment_type !== 'membership_advance' && payment.status === 'success'
@@ -131,7 +176,7 @@ export async function getAllMemberships({
     const amountDue = Math.max(0, Number((
       Number(item.plan_price_snapshot || 0) - advancePaid - amountReceived
     ).toFixed(2)));
-    const paymentStatus = relatedPayments.some((payment) => payment.status === 'refunded')
+    const paymentStatus = item.payment_status === 'refunded' || relatedPayments.some((payment) => payment.status === 'refunded')
       ? 'refunded'
       : amountDue === 0 ? 'paid' : 'pending';
 
@@ -160,7 +205,7 @@ export async function getAllMemberships({
 export async function getMembershipDetails(membershipId) {
   if (!mongoose.isValidObjectId(membershipId)) throw new ApiError(400, 'Invalid membership ID');
   const membership = await Membership.findById(membershipId)
-    .populate({ path: 'user_id', select: 'full_name email phone role createdAt' })
+    .populate({ path: 'user_id', select: 'full_name email phone role createdAt avatar_url' })
     .populate({ path: 'gym_admission_id', select: 'member_id admission_date status' })
     .lean();
   if (!membership || membership.user_id?.role !== 'user') throw new ApiError(404, 'Membership not found');
@@ -185,13 +230,9 @@ export async function getMembershipDetails(membershipId) {
     .filter((payment) => payment.payment_type === 'membership_advance'
       && (String(payment.membership_id || '') === String(membership._id)))
     .reduce((sum, payment) => sum + Number(payment.allocated_amount || 0), 0);
-  const unallocatedAdmissionAdvance = membership.membership_type === 'renewal' ? 0 : payments
-    .filter((payment) => payment.payment_type === 'membership_advance'
-      && !payment.membership_id && payment.status === 'success')
-    .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0) - Number(payment.allocated_amount || 0)), 0);
   const advancePaid = membership.membership_type === 'renewal' ? 0 : Math.max(
     Number(membership.advance_paid || 0),
-    allocatedAdvance + unallocatedAdmissionAdvance,
+    allocatedAdvance,
   );
   const membershipPayments = payments.filter((payment) =>
     payment.payment_type !== 'membership_advance' && payment.status === 'success'
@@ -200,7 +241,7 @@ export async function getMembershipDetails(membershipId) {
   const calculatedDue = Math.max(0, Number((
     Number(membership.plan_price_snapshot || 0) - advancePaid - amountReceived
   ).toFixed(2)));
-  const hasRefund = payments.some((payment) => payment.status === 'refunded');
+  const hasRefund = membership.payment_status === 'refunded' || payments.some((payment) => payment.status === 'refunded');
   const calculatedPaymentStatus = hasRefund
     ? 'refunded'
     : calculatedDue === 0 ? 'paid' : 'pending';
@@ -216,7 +257,16 @@ export async function getMembershipDetails(membershipId) {
   };
 }
 export async function getActivePlans(userId) {
-  const plans = await MembershipPlan.find({ is_active: true }).sort({ display_order: 1 }).lean();
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const plans = await MembershipPlan.find({
+    is_active: true,
+    $and: [
+      { $or: [{ is_offer: { $ne: true } }, { offer_start_date: null }, { offer_start_date: { $lte: now } }] },
+      { $or: [{ is_offer: { $ne: true } }, { offer_end_date: null }, { offer_end_date: { $gte: endOfToday } }] },
+    ],
+  }).sort({ display_order: 1 }).lean();
   const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' }).select('_id').lean();
 
   if (!admission) {
@@ -369,7 +419,17 @@ async function createMembershipWithAdvance({ userId, admission, plan, startDate,
 }
 
 export async function purchaseMembership(userId, planId) {
-  const plan = await MembershipPlan.findOne({ _id: planId, is_active: true });
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const plan = await MembershipPlan.findOne({
+    _id: planId,
+    is_active: true,
+    $and: [
+      { $or: [{ is_offer: { $ne: true } }, { offer_start_date: null }, { offer_start_date: { $lte: now } }] },
+      { $or: [{ is_offer: { $ne: true } }, { offer_end_date: null }, { offer_end_date: { $gte: endOfToday } }] },
+    ],
+  });
   if (!plan) throw new ApiError(404, 'Plan not found');
   const admission = await GymAdmission.findOne({ user_id: userId, status: 'active' });
   if (!admission) throw new ApiError(400, 'No active gym admission found. Ask gym staff to admit you first.');

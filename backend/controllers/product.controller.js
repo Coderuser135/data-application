@@ -13,7 +13,14 @@ export const getProducts = async (req, res, next) => {
   try { res.json(await productService.getProducts(req.query)); } catch (err) { next(err); }
 };
 export const getActiveProducts = async (req, res, next) => {
-  try { res.json(await productService.getActiveProducts()); } catch (err) { next(err); }
+  try { res.json(await productService.getActiveProducts(req.query)); } catch (err) { next(err); }
+};
+export const getActiveProductById = async (req, res, next) => {
+  try {
+    const product = await productService.getActiveProductById(req.params.id);
+    if (!product) return res.status(404).json({ error: 'Supplement not found or unavailable' });
+    res.json(product);
+  } catch (err) { next(err); }
 };
 export const createProduct = async (req, res, next) => {
   let uploadedImage;

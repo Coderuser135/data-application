@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const emailOtpSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   email: { type: String, required: true, lowercase: true, trim: true, index: true },
-  purpose: { type: String, enum: ['verify_email'], required: true },
+  purpose: { type: String, enum: ['verify_email', 'reset_password'], required: true },
   otp_hash: { type: String, required: true },
   attempts: { type: Number, default: 0 },
   expires_at: { type: Date, required: true, index: { expires: 0 } },

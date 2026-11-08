@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Search, Dumbbell, Clock3, CalendarClock, Layers3,
-  ChevronLeft, ChevronRight, Eye, X, RefreshCw, CalendarDays, Printer,
+  ChevronLeft, ChevronRight, Eye, X, RefreshCw, CalendarDays,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
@@ -32,16 +32,17 @@ function Filter({ label, value, onChange, options }) {
 
 function SummaryCard({ label, value, icon: Icon, tone }) {
   const styles = {
-    green: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20',
-    blue: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-400/20',
-    slate: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600',
+    green: { icon: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20', card: '!border-emerald-200/80 !bg-emerald-50/70 dark:!border-emerald-500/20 dark:!bg-emerald-500/[0.08]' },
+    amber: { icon: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20', card: '!border-amber-200/80 !bg-amber-50/70 dark:!border-amber-500/20 dark:!bg-amber-500/[0.08]' },
+    blue: { icon: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-400/20', card: '!border-blue-200/80 !bg-blue-50/70 dark:!border-blue-500/20 dark:!bg-blue-500/[0.08]' },
+    slate: { icon: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-200 dark:ring-slate-600', card: '!border-slate-200 !bg-white dark:!border-slate-700 dark:!bg-slate-900' },
   };
+  const palette = styles[tone] || styles.slate;
   return (
-    <Card className="!border-slate-200 !bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)] dark:!border-slate-700 dark:!bg-slate-900">
+    <Card className={`${palette.card} shadow-[0_3px_14px_rgba(15,23,42,0.05)]`}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 sm:text-sm">{label}</p>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${styles[tone]}`}><Icon size={18} /></span>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${palette.icon}`}><Icon size={18} /></span>
       </div>
       <p className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white sm:text-3xl">{value}</p>
     </Card>
@@ -57,92 +58,6 @@ function DetailLine({ label, value }) {
   );
 }
 
-function escapeReceiptText(value = '') {
-  return String(value).replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  })[character]);
-}
-
-function formatReceiptDateTime(value) {
-  const date = value ? new Date(value) : null;
-  return date && !Number.isNaN(date.getTime())
-    ? date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-    : 'Not available';
-}
-
-function printPaymentReceipt(payment, membership) {
-  if (payment.status !== 'success') return;
-  const receiptWindow = window.open('', '_blank', 'width=820,height=900');
-  if (!receiptWindow) {
-    window.alert('Please allow pop-ups to print the payment receipt.');
-    return;
-  }
-
-  const safe = escapeReceiptText;
-  const receiptNumber = `IF-${String(payment._id || '').slice(-10).toUpperCase() || 'RECEIPT'}`;
-  const transactionReference = payment.razorpay_payment_id || payment.transaction_id || payment.reference_note || 'Not provided';
-  const paymentDate = formatReceiptDateTime(payment.payment_date || payment.createdAt);
-  const membershipType = membership.membership_type === 'renewal' ? 'Renewal' : 'First membership';
-  const paymentMethod = String(payment.payment_method || 'online').toUpperCase();
-  const paymentType = String(payment.payment_type || 'membership').replaceAll('_', ' ');
-
-  receiptWindow.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><title>Payment Receipt - ${safe(receiptNumber)}</title>
-  <style>
-    *{box-sizing:border-box}body{margin:0;padding:28px;background:#eef2f7;color:#172033;font-family:Arial,Helvetica,sans-serif}
-    .sheet{max-width:760px;margin:0 auto;background:#fff;border:1px solid #dbe2ea;border-radius:18px;overflow:hidden}
-    .brand{padding:28px 32px;background:#111827;color:#fff;display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
-    .brand h1{margin:0;font-size:26px;letter-spacing:1px}.brand p{margin:7px 0 0;color:#cbd5e1;font-size:12px}
-    .meta{text-align:right;font-size:12px;line-height:1.8;color:#e2e8f0}.meta strong{display:block;color:#fff;font-size:14px}
-    .content{padding:28px 32px}.status{display:inline-block;padding:7px 12px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:800;letter-spacing:.7px}
-    .amount-box{margin:18px 0 24px;padding:20px;border:1px solid #bbf7d0;border-radius:14px;background:#f0fdf4}
-    .amount-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px}.amount{margin-top:6px;font-size:34px;font-weight:800;color:#166534}
-    .section{margin-top:24px}.section h2{margin:0 0 12px;font-size:13px;color:#111827}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;border-top:1px solid #e8edf3}
-    .line{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #e8edf3;font-size:12px}
-    .line span{color:#64748b}.line strong{text-align:right;color:#1e293b;overflow-wrap:anywhere}
-    .notice{margin-top:24px;padding:13px 15px;border-radius:10px;background:#f8fafc;color:#64748b;font-size:11px;line-height:1.6}
-    .footer{padding:18px 32px;border-top:1px solid #e8edf3;text-align:center;color:#64748b;font-size:11px}
-    .actions{max-width:760px;margin:14px auto 0;display:flex;justify-content:flex-end}.print{border:0;border-radius:9px;padding:11px 18px;background:#b91c1c;color:#fff;font-weight:700;cursor:pointer}
-    @media(max-width:560px){body{padding:0;background:#fff}.sheet{border:0;border-radius:0}.brand,.content{padding:22px 18px}.grid{grid-template-columns:1fr}.amount{font-size:29px}}
-    @media print{body{padding:0;background:#fff}.sheet{max-width:none;border:0;border-radius:0}.actions{display:none}.brand,.amount-box,.status,.notice{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-  </style></head><body>
-  <main class="sheet">
-    <header class="brand"><div><h1>IRONFORGE</h1><p>GYM MEMBERSHIP · PAYMENT RECEIPT</p></div>
-      <div class="meta"><strong>RECEIPT</strong>No. ${safe(receiptNumber)}<br>Issued: ${safe(paymentDate)}</div>
-    </header>
-    <div class="content"><span class="status">PAYMENT SUCCESSFUL</span>
-      <div class="amount-box"><div class="amount-label">Amount received</div><div class="amount">${safe(formatCurrency(payment.amount))}</div></div>
-      <section class="section"><h2>MEMBER DETAILS</h2><div class="grid">
-        <div class="line"><span>Member name</span><strong>${safe(membership.user_id?.full_name || '—')}</strong></div>
-        <div class="line"><span>Member ID</span><strong>${safe(membership.gym_admission_id?.member_id || '—')}</strong></div>
-        <div class="line"><span>Email</span><strong>${safe(membership.user_id?.email || '—')}</strong></div>
-        <div class="line"><span>Phone</span><strong>${safe(membership.user_id?.phone || '—')}</strong></div>
-      </div></section>
-      <section class="section"><h2>MEMBERSHIP DETAILS</h2><div class="grid">
-        <div class="line"><span>Plan</span><strong>${safe(membership.plan_name_snapshot || '—')}</strong></div>
-        <div class="line"><span>Membership type</span><strong>${safe(membershipType)}</strong></div>
-        <div class="line"><span>Plan price</span><strong>${safe(formatCurrency(membership.plan_price_snapshot))}</strong></div>
-        <div class="line"><span>Duration</span><strong>${safe(`${membership.duration_days || '—'} days`)}</strong></div>
-        <div class="line"><span>Start date</span><strong>${safe(formatDate(membership.start_date))}</strong></div>
-        <div class="line"><span>Expiry date</span><strong>${safe(formatDate(membership.end_date))}</strong></div>
-        <div class="line"><span>Membership ID</span><strong>${safe(membership._id || '—')}</strong></div>
-        <div class="line"><span>Payment category</span><strong>${safe(paymentType)}</strong></div>
-      </div></section>
-      <section class="section"><h2>PAYMENT DETAILS</h2><div class="grid">
-        <div class="line"><span>Payment status</span><strong>SUCCESS</strong></div>
-        <div class="line"><span>Payment method</span><strong>${safe(paymentMethod)}</strong></div>
-        <div class="line"><span>Payment date & time</span><strong>${safe(paymentDate)}</strong></div>
-        <div class="line"><span>Transaction reference</span><strong>${safe(transactionReference)}</strong></div>
-        <div class="line"><span>Payment record ID</span><strong>${safe(payment._id || '—')}</strong></div>
-        <div class="line"><span>Gateway order ID</span><strong>${safe(payment.razorpay_order_id || '—')}</strong></div>
-      </div></section>
-      <div class="notice">This receipt confirms the successful payment recorded by IRONFORGE. Please retain it for your records. For payment queries, share the receipt number or transaction reference with the gym.</div>
-    </div><footer class="footer">Thank you for being a part of IRONFORGE.</footer>
-  </main><div class="actions"><button class="print" onclick="window.print()">Print / Save as PDF</button></div>
-  </body></html>`);
-  receiptWindow.document.close();
-}
 function MembershipDetails({ membership, loading, error, onClose }) {
   if (!membership && !loading) return null;
   return createPortal(
@@ -187,7 +102,7 @@ function MembershipDetails({ membership, loading, error, onClose }) {
                 {membership.payments?.length ? <div className="space-y-2">{membership.payments.map((payment) => (
                   <div key={payment._id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                     <div className="min-w-0"><p className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(payment.amount)} · {String(payment.payment_type || '').replaceAll('_', ' ')}</p><p className="mt-1 break-all text-xs text-slate-500 dark:text-slate-400">{payment.transaction_id || payment.razorpay_payment_id || payment.reference_note || 'No reference'} · {formatDate(payment.payment_date || payment.createdAt)}</p></div>
-                    <div className="flex items-center gap-2"><Badge tone={paymentTone[payment.status] || (payment.status === 'failed' ? 'danger' : 'neutral')}>{payment.status}</Badge>{payment.status === 'success' ? <Button size="sm" variant="outline" onClick={() => printPaymentReceipt(payment, membership)}><Printer size={13}/> Receipt</Button> : null}</div>
+                    <div className="flex items-center gap-2"><Badge tone={paymentTone[payment.status] || (payment.status === 'failed' ? 'danger' : 'neutral')}>{payment.status}</Badge></div>
                   </div>
                 ))}</div> : <p className="text-sm text-slate-500 dark:text-slate-400">No payment transactions are linked to this membership.</p>}
               </Card>
@@ -219,7 +134,7 @@ export default function AdminMemberships() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
 
-  async function loadMemberships(showRefresh = false) {
+  const loadMemberships = useCallback(async (showRefresh = false) => {
     showRefresh ? setRefreshing(true) : setLoading(true);
     setError('');
     try {
@@ -231,12 +146,12 @@ export default function AdminMemberships() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [search, status, paymentStatus, expiry, plan, membershipType, page, limit]);
 
   useEffect(() => {
     const timer = setTimeout(() => loadMemberships(), 250);
     return () => clearTimeout(timer);
-  }, [search, status, paymentStatus, expiry, plan, membershipType, page, limit]);
+  }, [loadMemberships]);
 
   async function openDetails(item) {
     setSelected({ _id: item._id });

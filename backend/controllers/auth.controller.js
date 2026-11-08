@@ -1,13 +1,20 @@
+import crypto from 'crypto';
 import * as authService from '../services/auth.service.js';
-import { verifyRefreshToken } from '../utils/jwt.utils.js';
 
 const cookieOptions = (maxAge) => {
   const production = process.env.NODE_ENV === 'production';
   const sameSite = process.env.COOKIE_SAME_SITE || (production ? 'none' : 'lax');
   return { httpOnly: true, secure: production, sameSite, maxAge, path: '/' };
 };
-const requestMetadata = (req) => {
-  return { userAgent: req.get('user-agent') || '', ipAddress: req.ip || req.socket?.remoteAddress || '' };
+const requestMetadata = (req) => ({
+  userAgent: req.get('user-agent') || '',
+  ipAddress: req.ip || req.socket?.remoteAddress || '',
+  deviceId: req.cookies?.deviceId || '',
+});
+const ensureDeviceCookie = (req, res) => {
+  const deviceId = req.cookies?.deviceId || crypto.randomUUID();
+  if (!req.cookies?.deviceId) res.cookie('deviceId', deviceId, cookieOptions(365 * 24 * 60 * 60 * 1000));
+  return deviceId;
 };
 const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie('accessToken', accessToken, cookieOptions(15 * 60 * 1000));
@@ -32,7 +39,9 @@ export const resendVerificationOtp = async (req, res, next) => {
 };
 export const login = async (req, res, next) => {
   try {
-    const result = await authService.loginUser(req.body, requestMetadata(req));
+    const metadata = requestMetadata(req);
+    metadata.deviceId = ensureDeviceCookie(req, res);
+    const result = await authService.loginUser(req.body, metadata);
     setAuthCookies(res, result.accessToken, result.refreshToken);
     res.json({ user: result.user });
   } catch (err) { next(err); }
@@ -45,12 +54,20 @@ export const refresh = async (req, res, next) => {
     res.json({ user: result.user });
   } catch (err) { clearAuthCookies(res); next(err); }
 };
-export const logout = async (req, res) => {
+export const sessionSummary = async (req, res, next) => {
   try {
-    const rawToken = req.cookies?.refreshToken;
-    if (rawToken) { const payload = verifyRefreshToken(rawToken); await authService.revokeSession(payload.sid, payload.id, 'logout'); }
-  } catch { /* Clear invalid cookies as well. */ }
-  clearAuthCookies(res); res.set('Cache-Control', 'no-store'); res.json({ message: 'Logged out successfully' });
+    const activeDevices = await authService.getActiveDeviceCount(req.user._id);
+    res.set('Cache-Control', 'no-store');
+    res.json({ activeDevices });
+  } catch (err) { next(err); }
+};
+export const logout = async (req, res, next) => {
+  try {
+    await authService.revokeSession(req.session?._id, req.user._id, 'logout');
+    clearAuthCookies(res);
+    res.set('Cache-Control', 'no-store');
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) { next(err); }
 };
 export const logoutAll = async (req, res, next) => {
   try {
@@ -68,6 +85,10 @@ export const changePassword = async (req, res, next) => {
 };
 export const forgotPassword = async (req, res, next) => {
   try { res.json(await authService.requestPasswordReset(req.body)); } catch (err) { next(err); }
+};
+export const verifyPasswordResetOtp = async (req, res, next) => {
+  try { res.set('Cache-Control', 'no-store'); res.json(await authService.verifyPasswordResetOtp(req.body)); }
+  catch (err) { next(err); }
 };
 export const resetPassword = async (req, res, next) => {
   try { const result = await authService.resetPassword(req.body); clearAuthCookies(res); res.json(result); }

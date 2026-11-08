@@ -39,24 +39,25 @@ export default function Login() {
         <div className="relative flex h-full flex-col justify-between p-12 text-white">
           <Link to="/" className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-ink-950"><Dumbbell size={21} /></span>
-            <span className="font-display text-lg font-bold">IRON<span className="text-brand-400">FORGE</span></span>
+            <span className="font-display text-lg font-bold">HEAVEN<span className="text-brand-400">GYM</span></span>
           </Link>
           <div>
             <p className="font-display text-4xl font-bold leading-tight">Welcome back.<br /><span className="text-brand-400">Let's get to work.</span></p>
             <p className="mt-4 max-w-sm text-surface-400">Your training, your progress, your supplements — all in one place.</p>
           </div>
-          <p className="text-xs text-surface-500">© {new Date().getFullYear()} IronForge Fitness</p>
+          <p className="text-xs text-surface-500">© {new Date().getFullYear()} Heaven Gym Fitness</p>
         </div>
       </div>
       <div className="flex w-full items-center justify-center bg-surface-50 px-5 py-12 dark:bg-surface-950 lg:w-1/2">
         <div className="w-full max-w-md">
           <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white"><Dumbbell size={21} /></span>
-            <span className="font-display text-lg font-bold text-ink-950 dark:text-white">IRON<span className="text-brand-500">FORGE</span></span>
+            <span className="font-display text-lg font-bold text-ink-950 dark:text-white">HEAVEN<span className="text-brand-500">GYM</span></span>
           </Link>
           <h1 className="font-display text-3xl font-bold text-ink-950 dark:text-white">Sign in</h1>
           <p className="mt-2 text-sm text-surface-500">Enter your credentials to access your account</p>
           {location.state?.verified && <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">Email verified successfully. You can now sign in.</div>}
+          {location.state?.message && <div role="status" className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{location.state.message}</div>}
           {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">{error}</div>}
           <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />

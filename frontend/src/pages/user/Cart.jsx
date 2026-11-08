@@ -1,51 +1,119 @@
-import { Link } from 'react-router-dom';
-import { Trash2, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Trash2, Minus, Plus, Package } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromCart, updateQuantity, clearCart } from '@/redux/slices/cartSlice';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { formatCurrency } from '@/utils/formatters';
+import { productService } from '@/services/productService';
+
+function getProductId(product) {
+  return product.id || product._id;
+}
+
+function getProductImage(product) {
+  return product.image_url || product.images?.find((image) => image.is_primary)?.url || product.images?.[0]?.url || '';
+}
 
 export default function Cart() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [stockById, setStockById] = useState({});
+  const [productsById, setProductsById] = useState({});
+  const [stockLoading, setStockLoading] = useState(true);
   const items = useSelector((state) => state.cart.items);
-  const total = items.reduce((sum, item) => sum + (item.product.sale_price || item.product.price) * item.quantity, 0);
+  useEffect(() => {
+    let active = true;
+    if (!items.length) { setStockById({}); setProductsById({}); setStockLoading(false); return () => { active = false; }; }
+    setStockLoading(true);
+    setStockById({});
+    setProductsById({});
+    Promise.all(items.map(async (item) => {
+      const id = getProductId(item.product);
+      try {
+        const latest = await productService.getActiveById(id);
+        return [id, latest];
+      } catch {
+        return [id, null];
+      }
+    })).then((entries) => {
+      if (active) {
+        setProductsById(Object.fromEntries(entries.filter(([, product]) => product)));
+        setStockById(Object.fromEntries(entries.map(([id, product]) => [id, Number(product?.available_quantity) || 0])));
+      }
+    })
+      .finally(() => { if (active) setStockLoading(false); });
+    return () => { active = false; };
+  }, [items]);
+
+  const canCheckout = !stockLoading && items.every((item) => (stockById[getProductId(item.product)] ?? 0) >= item.quantity);
+  const total = items.reduce((sum, item) => {
+    const price = Number(productsById[getProductId(item.product)]?.price ?? item.product.price ?? item.product.sale_price ?? 0);
+    return sum + price * item.quantity;
+  }, 0);
 
   if (items.length === 0) return <div className="space-y-6"><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Your Cart</h1><EmptyState title="Your cart is empty" description="Browse the store and add supplements to your cart." /><Link to="/user/store"><Button>Shop supplements</Button></Link></div>;
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Your Cart</h1>
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-3">
-          {items.map((item) => (
-            <Card key={item.product.id} className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-surface-100 text-brand-500 dark:bg-surface-800"><ShoppingBag size={24} /></div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-ink-950 dark:text-white">{item.product.name}</h3>
-                <p className="text-sm text-surface-500">{formatCurrency(item.product.sale_price || item.product.price)}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => dispatch(updateQuantity({ id: item.product.id, quantity: item.quantity - 1 }))} className="rounded-lg p-1.5 hover:bg-surface-100 dark:hover:bg-surface-800"><Minus size={16} /></button>
-                <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
-                <button onClick={() => dispatch(updateQuantity({ id: item.product.id, quantity: item.quantity + 1 }))} className="rounded-lg p-1.5 hover:bg-surface-100 dark:hover:bg-surface-800"><Plus size={16} /></button>
-              </div>
-              <p className="w-20 text-right font-semibold">{formatCurrency((item.product.sale_price || item.product.price) * item.quantity)}</p>
-              <button onClick={() => dispatch(removeFromCart(item.product.id))} className="rounded-lg p-2 text-surface-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"><Trash2 size={18} /></button>
-            </Card>
-          ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h1 className="font-display text-2xl font-bold text-ink-950 dark:text-white">Your Cart</h1><p className="mt-1 text-sm text-surface-500">{items.reduce((sum, item) => sum + item.quantity, 0)} items in your bag</p></div>
+        <Link to="/user/store" className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400">Continue shopping</Link>
+      </div>
+
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-3">
+          {items.map((item) => {
+            const product = item.product;
+            const id = getProductId(product);
+            const image = getProductImage(product);
+            const price = Number(productsById[id]?.price ?? product.price ?? product.sale_price ?? 0);
+            return (
+              <Card key={id} className="min-w-0 overflow-hidden">
+                <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-100 dark:bg-surface-800 sm:h-24 sm:w-24">
+                      {image ? <img src={image} alt={product.name} loading="lazy" className="h-full w-full object-contain p-2" /> : <Package size={30} className="text-surface-400" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {product.brand && <p className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">{product.brand}</p>}
+                      <h3 className="break-words font-semibold text-ink-950 dark:text-white">{product.name}</h3>
+                      {product.net_quantity && <p className="mt-1 text-xs text-surface-500">{product.net_quantity}</p>}
+                      <p className={`mt-2 text-xs font-bold ${(stockById[id] ?? 0) > 0 && item.quantity <= stockById[id] ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{(stockById[id] ?? 0) > 0 && item.quantity <= stockById[id] ? 'In stock' : 'Out of stock / quantity unavailable'}</p>
+                      <p className="mt-1 text-sm font-semibold text-surface-600 dark:text-surface-300">{formatCurrency(price)} <span className="font-normal text-surface-400">/ item</span></p>
+                    </div>
+                  </div>
+
+                  <div className="flex min-w-0 items-center justify-between gap-3 border-t border-surface-100 pt-3 dark:border-surface-800 sm:border-0 sm:pt-0">
+                    <div className="flex items-center gap-2 rounded-lg border border-surface-200 p-1 dark:border-surface-700">
+                      <button aria-label={`Decrease ${product.name} quantity`} onClick={() => dispatch(updateQuantity({ id, quantity: item.quantity - 1 }))} className="rounded-md p-1.5 transition hover:bg-surface-100 dark:hover:bg-surface-800"><Minus size={15} /></button>
+                      <span className="w-7 text-center text-sm font-semibold tabular-nums">{item.quantity}</span>
+                      <button aria-label={`Increase ${product.name} quantity`} disabled={stockLoading || item.quantity >= (stockById[id] ?? 0)} onClick={() => dispatch(updateQuantity({ id, quantity: item.quantity + 1 }))} className="rounded-md p-1.5 transition hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-surface-800"><Plus size={15} /></button>
+                    </div>
+                    <p className="min-w-[76px] text-right font-display text-base font-bold text-ink-950 dark:text-white">{formatCurrency(price * item.quantity)}</p>
+                    <button aria-label={`Remove ${product.name} from cart`} onClick={() => dispatch(removeFromCart(id))} className="rounded-lg p-2 text-surface-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"><Trash2 size={18} /></button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
-        <Card>
-          <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Order Summary</h3>
-          <div className="mt-4 space-y-3">
-            <div className="flex justify-between text-sm"><span className="text-surface-500">Items</span><span className="font-medium">{items.length}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-surface-500">Subtotal</span><span className="font-medium">{formatCurrency(total)}</span></div>
-            <div className="flex justify-between border-t border-surface-200 pt-3 dark:border-surface-800"><span className="font-semibold">Total</span><span className="font-display text-xl font-bold text-brand-600">{formatCurrency(total)}</span></div>
-          </div>
-          <Link to="/user/checkout"><Button className="mt-5 w-full" size="lg">Proceed to checkout</Button></Link>
-          <button onClick={() => dispatch(clearCart())} className="mt-3 w-full text-sm text-surface-500 hover:text-red-600">Clear cart</button>
-        </Card>
+
+        <div className="min-w-0">
+          <Card className="lg:sticky lg:top-5">
+            <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Order Summary</h3>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between text-sm"><span className="text-surface-500">Items</span><span className="font-medium">{items.reduce((sum, item) => sum + item.quantity, 0)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-surface-500">Subtotal</span><span className="font-medium">{formatCurrency(total)}</span></div>
+              <div className="flex justify-between border-t border-surface-200 pt-3 dark:border-surface-800"><span className="font-semibold">Total</span><span className="font-display text-xl font-bold text-brand-600">{formatCurrency(total)}</span></div>
+            </div>
+            {!canCheckout && <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-300">One or more items are out of stock or the selected quantity is unavailable. Update your cart before checkout.</p>}
+            <Button className="mt-5 w-full" size="lg" disabled={!canCheckout} onClick={() => navigate('/user/checkout')}>{stockLoading ? 'Checking availability…' : 'Proceed to checkout'}</Button>
+            <button onClick={() => dispatch(clearCart())} className="mt-3 w-full text-sm text-surface-500 hover:text-red-600">Clear cart</button>
+          </Card>
+        </div>
       </div>
     </div>
   );
