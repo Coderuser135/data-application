@@ -11,6 +11,7 @@ const gymAdmissionSchema = new mongoose.Schema({
   selected_plan_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MembershipPlan', default: null },
 }, { timestamps: true });
 
-gymAdmissionSchema.index({ user_id: 1 });
+// One customer can have only one gym admission.
+gymAdmissionSchema.index({ user_id: 1 }, { unique: true });
 
 export default mongoose.model('GymAdmission', gymAdmissionSchema);

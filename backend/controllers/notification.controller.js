@@ -1,40 +1,89 @@
-import * as notificationService from '../services/notificatioin.service.js';
+import Notification from '../models/notification.model.js';
+import User from '../models/user.model.js';
 import { ApiError } from '../utils/errors.utils.js';
 
-export async function getMyNotifications(req, res, next) {
+export const getMyNotifications = async (req, res, next) => {
   try {
-    const notifications = await notificationService.getNotificationsByUserId(req.user._id);
+    const notifications = await Notification.find({ user_id: req.user._id }).sort({ createdAt: -1 });
     res.json(notifications);
-  } catch (err) { next(err); }
-}
+  } catch (error) {
+    next(error);
+  }
+};
 
-export async function markRead(req, res, next) {
+export const markRead = async (req, res, next) => {
   try {
-    const notification = await notificationService.markNotificationRead(req.params.id, req.user._id);
+    const notification = await Notification.findOne({
+      _id: req.params.id,
+      user_id: req.user._id,
+    });
+
+    if (notification) {
+      notification.is_read = true;
+      await notification.save();
+    }
+
     res.json(notification);
-  } catch (err) { next(err); }
-}
+  } catch (error) {
+    next(error);
+  }
+};
 
-export async function markAllRead(req, res, next) {
+export const markAllRead = async (req, res, next) => {
   try {
-    const result = await notificationService.markAllRead(req.user._id);
-    res.json(result);
-  } catch (err) { next(err); }
-}
+    await Notification.updateMany(
+      { user_id: req.user._id, is_read: false },
+      { $set: { is_read: true } }
+    );
 
-export async function getUnreadCount(req, res, next) {
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUnreadCount = async (req, res, next) => {
   try {
-    const count = await notificationService.getUnreadCount(req.user._id);
+    const count = await Notification.countDocuments({
+      user_id: req.user._id,
+      is_read: false,
+    });
+
     res.json({ count });
-  } catch (err) { next(err); }
-}
+  } catch (error) {
+    next(error);
+  }
+};
 
-export async function broadcastNotification(req, res, next) {
+export const broadcastNotification = async (req, res, next) => {
   try {
     const { title, message } = req.body;
-    if (!title || !title.trim()) throw new ApiError(400, 'Title is required');
-    if (!message || !message.trim()) throw new ApiError(400, 'Message is required');
-    const result = await notificationService.broadcastToAllUsers({ title: title.trim(), message: message.trim() });
-    res.json(result);
-  } catch (err) { next(err); }
-}
+
+    if (!title || !title.trim()) {
+      throw new ApiError(400, 'Title is required');
+    }
+
+    if (!message || !message.trim()) {
+      throw new ApiError(400, 'Message is required');
+    }
+
+    const users = await User.find({}, '_id').lean();
+
+    if (users.length === 0) {
+      return res.json({ sent: 0 });
+    }
+
+    const notifications = users.map((user) => ({
+      user_id: user._id,
+      title: title.trim(),
+      message: message.trim(),
+      type: 'broadcast',
+      is_read: false,
+    }));
+
+    await Notification.insertMany(notifications, { ordered: false });
+    res.json({ sent: users.length });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -6,10 +6,20 @@ const membershipSchema = new mongoose.Schema({
   plan_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MembershipPlan', default: null },
   plan_name_snapshot: { type: String, required: true, trim: true },
   plan_price_snapshot: { type: Number, required: true, min: 0 },
+  advance_paid: { type: Number, default: 0, min: 0 },
+  membership_type: { type: String, enum: ['initial', 'renewal'], default: 'initial', index: true },
+  parent_membership_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Membership', default: null },
+  frozen_at: { type: Date, default: null },
+  freeze_history: [{
+    frozen_at: { type: Date, required: true },
+    resumed_at: { type: Date, default: null },
+    days: { type: Number, default: 0, min: 0 },
+  }],
+  amount_due: { type: Number, default: 0, min: 0 },
   duration_days: { type: Number, required: true, min: 1 },
   start_date: { type: Date },
   end_date: { type: Date },
-  status: { type: String, enum: ['active', 'scheduled', 'pending', 'expired', 'cancelled', 'not_purchased'], default: 'pending' },
+  status: { type: String, enum: ['active', 'scheduled', 'pending', 'expired', 'cancelled', 'not_purchased', 'frozen'], default: 'pending' },
   payment_status: { type: String, enum: ['pending', 'paid', 'refunded'], default: 'pending' },
 }, { timestamps: true });
 

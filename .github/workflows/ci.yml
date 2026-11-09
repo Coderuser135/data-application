@@ -2,25 +2,29 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, production/auth-session-hardening, backend/simple-mvc-refactor]
   pull_request:
-    branches: [main]
+    branches: [main, production/auth-session-hardening, backend/simple-mvc-refactor]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
 
       - name: Install backend
         working-directory: backend
-        run: npm install
+        run: npm ci
 
       - name: Validate backend syntax
         working-directory: backend
@@ -28,7 +32,7 @@ jobs:
 
       - name: Install frontend
         working-directory: frontend
-        run: npm install
+        run: npm ci
 
       - name: Build frontend
         working-directory: frontend

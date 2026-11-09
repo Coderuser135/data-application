@@ -9,6 +9,4 @@ const gymSettingsSchema = new mongoose.Schema({
   low_stock_threshold: { type: Number, default: 10, min: 0 },
 }, { timestamps: true });
 
-gymSettingsSchema.index({ _id: 1 });
-
 export default mongoose.model('GymSettings', gymSettingsSchema);

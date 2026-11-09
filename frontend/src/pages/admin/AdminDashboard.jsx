@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Dumbbell, CreditCard, Package, TrendingUp, IndianRupee, ShoppingCart, AlertTriangle, Calendar, ArrowRight, Activity, Store } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import AdminLoadingSkeleton from '@/components/admin/AdminLoadingSkeleton';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -19,11 +20,11 @@ const periods = [
 
 function StatCard({ icon: Icon, label, value, tone = 'neutral', sublabel }) {
   const tones = {
-    success: 'bg-emerald-500/10 text-emerald-400',
-    warning: 'bg-amber-500/10 text-amber-400',
-    danger: 'bg-red-500/10 text-red-400',
-    info: 'bg-blue-500/10 text-blue-400',
-    neutral: 'bg-surface-700 text-surface-300',
+    success: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    warning: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    danger: 'bg-red-500/10 text-red-700 dark:text-red-400',
+    info: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+    neutral: 'bg-surface-100 text-surface-700 dark:bg-surface-700 dark:text-surface-300',
   };
   return (
     <Card>
@@ -96,7 +97,7 @@ export default function AdminDashboard() {
   useEffect(() => { dispatch(fetchAdminStats()); }, [dispatch]);
   useEffect(() => { dispatch(fetchRevenueAnalytics(period)); }, [dispatch, period]);
 
-  if (loading && !adminStats) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (loading && !adminStats) return <AdminLoadingSkeleton variant="dashboard" />;
   if (!adminStats) return <EmptyState title="Failed to load dashboard" />;
 
   const s = adminStats.stats;
@@ -122,7 +123,7 @@ export default function AdminDashboard() {
         <StatCard icon={TrendingUp} label="This Month" value={formatCurrency(s.monthRevenue)} tone="success" sublabel={`Today: ${formatCurrency(s.todayRevenue)}`} />
       </div>
 
-      <RevenueChart analytics={analytics} period={period} onPeriodChange={setPeriod} />
+      {loading && !analytics ? <AdminLoadingSkeleton variant="chart" /> : <RevenueChart analytics={analytics} period={period} onPeriodChange={setPeriod} />}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card padding={false}>

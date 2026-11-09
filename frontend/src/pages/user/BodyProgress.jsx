@@ -4,6 +4,7 @@ import { Ruler, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 import { fetchMyMeasurements } from '@/redux/slices/measurementSlice';
+import { fetchMyAdmission } from '@/redux/slices/admissionSlice';
 import { formatDate } from '@/utils/formatters';
 
 const FIELDS = [
@@ -64,8 +65,12 @@ export default function BodyProgress() {
   const dispatch = useDispatch();
   const measurements = useSelector((state) => state.measurements.items);
   const loading = useSelector((state) => state.measurements.loading);
+  const admission = useSelector((state) => state.admissions.admission);
 
-  useEffect(() => { dispatch(fetchMyMeasurements()); }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchMyMeasurements());
+    dispatch(fetchMyAdmission());
+  }, [dispatch]);
 
   if (loading) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
 
@@ -79,6 +84,13 @@ export default function BodyProgress() {
   }
 
   const bmi = latest ? calcBMI(Number(latest.weight), Number(latest.height)) : null;
+  const monthlyGroups = measurements.reduce((groups, measurement) => {
+    const date = new Date(measurement.measurement_date);
+    const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(measurement);
+    return groups;
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -139,31 +151,40 @@ export default function BodyProgress() {
               <h3 className="font-display text-lg font-semibold text-ink-950 dark:text-white">Measurement History</h3>
             </div>
             {measurements.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-surface-200 text-left text-xs text-surface-500 dark:border-surface-800">
-                      <th className="px-5 py-3 font-medium">Date</th>
-                      <th className="px-5 py-3 font-medium">Age</th>
-                      {FIELDS.map((f) => <th key={f.key} className="px-5 py-3 font-medium">{f.label}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {measurements.map((m) => (
-                      <tr key={m.id} className="border-b border-surface-100 last:border-0 dark:border-surface-800">
-                        <td className="px-5 py-3 font-medium">{formatDate(m.measurement_date)}</td>
-                        <td className="px-5 py-3">{m.age || '—'}</td>
-                        {FIELDS.map((f) => <td key={f.key} className="px-5 py-3">{m[f.key] || '—'}</td>)}
-                      </tr>
+              <div className="space-y-5 p-5">
+                {Object.entries(monthlyGroups).map(([month, records]) => (
+                  <section key={month} className="overflow-hidden rounded-xl border border-surface-200 dark:border-surface-800">
+                    <div className="flex items-center justify-between bg-surface-50 px-4 py-3 dark:bg-surface-800/60">
+                      <h4 className="font-semibold text-ink-900 dark:text-white">
+                        {new Date(month + '-01T12:00:00').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                      </h4>
+                      <span className="text-xs text-surface-500">{records.length} {records.length === 1 ? 'record' : 'records'}</span>
+                    </div>
+                    {records.map((m) => (
+                      <div key={m._id || m.id} className="border-t border-surface-100 p-4 dark:border-surface-800">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-sm font-semibold text-ink-900 dark:text-white">{formatDate(m.measurement_date)}</p>
+                          <span className="text-xs text-surface-500">Recorded by gym staff</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                          {FIELDS.map((field) => (
+                            <div key={field.key} className="rounded-lg bg-surface-50 p-3 dark:bg-surface-800/50">
+                              <p className="text-xs text-surface-500">{field.label}</p>
+                              <p className="mt-1 font-semibold text-ink-900 dark:text-white">{m[field.key] || '—'} <span className="text-xs font-normal text-surface-500">{field.unit}</span></p>
+                            </div>
+                          ))}
+                        </div>
+                        {m.notes && <p className="mt-3 text-sm text-surface-600 dark:text-surface-300">Note: {m.notes}</p>}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </section>
+                ))}
               </div>
             ) : <div className="p-5"><EmptyState title="No measurements yet" description="Your body measurements will appear here once recorded by gym staff." /></div>}
           </Card>
         </>
       ) : (
-        <EmptyState title="No measurements yet" description="Your body measurements will appear here once recorded by gym staff. Only gym staff can create measurement records." />
+        <EmptyState title={admission?.status === 'active' ? 'No measurements yet' : 'Gym admission required'} description={admission?.status === 'active' ? 'Your body measurements will appear here once recorded by gym staff. Only gym staff can create measurement records.' : 'Your body measurement section will become available after gym staff completes your admission.'} />
       )}
     </div>
   );
